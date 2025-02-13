@@ -1,17 +1,8 @@
+import type { ForecastDay, WeatherData } from '@/types/weather';
 import type { ComponentType } from 'react';
-
-export type WeatherIcon = ComponentType<{ className?: string }>;
-
-export interface ForecastDay {
-  date: string;
-  condition: string;
-  icon: WeatherIcon;
-  temp: {
-    min: number;
-    max: number;
-  };
-}
 import { HeavyRainIcon, PartlyCloudyIcon, FogIcon } from '@/components/icons';
+
+type WeatherIcon = ComponentType<{ className?: string }>;
 
 interface OpenMeteoResponse {
   latitude: number;
@@ -109,113 +100,126 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
     temp: number;
     icon: WeatherIcon;
     precipitation: number;
-    uvIndex: number;
+    uvIndex: {
+      value: number;
+      category: string;
+    };
     humidity: number;
+    pressure: number;
   }>;
   dailyForecast: ForecastDay[];
 }> {
-  try {
-    const params = {
-      latitude,
-      longitude,
-      hourly: [
-        'temperature_2m',
-        'weathercode',
-        'windspeed_10m',
-        'winddirection_10m',
-        'precipitation_probability',
-        'uv_index',
-        'relative_humidity_2m',
-        'surface_pressure'
-      ],
-      daily: [
-        'weathercode',
-        'temperature_2m_max',
-        'temperature_2m_min',
-        'precipitation_probability_max',
-        'uv_index_max'
-      ],
-      timezone: 'auto'
-    };
+  const response = await fetchWeatherApi('https://api.open-meteo.com/v1/forecast', {
+    latitude,
+    longitude,
+    hourly: [
+      'temperature_2m',
+      'weathercode',
+      'windspeed_10m',
+      'winddirection_10m',
+      'precipitation_probability',
+      'uv_index',
+      'relative_humidity_2m',
+      'surface_pressure'
+    ],
+    daily: [
+      'temperature_2m_max',
+      'temperature_2m_min',
+      'weathercode',
+      'precipitation_probability_max',
+      'uv_index_max'
+    ],
+    timezone: 'auto'
+  });
 
-    const response = await fetchWeatherApi("https://api.open-meteo.com/v1/forecast", params);
+  const currentIndex = new Date().getHours();
+  const currentWeatherCode = response.hourly.weathercode[currentIndex];
+  const weatherInfo = WMO_CODES[currentWeatherCode] || WMO_CODES[0];
 
-    if (!response || !response.hourly || !response.daily) {
-      throw new Error('Invalid response from Open-Meteo API');
-    }
+  const getWindDirection = (degrees: number): string => {
+    const directions = ['North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest'];
+    const index = Math.round(degrees / 45) % 8;
+    return directions[index];
+  };
 
-    const { hourly, daily } = response;
+  const getUVCategory = (uvIndex: number): string => {
+    if (uvIndex <= 2) return 'Low';
+    if (uvIndex <= 5) return 'Moderate';
+    if (uvIndex <= 7) return 'High';
+    if (uvIndex <= 10) return 'Very High';
+    return 'Extreme';
+  };
 
-    const now = new Date();
-    const currentTimeISO = now.toISOString().slice(0, 13);
-    const foundIndex = hourly.time.findIndex(time => time.startsWith(currentTimeISO));
-    const currentIndex = foundIndex >= 0 ? foundIndex : 0;
+  const hourlyForecast = response.hourly.time.map((time, index) => ({
+    time,
+    temp: response.hourly.temperature_2m[index],
+    icon: WMO_CODES[response.hourly.weathercode[index]]?.icon || WMO_CODES[0].icon,
+    precipitation: response.hourly.precipitation_probability[index],
+    uvIndex: {
+      value: response.hourly.uv_index[index],
+      category: getUVCategory(response.hourly.uv_index[index])
+    },
+    humidity: response.hourly.relative_humidity_2m[index],
+    pressure: response.hourly.surface_pressure[index]
+  }));
 
-    const getUVIndexCategory = (uvIndex: number): string => {
-      if (uvIndex >= 11) return 'Extreme';
-      if (uvIndex >= 8) return 'Very High';
-      if (uvIndex >= 6) return 'High';
-      if (uvIndex >= 3) return 'Moderate';
-      return 'Low';
-    };
+  const dailyForecast = response.daily.time.map((date, index) => {
+    // Get the start hour index for this day
+    const dayStartIndex = index * 24;
+    // Get 24 hours of data for this day
+    const dayHourlyData = Array.from({ length: 24 }, (_, hourIndex) => {
+      const absoluteIndex = dayStartIndex + hourIndex;
+      return {
+        time: new Date(response.hourly.time[absoluteIndex]).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        temp: response.hourly.temperature_2m[absoluteIndex],
+        icon: WMO_CODES[response.hourly.weathercode[absoluteIndex]]?.icon || WMO_CODES[0].icon,
+        precipitation: response.hourly.precipitation_probability[absoluteIndex],
+        uvIndex: {
+          value: response.hourly.uv_index[absoluteIndex],
+          category: getUVCategory(response.hourly.uv_index[absoluteIndex])
+        },
+        humidity: response.hourly.relative_humidity_2m[absoluteIndex],
+        pressure: response.hourly.surface_pressure[absoluteIndex]
+      };
+    });
 
-    const currentWeather = {
-      temperature: Math.round(hourly.temperature_2m[currentIndex]),
-      ...getWeatherInfo(hourly.weathercode[currentIndex]),
-      wind: {
-        speed: Math.round(hourly.windspeed_10m[currentIndex]),
-        direction: getWindDirection(hourly.winddirection_10m[currentIndex])
-      },
-      precipitation: hourly.precipitation_probability[currentIndex],
-      uvIndex: {
-        value: Math.round(hourly.uv_index[currentIndex]),
-        category: getUVIndexCategory(Math.round(hourly.uv_index[currentIndex]))
-      },
-      humidity: Math.round(hourly.relative_humidity_2m[currentIndex]),
-      pressure: Math.round(hourly.surface_pressure[currentIndex])
-    };
-
-    const hourlyForecast = hourly.time
-      .slice(currentIndex, currentIndex + 10)
-      .map((time, index) => ({
-        time: new Date(time).toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }),
-        temp: Math.round(hourly.temperature_2m[currentIndex + index]),
-        ...getWeatherInfo(hourly.weathercode[currentIndex + index]),
-        precipitation: hourly.precipitation_probability[currentIndex + index],
-        uvIndex: Math.round(hourly.uv_index[currentIndex + index]),
-        humidity: Math.round(hourly.relative_humidity_2m[currentIndex + index])
-      }));
-
-    const dailyForecast = daily.time.map((date, index) => ({
-      date: new Date(date).toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-      }),
-      ...getWeatherInfo(daily.weathercode[index]),
+    return {
+      date,
+      condition: WMO_CODES[response.daily.weathercode[index]]?.condition || 'Clear Sky',
+      icon: WMO_CODES[response.daily.weathercode[index]]?.icon || WMO_CODES[0].icon,
       temp: {
-        min: Math.round(daily.temperature_2m_min[index]),
-        max: Math.round(daily.temperature_2m_max[index])
-      }
-    }));
+        min: response.daily.temperature_2m_min[index],
+        max: response.daily.temperature_2m_max[index]
+      },
+      precipitation: response.daily.precipitation_probability_max[index],
+      uvIndex: {
+        value: response.daily.uv_index_max[index],
+        category: getUVCategory(response.daily.uv_index_max[index])
+      },
+      humidity: response.hourly.relative_humidity_2m[index * 24],
+      pressure: response.hourly.surface_pressure[index * 24],
+      hourly: dayHourlyData
+    };
+  });
 
-    return { currentWeather, hourlyForecast, dailyForecast };
-  } catch (error) {
-    console.error('Error in fetchWeatherData:', error);
-    throw new Error('Failed to fetch weather data');
-  }
-}
-
-function getWeatherInfo(code: number) {
-  return WMO_CODES[code] || { condition: 'Unknown', icon: PartlyCloudyIcon };
-}
-
-function getWindDirection(degrees: number): string {
-  const directions = ['North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest'];
-  const index = Math.round(degrees / 45) % 8;
-  return directions[index];
+  return {
+    currentWeather: {
+      temperature: response.hourly.temperature_2m[currentIndex],
+      condition: weatherInfo.condition,
+      icon: weatherInfo.icon,
+      wind: {
+        speed: response.hourly.windspeed_10m[currentIndex],
+        direction: getWindDirection(response.hourly.winddirection_10m[currentIndex])
+      },
+      precipitation: response.hourly.precipitation_probability[currentIndex],
+      uvIndex: {
+        value: response.hourly.uv_index[currentIndex],
+        category: getUVCategory(response.hourly.uv_index[currentIndex])
+      },
+      humidity: response.hourly.relative_humidity_2m[currentIndex],
+      pressure: response.hourly.surface_pressure[currentIndex]
+    },
+    hourlyForecast,
+    dailyForecast
+  };
 }

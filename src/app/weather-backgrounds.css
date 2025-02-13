@@ -78,6 +78,7 @@
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
+  overflow: hidden;
 }
 
 .glass-container:hover {
@@ -202,4 +203,32 @@
   100% {
     opacity: 0.6;
   }
+}
+.detail-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 0;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s ease-in-out;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.detail-panel.active {
+  width: 300px;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.detail-panel-content {
+  padding: 20px;
+  width: 300px;
+  height: 100%;
+  overflow-y: auto;
 }
