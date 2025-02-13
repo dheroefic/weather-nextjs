@@ -46,57 +46,6 @@ interface WeatherData {
   dailyForecast: ForecastDay[];
 }
 
-// Default forecast data for loading state
-const defaultForecastData = {
-  '3 days': [
-    { date: 'Friday, April 21', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
-    { date: 'Saturday, April 22', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 9, max: 16 } },
-    { date: 'Sunday, April 23', condition: 'Fog', icon: FogIcon, temp: { min: 9, max: 16 } },
-  ],
-  '7 days': [
-    { date: 'Friday, April 21', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
-    { date: 'Saturday, April 22', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 9, max: 16 } },
-    { date: 'Sunday, April 23', condition: 'Fog', icon: FogIcon, temp: { min: 9, max: 16 } },
-    { date: 'Monday, April 24', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 9, max: 16 } },
-    { date: 'Tuesday, April 25', condition: 'Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
-    { date: 'Wednesday, April 26', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 8, max: 15 } },
-    { date: 'Thursday, April 27', condition: 'Fog', icon: FogIcon, temp: { min: 10, max: 17 } },
-  ],
-  '14 days': [
-      // First 14 days
-      { date: 'Friday, April 21', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
-      { date: 'Saturday, April 22', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 9, max: 16 } },
-      { date: 'Sunday, April 23', condition: 'Fog', icon: FogIcon, temp: { min: 9, max: 16 } },
-      { date: 'Monday, April 24', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 9, max: 16 } },
-      { date: 'Tuesday, April 25', condition: 'Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
-      { date: 'Wednesday, April 26', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 8, max: 15 } },
-      { date: 'Thursday, April 27', condition: 'Fog', icon: FogIcon, temp: { min: 10, max: 17 } },
-      { date: 'Friday, April 28', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 11, max: 18 } },
-      { date: 'Saturday, April 29', condition: 'Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
-      { date: 'Sunday, April 30', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 10, max: 17 } },
-      { date: 'Monday, May 1', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 8, max: 15 } },
-      { date: 'Tuesday, May 2', condition: 'Fog', icon: FogIcon, temp: { min: 9, max: 16 } },
-      { date: 'Wednesday, May 3', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 10, max: 17 } },
-      { date: 'Thursday, May 4', condition: 'Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
-      // Additional 16 days
-      { date: 'Friday, May 5', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 10, max: 17 } },
-      { date: 'Saturday, May 6', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 8, max: 15 } },
-      { date: 'Sunday, May 7', condition: 'Fog', icon: FogIcon, temp: { min: 9, max: 16 } },
-      { date: 'Monday, May 8', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 11, max: 18 } },
-      { date: 'Tuesday, May 9', condition: 'Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
-      { date: 'Wednesday, May 10', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 8, max: 15 } },
-      { date: 'Thursday, May 11', condition: 'Fog', icon: FogIcon, temp: { min: 10, max: 17 } },
-      { date: 'Friday, May 12', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 11, max: 18 } },
-      { date: 'Saturday, May 13', condition: 'Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
-      { date: 'Sunday, May 14', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 10, max: 17 } },
-      { date: 'Monday, May 15', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 8, max: 15 } },
-      { date: 'Tuesday, May 16', condition: 'Fog', icon: FogIcon, temp: { min: 9, max: 16 } },
-      { date: 'Wednesday, May 17', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 10, max: 17 } },
-      { date: 'Thursday, May 18', condition: 'Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
-      { date: 'Friday, May 19', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 8, max: 15 } },
-      { date: 'Saturday, May 20', condition: 'Fog', icon: FogIcon, temp: { min: 10, max: 17 } },
-    ]
-  };
 
   export default function WeatherApp() {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -117,15 +66,6 @@ const defaultForecastData = {
     setTempUnit(prev => prev === 'C' ? 'F' : 'C');
   };
 
-  const handleClipboardAction = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-      // Fallback to a user-friendly message
-      alert('Unable to copy to clipboard. Please copy manually.');
-    }
-  };
 
   useEffect(() => {
     const fetchData = async () => {

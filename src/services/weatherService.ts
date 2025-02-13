@@ -53,7 +53,15 @@ const WMO_CODES: { [key: number]: { condition: string; icon: WeatherIcon } } = {
  * A helper function to fetch data from the Open-Meteo API.
  * It converts arrays to comma-separated strings for the query parameters.
  */
-async function fetchWeatherApi(url: string, params: Record<string, any>): Promise<OpenMeteoResponse> {
+interface WeatherApiParams {
+  latitude: number;
+  longitude: number;
+  hourly: string[];
+  daily: string[];
+  timezone: string;
+}
+
+async function fetchWeatherApi(url: string, params: WeatherApiParams): Promise<OpenMeteoResponse> {
   const queryParams = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (Array.isArray(value)) {
