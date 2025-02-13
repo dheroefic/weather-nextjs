@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import cities from '../data/cities.json';
 
 interface LocationSelectorProps {
-  onLocationSelect: (location: { city: string; country: string }) => void;
-  currentLocation: { city: string; country: string };
+  onLocationSelect: (location: { city: string; country: string; coordinates?: { latitude: number; longitude: number } }) => void;
+  currentLocation: { city: string; country: string; coordinates?: { latitude: number; longitude: number } };
 }
 
 export default function LocationSelector({ onLocationSelect, currentLocation }: LocationSelectorProps) {
@@ -71,7 +71,14 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
                 key={index}
                 className="w-full p-3 text-left hover:bg-white/10 transition-colors duration-200"
                 onClick={() => {
-                  onLocationSelect({ city: city.name, country: city.country });
+                  onLocationSelect({
+                    city: city.name,
+                    country: city.country,
+                    coordinates: {
+                      latitude: city.latitude,
+                      longitude: city.longitude
+                    }
+                  });
                   setIsOpen(false);
                   setSearchTerm('');
                 }}

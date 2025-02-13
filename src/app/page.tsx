@@ -3,14 +3,19 @@
 import { useState, useEffect } from 'react';
 import { HeavyRainIcon, PartlyCloudyIcon, FogIcon, WindIcon } from '@/components/icons';
 import LocationSelector from '@/components/LocationSelector';
+import { fetchWeatherData } from '@/services/weatherService';
 import './weather-backgrounds.css';
 
-type WeatherIcon = typeof HeavyRainIcon;
+import type { WeatherIcon } from '@/services/weatherService';
 type TemperatureUnit = 'C' | 'F';
 
 interface Location {
   city: string;
   country: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
 }
 
 interface ForecastDay {
@@ -23,12 +28,26 @@ interface ForecastDay {
   };
 }
 
-interface ForecastData {
-  [key: string]: ForecastDay[];
+interface WeatherData {
+  currentWeather: {
+    temperature: number;
+    condition: string;
+    icon: WeatherIcon;
+    wind: {
+      direction: string;
+      speed: number;
+    };
+  };
+  hourlyForecast: Array<{
+    time: string;
+    temp: number;
+    icon: WeatherIcon;
+  }>;
+  dailyForecast: ForecastDay[];
 }
 
-// Sample forecast data for different periods
-const forecastData: ForecastData = {
+// Default forecast data for loading state
+const defaultForecastData = {
   '3 days': [
     { date: 'Friday, April 21', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
     { date: 'Saturday, April 22', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 9, max: 16 } },
@@ -83,9 +102,9 @@ const forecastData: ForecastData = {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [location, setLocation] = useState<Location>({ city: 'Loading...', country: '' });
   const [forecastPeriod, setForecastPeriod] = useState<'3 days' | '7 days' | '14 days'>('3 days');
-  const [currentForecast, setCurrentForecast] = useState(forecastData['3 days']);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [tempUnit, setTempUnit] = useState<TemperatureUnit>('C');
-  const currentTemp = 11;
+  const [loading, setLoading] = useState(true);
 
   const convertTemp = (temp: number, unit: TemperatureUnit): number => {
     if (unit === 'F') {
@@ -98,9 +117,46 @@ const forecastData: ForecastData = {
     setTempUnit(prev => prev === 'C' ? 'F' : 'C');
   };
 
+  const handleClipboardAction = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      // Fallback to a user-friendly message
+      alert('Unable to copy to clipboard. Please copy manually.');
+    }
+  };
+
   useEffect(() => {
-    setCurrentForecast(forecastData[forecastPeriod]);
-  }, [forecastPeriod]);
+    const fetchData = async () => {
+      try {
+        if (!location.coordinates) {
+          setLoading(false);
+          return;
+        }
+        
+        const data = await fetchWeatherData(
+          location.coordinates.latitude,
+          location.coordinates.longitude
+        );
+
+        if (data && data.currentWeather && data.hourlyForecast && data.dailyForecast) {
+          setWeatherData(data);
+        } else {
+          console.error('Invalid weather data structure received');
+          setWeatherData(null);
+        }
+      } catch (error) {
+        console.error('Error fetching weather data:', error);
+        setWeatherData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    setLoading(true);
+    fetchData();
+  }, [location.coordinates]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -111,23 +167,57 @@ const forecastData: ForecastData = {
   }, []);
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    const defaultLocation = {
+      city: 'Jakarta',
+      country: 'Indonesia',
+      coordinates: {
+        latitude: -6.2088,
+        longitude: 106.8456
+      }
+    };
+
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        try {
-          const response = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&localityLanguage=en`
-          );
-          const data = await response.json();
-          setLocation({
-            city: data.city || 'Unknown City',
-            country: data.countryName || 'Unknown Country'
-          });
-        } catch (error) {
-          console.error('Error fetching location:', error);
-          setLocation({ city: 'Error loading location', country: '' });
+      timeoutId = setTimeout(() => {
+        setLocation(defaultLocation);
+      }, 5000);
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          clearTimeout(timeoutId);
+          try {
+            const response = await fetch(
+              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&localityLanguage=en`
+            );
+            const data = await response.json();
+            setLocation({
+              city: data.city || 'Unknown City',
+              country: data.countryName || 'Unknown Country',
+              coordinates: {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+              }
+            });
+          } catch (error) {
+            console.error('Error fetching location:', error);
+            setLocation(defaultLocation);
+          }
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          clearTimeout(timeoutId);
+          setLocation(defaultLocation);
         }
-      });
+      );
+    } else {
+      setLocation(defaultLocation);
     }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   const formatDate = (date: Date) => {
@@ -154,14 +244,16 @@ const forecastData: ForecastData = {
         return 'weather-heavy-rain';
       case 'partly cloudy':
         return 'weather-partly-cloudy';
+      case 'cloudy':
+        return 'weather-cloudy';
       case 'fog':
         return 'weather-fog';
       default:
-        return '';
+        return 'weather-default';
     }
   };
 
-  const currentWeather = 'Heavy Rain';
+  const currentWeather = weatherData?.currentWeather.condition || 'Loading...';
   const weatherClass = getWeatherClass(currentWeather);
 
   return (
@@ -172,7 +264,9 @@ const forecastData: ForecastData = {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-8">
             <div>
               <div className="flex items-center gap-3">
-                <div className="text-5xl md:text-6xl font-bold">{convertTemp(currentTemp, tempUnit)}°{tempUnit}</div>
+                <div className="text-5xl md:text-6xl font-bold">
+                  {weatherData ? convertTemp(weatherData.currentWeather.temperature, tempUnit) : '--'}°{tempUnit}
+                </div>
                 <button
                   onClick={toggleTempUnit}
                   className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 text-sm font-medium backdrop-blur-sm"
@@ -182,7 +276,7 @@ const forecastData: ForecastData = {
               </div>
               <div className="flex items-center gap-2 mt-2">
                 <WindIcon />
-                <span className="text-base">Northwest, 38.9 km/h</span>
+                <span className="text-base">{weatherData ? `${weatherData.currentWeather.wind.direction}, ${weatherData.currentWeather.wind.speed} km/h` : '--'}</span>
               </div>
             </div>
             <div className="flex flex-col items-start md:items-end">
@@ -199,13 +293,17 @@ const forecastData: ForecastData = {
         </div>
 
         <div className="glass-container p-4 md:p-6 mb-6 md:mb-8 rounded-xl md:rounded-2xl backdrop-blur-md bg-white/5">
-          <div className="text-2xl md:text-4xl mb-3 md:mb-4 font-bold">Heavy Rain</div>
-          <div className="text-sm md:text-lg text-white/80">Expect continuous heavy rainfall throughout the day</div>
+          <div className={`text-2xl md:text-4xl mb-3 md:mb-4 font-bold ${loading ? 'loading-pulse' : ''}`}>
+            {weatherData ? weatherData.currentWeather.condition : 'Loading...'}
+          </div>
+          <div className={`text-sm md:text-lg text-white/80 ${loading ? 'loading-shimmer' : ''}`}>
+            {weatherData ? `Current weather conditions in ${location.city}` : 'Fetching weather information...'}
+          </div>
         </div>
 
         <div className="glass-container p-4 md:p-6 mb-6 md:mb-8 rounded-xl md:rounded-2xl backdrop-blur-md bg-white/5">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-0">
-            <div className="text-base md:text-xl font-semibold">The Next Days Forecast</div>
+            <div className={`text-base md:text-xl font-semibold ${loading ? 'loading-pulse' : ''}`}>The Next Days Forecast</div>
             <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3">
               <button
                 onClick={() => setForecastPeriod('3 days')}
@@ -230,7 +328,7 @@ const forecastData: ForecastData = {
 
           <div className="overflow-x-auto">
             <div className="flex gap-3 md:gap-4 pb-4 min-w-max">
-              {currentForecast.map((day, index) => {
+              {weatherData?.dailyForecast.slice(0, forecastPeriod === '3 days' ? 3 : forecastPeriod === '7 days' ? 7 : 14).map((day, index) => {
                 const Icon = day.icon;
                 return (
                   <div key={index} className="flex-shrink-0 w-[160px] p-3 md:p-4 bg-white/5 rounded-xl">
@@ -242,25 +340,14 @@ const forecastData: ForecastData = {
                     </div>
                   </div>
                 );
-              })}
+              }) || []}
             </div>
           </div>
         </div>
 
         <div className="overflow-x-auto glass-container mb-2">
-          <div className="flex gap-4 pb-2 min-w-fit p-4 backdrop-blur-lg bg-white/10 rounded-xl">
-            {[
-              { time: '09:00', temp: 9, icon: HeavyRainIcon },
-              { time: '10:00', temp: 10, icon: HeavyRainIcon },
-              { time: '11:00', temp: 10, icon: HeavyRainIcon },
-              { time: '12:00', temp: 11, icon: HeavyRainIcon },
-              { time: '13:00', temp: 12, icon: HeavyRainIcon },
-              { time: '14:00', temp: 14, icon: HeavyRainIcon },
-              { time: '15:00', temp: 14, icon: PartlyCloudyIcon },
-              { time: '16:00', temp: 16, icon: PartlyCloudyIcon },
-              { time: '17:00', temp: 16, icon: PartlyCloudyIcon },
-              { time: '18:00', temp: 15, icon: PartlyCloudyIcon },
-            ].map((hour, index) => (
+          <div className={`flex gap-4 pb-2 min-w-fit p-4 backdrop-blur-lg bg-white/10 rounded-xl ${loading ? 'loading-shimmer' : ''}`}>
+            {weatherData?.hourlyForecast.map((hour, index) => (
               <div key={index} className="text-center p-2 md:p-3 transition-transform hover:scale-105">
                 <div className="text-xs md:text-sm mb-1 md:mb-2">{hour.time}</div>
                 <hour.icon />
