@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { HeavyRainIcon, PartlyCloudyIcon, FogIcon, WindIcon } from '@/components/icons';
+import LocationSelector from '@/components/LocationSelector';
 import './weather-backgrounds.css';
 
 type WeatherIcon = typeof HeavyRainIcon;
@@ -196,8 +197,11 @@ const forecastData: ForecastData = {
             <div className="flex flex-col items-start md:items-end">
               <div className="text-base md:text-xl font-medium opacity-90">{formatDate(currentTime)}</div>
               <div className="text-2xl md:text-3xl font-bold">{formatTime(currentTime)}</div>
-              <div className="text-base md:text-xl font-semibold bg-white/10 px-3 py-1 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 mt-2">
-                {location.city}, {location.country}
+              <div className="mt-2">
+                <LocationSelector
+                  currentLocation={location}
+                  onLocationSelect={setLocation}
+                />
               </div>
             </div>
           </div>
