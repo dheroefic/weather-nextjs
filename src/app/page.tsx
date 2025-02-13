@@ -279,7 +279,7 @@ const forecastData: ForecastData = {
           </div>
         </div>
         <div className="text-center text-white/50 text-xs mt-2 mb-4">
-          Background images powered by <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="hover:text-white/80 transition-colors">Unsplash</a>
+          Background images provided by <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="hover:text-white/80 transition-colors">Unsplash</a>
         </div>
       </div>
     </div>
