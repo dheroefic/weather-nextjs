@@ -159,9 +159,9 @@ const forecastData: ForecastData = {
   const weatherClass = getWeatherClass(currentWeather);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-0 md:p-4">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center p-0 md:p-4 relative">
       <div className={`weather-background ${weatherClass}`} />
-      <div className="w-full h-full min-h-screen md:h-auto md:min-h-0 md:max-w-3xl bg-black/20 backdrop-blur-lg md:rounded-3xl overflow-hidden text-white p-3 md:p-8">
+      <div className="w-full h-full min-h-screen md:h-auto md:min-h-0 md:max-w-3xl bg-black/20 backdrop-blur-lg md:rounded-3xl overflow-hidden text-white p-3 md:p-8 relative">
         <div className="flex flex-col gap-4 mb-6 md:mb-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-8">
             <div>
@@ -228,7 +228,7 @@ const forecastData: ForecastData = {
           </div>
         </div>
 
-        <div className="mb-8 overflow-x-auto glass-container">
+        <div className="overflow-x-auto glass-container mb-2">
           <div className="flex gap-4 pb-2 min-w-fit p-4 backdrop-blur-lg bg-white/10 rounded-xl">
             {[
               { time: '09:00', temp: 9, icon: HeavyRainIcon },
@@ -249,6 +249,9 @@ const forecastData: ForecastData = {
               </div>
             ))}
           </div>
+        </div>
+        <div className="text-center text-white/50 text-xs mt-2 mb-4">
+          Background images powered by <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="hover:text-white/80 transition-colors">Unsplash</a>
         </div>
       </div>
     </div>
