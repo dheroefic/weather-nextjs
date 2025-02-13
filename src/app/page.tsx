@@ -29,14 +29,12 @@ interface ForecastData {
 
 // Sample forecast data for different periods
 const forecastData: ForecastData = {
-  '5 days': [
+  '3 days': [
     { date: 'Friday, April 21', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
     { date: 'Saturday, April 22', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 9, max: 16 } },
     { date: 'Sunday, April 23', condition: 'Fog', icon: FogIcon, temp: { min: 9, max: 16 } },
-    { date: 'Monday, April 24', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 9, max: 16 } },
-    { date: 'Tuesday, April 25', condition: 'Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
   ],
-  '14 days': [
+  '7 days': [
     { date: 'Friday, April 21', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
     { date: 'Saturday, April 22', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 9, max: 16 } },
     { date: 'Sunday, April 23', condition: 'Fog', icon: FogIcon, temp: { min: 9, max: 16 } },
@@ -44,15 +42,8 @@ const forecastData: ForecastData = {
     { date: 'Tuesday, April 25', condition: 'Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
     { date: 'Wednesday, April 26', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 8, max: 15 } },
     { date: 'Thursday, April 27', condition: 'Fog', icon: FogIcon, temp: { min: 10, max: 17 } },
-    { date: 'Friday, April 28', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 11, max: 18 } },
-    { date: 'Saturday, April 29', condition: 'Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
-    { date: 'Sunday, April 30', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 10, max: 17 } },
-    { date: 'Monday, May 1', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 8, max: 15 } },
-    { date: 'Tuesday, May 2', condition: 'Fog', icon: FogIcon, temp: { min: 9, max: 16 } },
-    { date: 'Wednesday, May 3', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 10, max: 17 } },
-    { date: 'Thursday, May 4', condition: 'Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
   ],
-  '30 days': [
+  '14 days': [
       // First 14 days
       { date: 'Friday, April 21', condition: 'Heavy Rain', icon: HeavyRainIcon, temp: { min: 9, max: 16 } },
       { date: 'Saturday, April 22', condition: 'Partly Cloudy', icon: PartlyCloudyIcon, temp: { min: 9, max: 16 } },
@@ -91,8 +82,8 @@ const forecastData: ForecastData = {
   export default function WeatherApp() {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [location, setLocation] = useState<Location>({ city: 'Loading...', country: '' });
-  const [forecastPeriod, setForecastPeriod] = useState<'5 days' | '14 days' | '30 days'>('5 days');
-  const [currentForecast, setCurrentForecast] = useState(forecastData['5 days']);
+  const [forecastPeriod, setForecastPeriod] = useState<'3 days' | '7 days' | '14 days'>('3 days');
+  const [currentForecast, setCurrentForecast] = useState(forecastData['3 days']);
   const [tempUnit, setTempUnit] = useState<TemperatureUnit>('C');
   const currentTemp = 11;
 
@@ -217,22 +208,22 @@ const forecastData: ForecastData = {
             <div className="text-base md:text-xl font-semibold">The Next Days Forecast</div>
             <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3">
               <button
-                onClick={() => setForecastPeriod('5 days')}
-                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '5 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
+                onClick={() => setForecastPeriod('3 days')}
+                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '3 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
               >
-                5 days
+                3 days
+              </button>
+              <button
+                onClick={() => setForecastPeriod('7 days')}
+                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '7 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
+              >
+                7 days
               </button>
               <button
                 onClick={() => setForecastPeriod('14 days')}
                 className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '14 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
               >
                 14 days
-              </button>
-              <button
-                onClick={() => setForecastPeriod('30 days')}
-                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '30 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
-              >
-                30 days
               </button>
             </div>
           </div>
