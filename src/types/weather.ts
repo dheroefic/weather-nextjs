@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react';
-import type { ReactNode } from 'react';
 
 export type WeatherIcon = ComponentType<{ className?: string }>;
 

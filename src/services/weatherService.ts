@@ -1,4 +1,4 @@
-import type { ForecastDay, WeatherData } from '@/types/weather';
+import type { ForecastDay } from '@/types/weather';
 import type { ComponentType } from 'react';
 import { HeavyRainIcon, PartlyCloudyIcon, FogIcon } from '@/components/icons';
 

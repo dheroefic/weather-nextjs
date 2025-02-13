@@ -14,7 +14,7 @@ interface DetailPanelProps {
 
 export default function DetailPanel({
   selectedDay,
-  weatherData,
+
   tempUnit,
   convertTemp,
   onClose
