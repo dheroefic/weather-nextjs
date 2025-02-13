@@ -137,8 +137,8 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
     // Build daily forecast.
     const dailyForecast = daily.time.map((date, index) => ({
       date: new Date(date).toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
+        weekday: 'short',
+        month: 'short',
         day: 'numeric'
       }),
       ...getWeatherInfo(daily.weathercode[index]),

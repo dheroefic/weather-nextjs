@@ -264,7 +264,7 @@ const defaultForecastData = {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-8">
             <div>
               <div className="flex items-center gap-3">
-                <div className="text-5xl md:text-6xl font-bold">
+                <div className="text-5xl md:text-6xl font-bold temperature-display">
                   {weatherData ? convertTemp(weatherData.currentWeather.temperature, tempUnit) : '--'}°{tempUnit}
                 </div>
                 <button
@@ -275,8 +275,8 @@ const defaultForecastData = {
                 </button>
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <WindIcon />
-                <span className="text-base">{weatherData ? `${weatherData.currentWeather.wind.direction}, ${weatherData.currentWeather.wind.speed} km/h` : '--'}</span>
+                <WindIcon className="weather-icon" />
+                <span className={`text-base ${loading ? 'loading-element' : ''}`}>{weatherData ? `${weatherData.currentWeather.wind.direction}, ${weatherData.currentWeather.wind.speed} km/h` : '--'}</span>
               </div>
             </div>
             <div className="flex flex-col items-start md:items-end">
@@ -293,11 +293,11 @@ const defaultForecastData = {
         </div>
 
         <div className="glass-container p-4 md:p-6 mb-6 md:mb-8 rounded-xl md:rounded-2xl backdrop-blur-md bg-white/5">
-          <div className={`text-2xl md:text-4xl mb-3 md:mb-4 font-bold ${loading ? 'loading-pulse' : ''}`}>
+          <div className={`text-2xl md:text-4xl mb-3 md:mb-4 font-bold ${loading ? 'loading-element' : ''}`}>
             {weatherData ? weatherData.currentWeather.condition : 'Loading...'}
           </div>
-          <div className={`text-sm md:text-lg text-white/80 ${loading ? 'loading-shimmer' : ''}`}>
-            {weatherData ? `Current weather conditions in ${location.city}` : 'Fetching weather information...'}
+          <div className={`text-sm md:text-lg text-white/80 ${loading ? 'loading-element' : ''}`}>
+            {weatherData ? `${weatherData.currentWeather.condition} with a temperature of ${convertTemp(weatherData.currentWeather.temperature, tempUnit)}°${tempUnit}. ${weatherData.currentWeather.wind.speed > 20 ? 'Strong' : 'Light to moderate'} ${weatherData.currentWeather.wind.direction} winds at ${weatherData.currentWeather.wind.speed} km/h.` : 'Fetching weather information...'}
           </div>
         </div>
 

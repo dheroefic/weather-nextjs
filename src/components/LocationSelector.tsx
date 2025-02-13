@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import cities from '../data/cities.json';
+import citiesData from '@/data/cities.json';
+
+interface City {
+  name: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+}
 
 interface LocationSelectorProps {
   onLocationSelect: (location: { city: string; country: string; coordinates?: { latitude: number; longitude: number } }) => void;
@@ -10,6 +17,8 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [cities] = useState<City[]>(citiesData);
 
   const filteredCities = cities.filter(city =>
     city.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

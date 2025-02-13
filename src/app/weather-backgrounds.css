@@ -155,3 +155,77 @@
     opacity: 0.6;
   }
 }
+/* Add smooth transitions for weather condition changes */
+.weather-background {
+  animation: fadeIn 1s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Add hover animations for interactive elements */
+.glass-container button:hover {
+  transform: translateY(-2px);
+  transition: transform 0.3s ease;
+}
+
+/* Add subtle scale animation for weather cards */
+.glass-container > div {
+  animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Add floating animation for icons */
+.weather-icon {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* Add smooth transition for temperature changes */
+.temperature-display {
+  transition: all 0.3s ease;
+}
+
+/* Add pulsing animation for loading states */
+.loading-element {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
