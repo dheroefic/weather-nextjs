@@ -5,6 +5,7 @@ import { HeavyRainIcon, PartlyCloudyIcon, FogIcon, WindIcon } from '@/components
 import './weather-backgrounds.css';
 
 type WeatherIcon = typeof HeavyRainIcon;
+type TemperatureUnit = 'C' | 'F';
 
 interface Location {
   city: string;
@@ -91,6 +92,19 @@ const forecastData: ForecastData = {
   const [location, setLocation] = useState<Location>({ city: 'Loading...', country: '' });
   const [forecastPeriod, setForecastPeriod] = useState<'5 days' | '14 days' | '30 days'>('5 days');
   const [currentForecast, setCurrentForecast] = useState(forecastData['5 days']);
+  const [tempUnit, setTempUnit] = useState<TemperatureUnit>('C');
+  const currentTemp = 11;
+
+  const convertTemp = (temp: number, unit: TemperatureUnit): number => {
+    if (unit === 'F') {
+      return Math.round((temp * 9/5) + 32);
+    }
+    return temp;
+  };
+
+  const toggleTempUnit = () => {
+    setTempUnit(prev => prev === 'C' ? 'F' : 'C');
+  };
 
   useEffect(() => {
     setCurrentForecast(forecastData[forecastPeriod]);
@@ -165,7 +179,15 @@ const forecastData: ForecastData = {
         <div className="flex flex-col gap-4 mb-6 md:mb-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-8">
             <div>
-              <div className="text-5xl md:text-6xl font-bold">11°C</div>
+              <div className="flex items-center gap-3">
+                <div className="text-5xl md:text-6xl font-bold">{convertTemp(currentTemp, tempUnit)}°{tempUnit}</div>
+                <button
+                  onClick={toggleTempUnit}
+                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 text-sm font-medium backdrop-blur-sm"
+                >
+                  °{tempUnit === 'C' ? 'F' : 'C'}
+                </button>
+              </div>
               <div className="flex items-center gap-2 mt-2">
                 <WindIcon />
                 <span className="text-base">Northwest, 38.9 km/h</span>
@@ -220,7 +242,9 @@ const forecastData: ForecastData = {
                     <div className="text-xs md:text-sm mb-2">{day.date}</div>
                     <Icon />
                     <div className="text-xs md:text-sm mt-2">{day.condition}</div>
-                    <div className="text-xs md:text-sm">{day.temp.min}° - {day.temp.max}°</div>
+                    <div className="text-xs md:text-sm">
+                      {convertTemp(day.temp.min, tempUnit)}° - {convertTemp(day.temp.max, tempUnit)}°{tempUnit}
+                    </div>
                   </div>
                 );
               })}
@@ -245,7 +269,7 @@ const forecastData: ForecastData = {
               <div key={index} className="text-center p-2 md:p-3 transition-transform hover:scale-105">
                 <div className="text-xs md:text-sm mb-1 md:mb-2">{hour.time}</div>
                 <hour.icon />
-                <div className="text-xs md:text-sm mt-1 md:mt-2">{hour.temp}°C</div>
+                <div className="text-xs md:text-sm mt-1 md:mt-2">{convertTemp(hour.temp, tempUnit)}°{tempUnit}</div>
               </div>
             ))}
           </div>
