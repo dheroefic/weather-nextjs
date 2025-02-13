@@ -22,12 +22,18 @@ interface OpenMeteoResponse {
     weathercode: number[];
     windspeed_10m: number[];
     winddirection_10m: number[];
+    precipitation_probability: number[];
+    uv_index: number[];
+    relative_humidity_2m: number[];
+    surface_pressure: number[];
   };
   daily: {
     time: string[];
     temperature_2m_max: number[];
     temperature_2m_min: number[];
     weathercode: number[];
+    precipitation_probability_max: number[];
+    uv_index_max: number[];
   };
 }
 
@@ -63,6 +69,9 @@ interface WeatherApiParams {
 
 async function fetchWeatherApi(url: string, params: WeatherApiParams): Promise<OpenMeteoResponse> {
   const queryParams = new URLSearchParams();
+  // Add forecast_days parameter to get extended forecast data
+  queryParams.append('forecast_days', '14');
+  
   Object.entries(params).forEach(([key, value]) => {
     if (Array.isArray(value)) {
       queryParams.append(key, value.join(','));
@@ -87,11 +96,18 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
       speed: number;
       direction: string;
     };
+    precipitation: number;
+    uvIndex: number;
+    humidity: number;
+    pressure: number;
   };
   hourlyForecast: Array<{
     time: string;
     temp: number;
     icon: WeatherIcon;
+    precipitation: number;
+    uvIndex: number;
+    humidity: number;
   }>;
   dailyForecast: ForecastDay[];
 }> {
@@ -99,8 +115,23 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
     const params = {
       latitude,
       longitude,
-      hourly: ['temperature_2m', 'weathercode', 'windspeed_10m', 'winddirection_10m'],
-      daily: ['weathercode', 'temperature_2m_max', 'temperature_2m_min'],
+      hourly: [
+        'temperature_2m',
+        'weathercode',
+        'windspeed_10m',
+        'winddirection_10m',
+        'precipitation_probability',
+        'uv_index',
+        'relative_humidity_2m',
+        'surface_pressure'
+      ],
+      daily: [
+        'weathercode',
+        'temperature_2m_max',
+        'temperature_2m_min',
+        'precipitation_probability_max',
+        'uv_index_max'
+      ],
       timezone: 'auto'
     };
 
@@ -112,24 +143,24 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
 
     const { hourly, daily } = response;
 
-    // Find the index corresponding to the current hour.
-    // We compare the beginning of the ISO string (up to the hour) to the values in hourly.time.
     const now = new Date();
-    const currentTimeISO = now.toISOString().slice(0, 13); // e.g. "2025-02-13T15"
+    const currentTimeISO = now.toISOString().slice(0, 13);
     const foundIndex = hourly.time.findIndex(time => time.startsWith(currentTimeISO));
     const currentIndex = foundIndex >= 0 ? foundIndex : 0;
 
-    // Build the current weather object.
     const currentWeather = {
       temperature: Math.round(hourly.temperature_2m[currentIndex]),
       ...getWeatherInfo(hourly.weathercode[currentIndex]),
       wind: {
         speed: Math.round(hourly.windspeed_10m[currentIndex]),
         direction: getWindDirection(hourly.winddirection_10m[currentIndex])
-      }
+      },
+      precipitation: hourly.precipitation_probability[currentIndex],
+      uvIndex: Math.round(hourly.uv_index[currentIndex]),
+      humidity: Math.round(hourly.relative_humidity_2m[currentIndex]),
+      pressure: Math.round(hourly.surface_pressure[currentIndex])
     };
 
-    // Build hourly forecast for the next 10 hours.
     const hourlyForecast = hourly.time
       .slice(currentIndex, currentIndex + 10)
       .map((time, index) => ({
@@ -139,10 +170,12 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
           hour12: false
         }),
         temp: Math.round(hourly.temperature_2m[currentIndex + index]),
-        ...getWeatherInfo(hourly.weathercode[currentIndex + index])
+        ...getWeatherInfo(hourly.weathercode[currentIndex + index]),
+        precipitation: hourly.precipitation_probability[currentIndex + index],
+        uvIndex: Math.round(hourly.uv_index[currentIndex + index]),
+        humidity: Math.round(hourly.relative_humidity_2m[currentIndex + index])
       }));
 
-    // Build daily forecast.
     const dailyForecast = daily.time.map((date, index) => ({
       date: new Date(date).toLocaleDateString('en-US', {
         weekday: 'short',

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { HeavyRainIcon, PartlyCloudyIcon, FogIcon, WindIcon } from '@/components/icons';
+import { useState, useEffect, ReactNode } from 'react';
+import { HeavyRainIcon, PartlyCloudyIcon, FogIcon, WindIcon, PrecipitationIcon, UVIndexIcon, HumidityIcon, PressureIcon } from '@/components/icons';
 import LocationSelector from '@/components/LocationSelector';
 import { fetchWeatherData } from '@/services/weatherService';
 import './weather-backgrounds.css';
@@ -30,6 +30,10 @@ interface ForecastDay {
 
 interface WeatherData {
   currentWeather: {
+    precipitation: any;
+    uvIndex: ReactNode;
+    humidity: any;
+    pressure: any;
     temperature: number;
     condition: string;
     icon: WeatherIcon;
@@ -50,7 +54,7 @@ interface WeatherData {
   export default function WeatherApp() {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [location, setLocation] = useState<Location>({ city: 'Loading...', country: '' });
-  const [forecastPeriod, setForecastPeriod] = useState<'3 days' | '7 days' | '14 days'>('3 days');
+  const [forecastPeriod, setForecastPeriod] = useState<'4 days' | '8 days' | '14 days'>('4 days');
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [tempUnit, setTempUnit] = useState<TemperatureUnit>('C');
   const [loading, setLoading] = useState(true);
@@ -177,6 +181,20 @@ interface WeatherData {
     });
   };
 
+  const getWindRotationDegree = (direction: string): number => {
+    const directions = {
+      'North': 0,
+      'Northeast': 45,
+      'East': 90,
+      'Southeast': 135,
+      'South': 180,
+      'Southwest': 225,
+      'West': 270,
+      'Northwest': 315
+    };
+    return directions[direction as keyof typeof directions] || 0;
+  };
+
   const getWeatherClass = (condition: string) => {
     switch (condition.toLowerCase()) {
       case 'heavy rain':
@@ -215,8 +233,20 @@ interface WeatherData {
                 </button>
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <WindIcon className="weather-icon" />
-                <span className={`text-base ${loading ? 'loading-element' : ''}`}>{weatherData ? `${weatherData.currentWeather.wind.direction}, ${weatherData.currentWeather.wind.speed} km/h` : '--'}</span>
+                <WindIcon
+                  className={`w-5 h-5 transform transition-transform duration-300 ${loading ? 'loading-element' : ''}`}
+                  style={{
+                    transform: weatherData
+                      ? `rotate(${getWindRotationDegree(weatherData.currentWeather.wind.direction)}deg)`
+                      : 'rotate(0deg)',
+                    animation: weatherData
+                      ? `float ${Math.max(5 - weatherData.currentWeather.wind.speed / 10, 1)}s ease-in-out infinite`
+                      : 'none'
+                  }}
+                />
+                <span className={`text-base ${loading ? 'loading-element' : ''}`}>
+                  {weatherData ? `${weatherData.currentWeather.wind.direction}, ${weatherData.currentWeather.wind.speed} km/h` : '--'}
+                </span>
               </div>
             </div>
             <div className="flex flex-col items-start md:items-end">
@@ -233,71 +263,96 @@ interface WeatherData {
         </div>
 
         <div className="glass-container p-4 md:p-6 mb-6 md:mb-8 rounded-xl md:rounded-2xl backdrop-blur-md bg-white/5">
-          <div className={`text-2xl md:text-4xl mb-3 md:mb-4 font-bold ${loading ? 'loading-element' : ''}`}>
-            {weatherData ? weatherData.currentWeather.condition : 'Loading...'}
+          <div className={`text-2xl md:text-4xl mb-3 md:mb-4 font-bold ${loading ? 'loading-element' : ''} flex items-center gap-3`}>
+            {weatherData ? (
+              <>
+                {weatherData.currentWeather.condition}
+                <weatherData.currentWeather.icon className="weather-icon w-8 h-8 md:w-10 md:h-10" />
+              </>
+            ) : 'Loading...'}
           </div>
-          <div className={`text-sm md:text-lg text-white/80 ${loading ? 'loading-element' : ''}`}>
-            {weatherData ? `${weatherData.currentWeather.condition} with a temperature of ${convertTemp(weatherData.currentWeather.temperature, tempUnit)}°${tempUnit}. ${weatherData.currentWeather.wind.speed > 20 ? 'Strong' : 'Light to moderate'} ${weatherData.currentWeather.wind.direction} winds at ${weatherData.currentWeather.wind.speed} km/h.` : 'Fetching weather information...'}
+          <div className={`text-sm md:text-lg text-white/80 ${loading ? 'loading-element' : ''} flex items-center gap-2`}>
+            {weatherData ? (
+              <>
+                {weatherData.currentWeather.condition} with a temperature of {convertTemp(weatherData.currentWeather.temperature, tempUnit)}°{tempUnit}. {weatherData.currentWeather.wind.speed > 20 ? 'Strong' : 'Light to moderate'} {weatherData.currentWeather.wind.direction} winds at {weatherData.currentWeather.wind.speed} km/h.
+              </>
+            ) : 'Fetching weather information...'}
           </div>
         </div>
 
         <div className="glass-container p-4 md:p-6 mb-6 md:mb-8 rounded-xl md:rounded-2xl backdrop-blur-md bg-white/5">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-0">
-            <div className={`text-base md:text-xl font-semibold ${loading ? 'loading-pulse' : ''}`}>The Next Days Forecast</div>
-            <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3">
-              <button
-                onClick={() => setForecastPeriod('3 days')}
-                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '3 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
-              >
-                3 days
-              </button>
-              <button
-                onClick={() => setForecastPeriod('7 days')}
-                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '7 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
-              >
-                7 days
-              </button>
-              <button
-                onClick={() => setForecastPeriod('14 days')}
-                className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '14 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
-              >
-                14 days
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <div className="flex gap-3 md:gap-4 pb-4 min-w-max">
-              {weatherData?.dailyForecast.slice(0, forecastPeriod === '3 days' ? 3 : forecastPeriod === '7 days' ? 7 : 14).map((day, index) => {
-                const Icon = day.icon;
-                return (
-                  <div key={index} className="flex-shrink-0 w-[160px] p-3 md:p-4 bg-white/5 rounded-xl">
-                    <div className="text-xs md:text-sm mb-2">{day.date}</div>
-                    <Icon />
-                    <div className="text-xs md:text-sm mt-2">{day.condition}</div>
-                    <div className="text-xs md:text-sm">
-                      {convertTemp(day.temp.min, tempUnit)}° - {convertTemp(day.temp.max, tempUnit)}°{tempUnit}
-                    </div>
-                  </div>
-                );
-              }) || []}
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto glass-container mb-2">
-          <div className={`flex gap-4 pb-2 min-w-fit p-4 backdrop-blur-lg bg-white/10 rounded-xl ${loading ? 'loading-shimmer' : ''}`}>
-            {weatherData?.hourlyForecast.map((hour, index) => (
-              <div key={index} className="text-center p-2 md:p-3 transition-transform hover:scale-105">
-                <div className="text-xs md:text-sm mb-1 md:mb-2">{hour.time}</div>
-                <hour.icon />
-                <div className="text-xs md:text-sm mt-1 md:mt-2">{convertTemp(hour.temp, tempUnit)}°{tempUnit}</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-3 bg-white/5 rounded-lg">
+              <div className="text-sm opacity-70 mb-1 flex items-center gap-2">
+                <PrecipitationIcon className="w-4 h-4" />
+                Precipitation
               </div>
-            ))}
+              <div className="text-lg font-semibold">{weatherData ? `${weatherData.currentWeather.precipitation}%` : '--'}</div>
+            </div>
+            <div className="p-3 bg-white/5 rounded-lg">
+              <div className="text-sm opacity-70 mb-1 flex items-center gap-2">
+                <UVIndexIcon className="w-4 h-4" />
+                UV Index
+              </div>
+              <div className="text-lg font-semibold">{weatherData ? weatherData.currentWeather.uvIndex : '--'}</div>
+            </div>
+            <div className="p-3 bg-white/5 rounded-lg">
+              <div className="text-sm opacity-70 mb-1 flex items-center gap-2">
+                <HumidityIcon className="w-4 h-4" />
+                Humidity
+              </div>
+              <div className="text-lg font-semibold">{weatherData ? `${weatherData.currentWeather.humidity}%` : '--'}</div>
+            </div>
+            <div className="p-3 bg-white/5 rounded-lg">
+              <div className="text-sm opacity-70 mb-1 flex items-center gap-2">
+                <PressureIcon className="w-4 h-4" />
+                Pressure
+              </div>
+              <div className="text-lg font-semibold">{weatherData ? `${weatherData.currentWeather.pressure} hPa` : '--'}</div>
+            </div>
           </div>
         </div>
-        <div className="text-center text-white/50 text-xs mt-2 mb-4">
-          Background images provided by <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="hover:text-white/80 transition-colors">Unsplash</a>
+
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-0">
+          <div className={`text-base md:text-xl font-semibold ${loading ? 'loading-pulse' : ''}`}>The Next Days Forecast</div>
+          <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3">
+            <button
+              onClick={() => setForecastPeriod('4 days')}
+              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '4 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
+            >
+              4 days
+            </button>
+            <button
+              onClick={() => setForecastPeriod('8 days')}
+              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '8 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
+            >
+              8 days
+            </button>
+            <button
+              onClick={() => setForecastPeriod('14 days')}
+              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '14 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
+            >
+              14 days
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <div className="inline-grid grid-flow-col auto-cols-[minmax(200px,1fr)] gap-3 md:gap-4 pb-4">
+            {weatherData?.dailyForecast.slice(0, forecastPeriod === '4 days' ? 4 : forecastPeriod === '8 days' ? 8 : 14).map((day, index) => {
+              const Icon = day.icon;
+              return (
+                <div key={index} className="p-3 md:p-4 bg-white/5 rounded-xl min-w-[200px]">
+                  <div className="text-xs md:text-sm mb-2">{day.date}</div>
+                  <Icon className="weather-icon" />
+                  <div className="text-xs md:text-sm mt-2">{day.condition}</div>
+                  <div className="text-xs md:text-sm">
+                    {convertTemp(day.temp.min, tempUnit)}° - {convertTemp(day.temp.max, tempUnit)}°{tempUnit}
+                  </div>
+                </div>
+              );
+            }) || []}
+          </div>
         </div>
       </div>
     </div>
