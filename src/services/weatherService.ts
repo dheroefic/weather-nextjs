@@ -97,7 +97,10 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
       direction: string;
     };
     precipitation: number;
-    uvIndex: number;
+    uvIndex: {
+      value: number;
+      category: string;
+    };
     humidity: number;
     pressure: number;
   };
@@ -148,6 +151,14 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
     const foundIndex = hourly.time.findIndex(time => time.startsWith(currentTimeISO));
     const currentIndex = foundIndex >= 0 ? foundIndex : 0;
 
+    const getUVIndexCategory = (uvIndex: number): string => {
+      if (uvIndex >= 11) return 'Extreme';
+      if (uvIndex >= 8) return 'Very High';
+      if (uvIndex >= 6) return 'High';
+      if (uvIndex >= 3) return 'Moderate';
+      return 'Low';
+    };
+
     const currentWeather = {
       temperature: Math.round(hourly.temperature_2m[currentIndex]),
       ...getWeatherInfo(hourly.weathercode[currentIndex]),
@@ -156,7 +167,10 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
         direction: getWindDirection(hourly.winddirection_10m[currentIndex])
       },
       precipitation: hourly.precipitation_probability[currentIndex],
-      uvIndex: Math.round(hourly.uv_index[currentIndex]),
+      uvIndex: {
+        value: Math.round(hourly.uv_index[currentIndex]),
+        category: getUVIndexCategory(Math.round(hourly.uv_index[currentIndex]))
+      },
       humidity: Math.round(hourly.relative_humidity_2m[currentIndex]),
       pressure: Math.round(hourly.surface_pressure[currentIndex])
     };

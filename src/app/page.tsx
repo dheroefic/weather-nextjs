@@ -30,10 +30,13 @@ interface ForecastDay {
 
 interface WeatherData {
   currentWeather: {
-    precipitation: any;
-    uvIndex: ReactNode;
-    humidity: any;
-    pressure: any;
+    precipitation: number;
+    uvIndex: {
+      value: number;
+      category: string;
+    };
+    humidity: number;
+    pressure: number;
     temperature: number;
     condition: string;
     icon: WeatherIcon;
@@ -199,6 +202,7 @@ interface WeatherData {
     switch (condition.toLowerCase()) {
       case 'heavy rain':
       case 'rain':
+      case 'light rain':
         return 'weather-heavy-rain';
       case 'partly cloudy':
         return 'weather-partly-cloudy';
@@ -206,6 +210,8 @@ interface WeatherData {
         return 'weather-cloudy';
       case 'fog':
         return 'weather-fog';
+      case 'clear sky':
+        return 'weather-sunny';
       default:
         return 'weather-default';
     }
@@ -282,39 +288,71 @@ interface WeatherData {
 
         <div className="glass-container p-4 md:p-6 mb-6 md:mb-8 rounded-xl md:rounded-2xl backdrop-blur-md bg-white/5">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-3 bg-white/5 rounded-lg">
-              <div className="text-sm opacity-70 mb-1 flex items-center gap-2">
-                <PrecipitationIcon className="w-4 h-4" />
-                Precipitation
+            <div className="p-3 bg-white/5 rounded-lg group relative cursor-help">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm opacity-70">Precipitation</div>
+                  <div className={`text-lg font-semibold ${loading ? 'loading-element w-16' : ''}`}>
+                    {weatherData ? `${weatherData.currentWeather.precipitation}%` : ''}
+                  </div>
+                </div>
+                <PrecipitationIcon className="w-5 h-5 opacity-70" />
               </div>
-              <div className="text-lg font-semibold">{weatherData ? `${weatherData.currentWeather.precipitation}%` : '--'}</div>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black/80 backdrop-blur-sm rounded-lg text-sm w-64 invisible group-hover:visible transition-all duration-200 z-10">
+                Precipitation probability indicates the chance of rain or snow. A higher percentage means more likely precipitation, helping you plan outdoor activities.
+              </div>
             </div>
-            <div className="p-3 bg-white/5 rounded-lg">
-              <div className="text-sm opacity-70 mb-1 flex items-center gap-2">
-                <UVIndexIcon className="w-4 h-4" />
-                UV Index
+            <div className="p-3 bg-white/5 rounded-lg group relative cursor-help">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm opacity-70">UV Index</div>
+                  <div className={`text-lg font-semibold ${loading ? 'loading-element w-32' : ''}`}>
+                    {weatherData ? (
+                      <>
+                        {weatherData.currentWeather.uvIndex.value} - {weatherData.currentWeather.uvIndex.category}
+                      </>
+                    ) : ''}
+                  </div>
+                </div>
+                <UVIndexIcon className="w-5 h-5 opacity-70" />
               </div>
-              <div className="text-lg font-semibold">{weatherData ? weatherData.currentWeather.uvIndex : '--'}</div>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black/80 backdrop-blur-sm rounded-lg text-sm w-64 invisible group-hover:visible transition-all duration-200 z-10">
+                UV Index measures sun exposure intensity (0-11+). Low (0-2), Moderate (3-5), High (6-7), Very High (8-10), Extreme (11+). Higher values require more sun protection.
+              </div>
             </div>
-            <div className="p-3 bg-white/5 rounded-lg">
-              <div className="text-sm opacity-70 mb-1 flex items-center gap-2">
-                <HumidityIcon className="w-4 h-4" />
-                Humidity
+            <div className="p-3 bg-white/5 rounded-lg group relative cursor-help">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm opacity-70">Humidity</div>
+                  <div className={`text-lg font-semibold ${loading ? 'loading-element w-16' : ''}`}>
+                    {weatherData ? `${weatherData.currentWeather.humidity}%` : ''}
+                  </div>
+                </div>
+                <HumidityIcon className="w-5 h-5 opacity-70" />
               </div>
-              <div className="text-lg font-semibold">{weatherData ? `${weatherData.currentWeather.humidity}%` : '--'}</div>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black/80 backdrop-blur-sm rounded-lg text-sm w-64 invisible group-hover:visible transition-all duration-200 z-10">
+                Relative humidity shows the amount of moisture in the air. 30-50% is comfortable, while higher values can make it feel warmer and more uncomfortable.
+              </div>
             </div>
-            <div className="p-3 bg-white/5 rounded-lg">
-              <div className="text-sm opacity-70 mb-1 flex items-center gap-2">
-                <PressureIcon className="w-4 h-4" />
-                Pressure
+            <div className="p-3 bg-white/5 rounded-lg group relative cursor-help">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm opacity-70">Pressure</div>
+                  <div className={`text-lg font-semibold ${loading ? 'loading-element w-24' : ''}`}>
+                    {weatherData ? `${weatherData.currentWeather.pressure} hPa` : ''}
+                  </div>
+                </div>
+                <PressureIcon className="w-5 h-5 opacity-70" />
               </div>
-              <div className="text-lg font-semibold">{weatherData ? `${weatherData.currentWeather.pressure} hPa` : '--'}</div>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black/80 backdrop-blur-sm rounded-lg text-sm w-64 invisible group-hover:visible transition-all duration-200 z-10">
+                Atmospheric pressure in hectopascals (hPa). Normal is ~1013 hPa. Lower pressure often means unsettled weather, while higher pressure typically indicates stable conditions.
+              </div>
             </div>
           </div>
         </div>
 
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-0">
-          <div className={`text-base md:text-xl font-semibold ${loading ? 'loading-pulse' : ''}`}>The Next Days Forecast</div>
+          <div className={`text-base md:text-xl font-semibold ${loading ? 'loading-pulse' : ''}`}>Daily Weather Outlook</div>
           <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3">
             <button
               onClick={() => setForecastPeriod('4 days')}
@@ -339,19 +377,30 @@ interface WeatherData {
 
         <div className="overflow-x-auto">
           <div className="inline-grid grid-flow-col auto-cols-[minmax(200px,1fr)] gap-3 md:gap-4 pb-4">
-            {weatherData?.dailyForecast.slice(0, forecastPeriod === '4 days' ? 4 : forecastPeriod === '8 days' ? 8 : 14).map((day, index) => {
-              const Icon = day.icon;
-              return (
+            {loading ? (
+              Array.from({ length: forecastPeriod === '4 days' ? 4 : forecastPeriod === '8 days' ? 8 : 14 }).map((_, index) => (
                 <div key={index} className="p-3 md:p-4 bg-white/5 rounded-xl min-w-[200px]">
-                  <div className="text-xs md:text-sm mb-2">{day.date}</div>
-                  <Icon className="weather-icon" />
-                  <div className="text-xs md:text-sm mt-2">{day.condition}</div>
-                  <div className="text-xs md:text-sm">
-                    {convertTemp(day.temp.min, tempUnit)}° - {convertTemp(day.temp.max, tempUnit)}°{tempUnit}
-                  </div>
+                  <div className="loading-element w-24 h-4 mb-2"></div>
+                  <div className="loading-element w-10 h-10 mb-2"></div>
+                  <div className="loading-element w-32 h-4 mt-2"></div>
+                  <div className="loading-element w-24 h-4 mt-2"></div>
                 </div>
-              );
-            }) || []}
+              ))
+            ) : (
+              weatherData?.dailyForecast.slice(0, forecastPeriod === '4 days' ? 4 : forecastPeriod === '8 days' ? 8 : 14).map((day, index) => {
+                const Icon = day.icon;
+                return (
+                  <div key={index} className="p-3 md:p-4 bg-white/5 rounded-xl min-w-[200px]">
+                    <div className="text-xs md:text-sm mb-2">{day.date}</div>
+                    <Icon className="weather-icon" />
+                    <div className="text-xs md:text-sm mt-2">{day.condition}</div>
+                    <div className="text-xs md:text-sm">
+                      {convertTemp(day.temp.min, tempUnit)}° - {convertTemp(day.temp.max, tempUnit)}°{tempUnit}
+                    </div>
+                  </div>
+                );
+              }) || []
+            )}
           </div>
         </div>
       </div>

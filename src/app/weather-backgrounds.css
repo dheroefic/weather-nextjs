@@ -9,6 +9,7 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  backdrop-filter: blur(8px);
 }
 
 .weather-heavy-rain,
@@ -44,10 +45,9 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
 }
-
-
 
 .weather-fog::after {
   content: '';
@@ -68,17 +68,21 @@
     transform: scale(1.5);
   }
 }
-/* Custom scrollbar styling */
+
 .glass-container {
   position: relative;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  min-height: 100px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
 }
 
-.glass-container.mb-2 {
-  min-height: 140px;
+.glass-container:hover {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .glass-container .loading-shimmer {
@@ -107,7 +111,6 @@
 .glass-container::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
-  margin: 0 4px;
 }
 
 .glass-container::-webkit-scrollbar-thumb {
@@ -125,18 +128,10 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
 }
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
-}
 
 .loading-shimmer {
   animation: shimmer 2s infinite linear;
-  background: linear-gradient(to right, rgba(255, 255, 255, 0.03) 8%, rgba(255, 255, 255, 0.07) 18%, rgba(255, 255, 255, 0.03) 33%);
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.03) 8%, rgba(255, 255, 255, 0.1) 18%, rgba(255, 255, 255, 0.03) 33%);
   background-size: 1000px 100%;
 }
 
@@ -145,37 +140,25 @@
 }
 
 @keyframes pulse {
-  0% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 0.3;
-  }
-  100% {
-    opacity: 0.6;
-  }
+  0% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+  100% { opacity: 0.6; }
 }
-/* Add smooth transitions for weather condition changes */
+
 .weather-background {
   animation: fadeIn 1s ease-in-out;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* Add hover animations for interactive elements */
 .glass-container button:hover {
   transform: translateY(-2px);
   transition: transform 0.3s ease;
 }
 
-/* Add subtle scale animation for weather cards */
 .glass-container > div {
   animation: scaleIn 0.5s ease-out;
 }
@@ -191,29 +174,20 @@
   }
 }
 
-/* Add floating animation for icons */
 .weather-icon {
   animation: float 3s ease-in-out infinite;
 }
 
 @keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
 }
 
-/* Add smooth transition for temperature changes */
 .temperature-display {
   transition: all 0.3s ease;
 }
 
-/* Add pulsing animation for loading states */
 .loading-element {
   animation: pulse 1.5s ease-in-out infinite;
 }
