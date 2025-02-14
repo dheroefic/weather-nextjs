@@ -78,7 +78,7 @@ export default function CurrentWeather({
                 </button>
                 <div className="relative">
                   <button
-                    onClick={() => setShowSettings(!showSettings)}
+                    onClick={(e) => {setShowSettings(!showSettings); e.stopPropagation();}}
                     className="p-2 rounded-lg hover:bg-white/20 transition-all duration-300"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,7 +87,10 @@ export default function CurrentWeather({
                     </svg>
                   </button>
                   {showSettings && (
-                    <div className="absolute right-0 mt-2 w-48 rounded-lg bg-black/80 backdrop-blur-xl shadow-lg z-50 border border-white/10">
+                    <div 
+                      className="absolute right-0 mt-2 w-48 rounded-lg bg-black/80 backdrop-blur-xl shadow-lg z-[9999] border border-white/10"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="p-2">
                         <div className="text-sm font-medium mb-1.5 px-2">Auto Refresh</div>
                         <div className="space-y-1">

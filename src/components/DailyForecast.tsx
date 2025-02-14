@@ -68,7 +68,10 @@ export default function DailyForecast({
                   <div 
                     key={index} 
                     className="p-2.5 md:p-4 bg-white/5 rounded-xl min-w-[140px] md:min-w-[200px] cursor-pointer hover:bg-white/10 hover:scale-[1.02] hover:shadow-lg transition-all duration-300 active:scale-[0.98]"
-                    onClick={() => onDaySelect(day)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDaySelect(day);
+                    }}
                   >
                     <div className="text-xs md:text-sm mb-2">{new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}</div>
                     <Image

@@ -37,9 +37,9 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
   }, []);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef} onClick={(e) => e.stopPropagation()}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {e.stopPropagation(); setIsOpen(!isOpen);} }
         className="text-base md:text-xl font-semibold bg-black/40 px-3 py-1.5 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 hover:bg-black/50 flex items-center gap-2 shadow-md"
       >
         <svg
@@ -66,7 +66,7 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-72 max-h-80 overflow-y-auto rounded-lg bg-black/80 backdrop-blur-xl shadow-2xl z-50 border border-white/10">
+        <div className="absolute top-full left-0 mt-2 w-72 max-h-80 overflow-y-auto rounded-lg bg-black/80 backdrop-blur-xl shadow-2xl z-[999] border border-white/10" onClick={(e) => e.stopPropagation()}>
           <input
             type="text"
             placeholder="Search cities..."

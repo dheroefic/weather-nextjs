@@ -41,25 +41,27 @@ export default function Header({
   handleAutoRefreshChange
 }: HeaderProps) {
   return (
-    <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5">
-      <CurrentWeather
-        weatherData={weatherData}
-        location={location}
-        currentTime={currentTime}
-        tempUnit={tempUnit}
-        loading={loading}
-        onLocationSelect={onLocationSelect}
-        onTempUnitToggle={onTempUnitToggle}
-        convertTemp={convertTemp}
-        getWindRotationDegree={getWindRotationDegree}
-        formatDate={formatDate}
-        formatTime={formatTime}
-        handleRefresh={handleRefresh}
-        showSettings={showSettings}
-        setShowSettings={setShowSettings}
-        autoRefreshInterval={autoRefreshInterval}
-        handleAutoRefreshChange={handleAutoRefreshChange}
-      />
+    <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5 relative z-[100]">
+      <div className="relative" onClick={(e) => e.stopPropagation()}>
+        <CurrentWeather
+          weatherData={weatherData}
+          location={location}
+          currentTime={currentTime}
+          tempUnit={tempUnit}
+          loading={loading}
+          onLocationSelect={onLocationSelect}
+          onTempUnitToggle={onTempUnitToggle}
+          convertTemp={convertTemp}
+          getWindRotationDegree={getWindRotationDegree}
+          formatDate={formatDate}
+          formatTime={formatTime}
+          handleRefresh={handleRefresh}
+          showSettings={showSettings}
+          setShowSettings={setShowSettings}
+          autoRefreshInterval={autoRefreshInterval}
+          handleAutoRefreshChange={handleAutoRefreshChange}
+        />
+      </div>
     </div>
   );
 }

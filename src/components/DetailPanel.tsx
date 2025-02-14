@@ -1,9 +1,9 @@
 'use client';
 
-import { PrecipitationIcon, UVIndexIcon, HumidityIcon, PressureIcon } from '@/components/icons';
-import type { ForecastDay, WeatherData, TemperatureUnit } from '@/types/weather';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import type { ForecastDay, TemperatureUnit, WeatherData } from '@/types/weather';
+import { PrecipitationIcon, UVIndexIcon, HumidityIcon, PressureIcon } from '@/components/icons';
 
 interface DetailPanelProps {
   selectedDay: ForecastDay | null;
@@ -15,12 +15,23 @@ interface DetailPanelProps {
 
 export default function DetailPanel({
   selectedDay,
-
   tempUnit,
   convertTemp,
   onClose
 }: DetailPanelProps) {
   const [selectedHour, setSelectedHour] = useState<number | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedDay && panelRef.current) {
+      requestAnimationFrame(() => {
+        if (panelRef.current) {
+          panelRef.current.scrollTop = 0;
+          setSelectedHour(null);
+        }
+      });
+    }
+  }, [selectedDay]);
 
   if (!selectedDay) return null;
 
@@ -30,8 +41,8 @@ export default function DetailPanel({
   }));
 
   return (
-    <div className={`fixed top-0 left-full h-full w-full md:w-[400px] bg-black/85 backdrop-blur-xl transform transition-transform duration-300 ease-in-out ${selectedDay ? '-translate-x-full' : 'translate-x-0'} z-50 overflow-hidden`}>
-      <div className="relative h-full p-6 overflow-y-auto">
+    <div className={`fixed top-0 left-full h-full w-full md:w-[400px] bg-black/85 backdrop-blur-xl transform transition-transform duration-300 ease-in-out ${selectedDay ? '-translate-x-full' : 'translate-x-0'} z-[9999] overflow-hidden`}>
+      <div ref={panelRef} className="relative h-full p-6 overflow-y-auto">
         <button 
           onClick={onClose}
           className="absolute top-6 right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 backdrop-blur-sm"
