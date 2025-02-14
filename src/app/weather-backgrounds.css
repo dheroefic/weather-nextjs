@@ -6,35 +6,27 @@
   height: 100%;
   z-index: 0;
   transition: all 0.5s ease-in-out;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
   backdrop-filter: blur(8px);
 }
 
 .weather-heavy-rain,
 .weather-rain {
-  background-image: url('/background-weather/a-rain.jpg');
   background-color: #1a2c38;
 }
 
 .weather-cloudy {
-  background-image: url('/background-weather/a-cloudy.jpg');
   background-color: #708090;
 }
 
 .weather-partly-cloudy {
-  background-image: url('/background-weather/a-sunny.jpg');
   background-color: #4a90e2;
 }
 
 .weather-default {
-  background-image: url('/background-weather/a-default.jpg');
   background-color: #4a90e2;
 }
 
 .weather-fog {
-  background-image: url('/background-weather/a-storm.jpg');
   background-color: #708090;
 }
 
@@ -49,26 +41,6 @@
   backdrop-filter: blur(4px);
 }
 
-.weather-fog::after {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background: repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0, rgba(255, 255, 255, 0.2) 50px);
-  animation: fog 10s ease infinite alternate;
-}
-
-@keyframes fog {
-  0% {
-    opacity: 0.5;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0.8;
-    transform: scale(1.5);
-  }
-}
-
 .glass-container {
   position: relative;
   background: rgba(255, 255, 255, 0.1);
@@ -78,7 +50,6 @@
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
-  overflow: hidden;
 }
 
 .glass-container:hover {
@@ -137,13 +108,26 @@
 }
 
 .loading-pulse {
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
 }
 
 @keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 0.3; }
-  100% { opacity: 0.6; }
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .weather-background {

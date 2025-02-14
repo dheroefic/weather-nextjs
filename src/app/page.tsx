@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import CurrentWeather from '@/components/CurrentWeather';
 import WeatherMetrics from '@/components/WeatherMetrics';
 import DailyForecast from '@/components/DailyForecast';
@@ -199,13 +200,46 @@ export default function WeatherApp() {
     }
   };
 
+  const getWeatherImage = (condition: string): string => {
+    switch (condition.toLowerCase()) {
+      case 'heavy rain':
+      case 'rain':
+      case 'light rain':
+        return '/background-weather/a-rain.jpg';
+      case 'partly cloudy':
+        return '/background-weather/a-sunny.jpg';
+      case 'cloudy':
+        return '/background-weather/a-cloudy.jpg';
+      case 'fog':
+        return '/background-weather/a-storm.jpg';
+      case 'clear sky':
+        return '/background-weather/a-sunny.jpg';
+      default:
+        return '/background-weather/a-default.jpg';
+    }
+  };
+
   const currentWeather = weatherData?.currentWeather.condition || 'Loading...';
-  const weatherClass = getWeatherClass(currentWeather);
+  const weatherImage = getWeatherImage(currentWeather);
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center p-0 md:p-4 relative">
-      <div className={`weather-background ${weatherClass}`} />
-      <div className="w-full h-full min-h-screen md:h-auto md:min-h-0 md:max-w-3xl bg-black/20 backdrop-blur-lg md:rounded-3xl overflow-hidden text-white p-3 md:p-8 relative">
+      <div className="fixed inset-0 z-0">
+        <Image
+          src={weatherImage}
+          alt={`Weather background showing ${currentWeather}`}
+          fill
+          priority
+          quality={85}
+          sizes="100vw"
+          style={{
+            objectFit: 'cover',
+            filter: 'blur(8px)',
+            transform: 'scale(1.1)'
+          }}
+        />
+      </div>
+      <div className="w-full h-full min-h-screen md:h-auto md:min-h-0 md:max-w-3xl bg-black/20 backdrop-blur-lg md:rounded-3xl overflow-hidden text-white p-3 md:p-8 relative z-10">
         <div className="flex justify-between items-start md:items-center mb-6">
           <CurrentWeather
             weatherData={weatherData}
