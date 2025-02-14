@@ -20,7 +20,16 @@ export default function DetailPanel({
   onClose
 }: DetailPanelProps) {
   const [selectedHour, setSelectedHour] = useState<number | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedDay) {
+      setIsVisible(true);
+    } else {
+      setIsVisible(false);
+    }
+  }, [selectedDay]);
 
   useEffect(() => {
     if (selectedDay && panelRef.current) {
@@ -33,6 +42,11 @@ export default function DetailPanel({
     }
   }, [selectedDay]);
 
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(onClose, 500); // Wait for animation to complete
+  };
+
   if (!selectedDay) return null;
 
   const hourlyData = selectedDay.hourly?.map((hour, index) => ({
@@ -41,11 +55,15 @@ export default function DetailPanel({
   }));
 
   return (
-    <div className={`fixed top-0 left-full h-full w-full md:w-[400px] bg-black/85 backdrop-blur-xl transform transition-transform duration-300 ease-in-out ${selectedDay ? '-translate-x-full' : 'translate-x-0'} z-[9999] overflow-hidden`}>
+    <div 
+      className={`fixed top-0 right-0 h-full w-full md:w-[400px] bg-black/85 backdrop-blur-xl transform transition-all duration-500 ease-in-out ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}
+      style={{ pointerEvents: isVisible ? 'auto' : 'none', zIndex: 100, backfaceVisibility: 'hidden', willChange: 'transform, opacity' }}
+    >
       <div ref={panelRef} className="relative h-full p-6 overflow-y-auto">
         <button 
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-6 right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 backdrop-blur-sm"
+          aria-label="Close panel"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
