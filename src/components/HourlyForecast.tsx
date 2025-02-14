@@ -33,15 +33,24 @@ export default function HourlyForecast({
     </div>
   );
 
+  // Filter hourly forecast data for the current day
+  const currentDayHourlyForecast = weatherData?.hourlyForecast?.filter(hour => {
+    const hourDate = new Date(hour.time);
+    const today = new Date();
+    return hourDate.getDate() === today.getDate() &&
+           hourDate.getMonth() === today.getMonth() &&
+           hourDate.getFullYear() === today.getFullYear();
+  });
+
   return (
     <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5">
-      <div className="text-base md:text-xl font-semibold mb-4">Hourly Forecast</div>
+      <div className="text-base md:text-xl font-semibold mb-4">Today's Hourly Forecast</div>
       {loading ? (
         <LoadingHourlyForecast />
       ) : (
         <div className="overflow-x-auto pb-4">
           <div className="inline-flex gap-3">
-            {weatherData?.hourlyForecast?.map((hour, index) => (
+            {currentDayHourlyForecast?.map((hour, index) => (
               <div
                 key={index}
                 className="p-3 bg-white/5 rounded-lg min-w-[100px] flex flex-col items-center hover:bg-white/10 transition-all duration-300"
