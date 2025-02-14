@@ -48,8 +48,17 @@ export default function CurrentWeather({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-8 w-full">
         <div className="flex flex-col items-start space-y-2 w-full md:w-auto">
           <div className="flex flex-col space-y-1">
-            <div className="text-base md:text-2xl font-medium opacity-90">{formatDate(currentTime)}</div>
-            <div className="text-2xl md:text-4xl font-bold">{formatTime(currentTime)}</div>
+            {loading ? (
+              <>
+                <div className="text-base md:text-2xl font-medium opacity-90 loading-element w-48"></div>
+                <div className="text-2xl md:text-4xl font-bold loading-element w-24"></div>
+              </>
+            ) : (
+              <>
+                <div className="text-base md:text-2xl font-medium opacity-90">{formatDate(currentTime)}</div>
+                <div className="text-2xl md:text-4xl font-bold">{formatTime(currentTime)}</div>
+              </>
+            )}
           </div>
           <div className="w-full md:w-auto mt-3">
             <div className="flex items-center gap-2">
@@ -108,9 +117,13 @@ export default function CurrentWeather({
         </div>
         <div className="flex flex-col items-start md:items-end space-y-3 w-full md:w-auto">
           <div className="flex items-center gap-4">
-            <div className="text-5xl md:text-7xl font-bold temperature-display">
-              {weatherData ? convertTemp(weatherData.currentWeather.temperature, tempUnit) : '--'}°{tempUnit}
-            </div>
+            {loading ? (
+              <div className="text-5xl md:text-7xl font-bold temperature-display loading-element w-32"></div>
+            ) : (
+              <div className="text-5xl md:text-7xl font-bold temperature-display">
+                {weatherData ? convertTemp(weatherData.currentWeather.temperature, tempUnit) : '--'}°{tempUnit}
+              </div>
+            )}
             <button
               onClick={onTempUnitToggle}
               className="px-3 py-1.5 rounded-lg bg-black/40 hover:bg-white/20 transition-all duration-300 text-base font-medium backdrop-blur-sm self-start mt-2"
@@ -120,7 +133,11 @@ export default function CurrentWeather({
           </div>
           <div className="flex items-center gap-3">
             <WindIcon className="w-8 h-8" style={{ transform: `rotate(${weatherData ? getWindRotationDegree(weatherData.currentWeather.wind.direction) : 0}deg)` }} />
-            <span className="text-lg">{weatherData ? `${weatherData.currentWeather.wind.speed} km/h` : '--'}</span>
+            {loading ? (
+              <span className="text-lg loading-element w-20"></span>
+            ) : (
+              <span className="text-lg">{weatherData ? `${weatherData.currentWeather.wind.speed} km/h` : '--'}</span>
+            )}
           </div>
         </div>
       </div>

@@ -3,9 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import CurrentWeather from '@/components/CurrentWeather';
+import Header from '@/components/Header';
 import WeatherMetrics from '@/components/WeatherMetrics';
+import HourlyForecast from '@/components/HourlyForecast';
 import DailyForecast from '@/components/DailyForecast';
 import DetailPanel from '@/components/DetailPanel';
+import Footer from '@/components/Footer';
 import { fetchWeatherData } from '@/services/weatherService';
 import { getBackgroundImage } from '@/services/backgroundService';
 import './weather-backgrounds.css';
@@ -231,52 +234,33 @@ export default function WeatherApp() {
         />
       </div>
       <div className="w-full h-full min-h-screen md:h-auto md:min-h-0 md:max-w-3xl bg-black/20 backdrop-blur-lg md:rounded-3xl overflow-hidden text-white p-3 md:p-8 relative z-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 w-full">
-          <CurrentWeather
-            weatherData={weatherData}
-            location={location}
-            currentTime={currentTime}
-            tempUnit={tempUnit}
-            loading={loading}
-            onLocationSelect={setLocation}
-            onTempUnitToggle={toggleTempUnit}
-            convertTemp={convertTemp}
-            getWindRotationDegree={getWindRotationDegree}
-            formatDate={formatDate}
-            formatTime={formatTime}
-            handleRefresh={handleRefresh}
-            showSettings={showSettings}
-            setShowSettings={setShowSettings}
-            autoRefreshInterval={autoRefreshInterval}
-            handleAutoRefreshChange={handleAutoRefreshChange}
-          />
-        </div>
-
-        <div className="glass-container p-3 md:p-6 mb-3 md:mb-6 rounded-xl md:rounded-2xl backdrop-blur-md bg-white/5">
-          <div className={`text-2xl md:text-5xl mb-3 md:mb-5 font-bold ${loading ? 'loading-element' : ''} flex items-center gap-2 md:gap-3`}>
-            {weatherData && (
-              <>
-                {weatherData.currentWeather.condition}
-                <Image
-                  src={`${weatherData.currentWeather.icon}`}
-                  alt={weatherData.currentWeather.condition}
-                  width={48}
-                  height={48}
-                  className="weather-icon w-6 h-6 md:w-12 md:h-12"
-                />
-              </>
-            )}
-          </div>
-          <div className={`text-base md:text-xl text-white/90 ${loading ? 'loading-element' : ''} flex items-center gap-2`}>
-            {weatherData && (
-              <>
-                {weatherData.currentWeather.condition} with a temperature of {convertTemp(weatherData.currentWeather.temperature, tempUnit)}°{tempUnit}. {weatherData.currentWeather.wind.speed > 20 ? 'Strong' : 'Light to moderate'} {weatherData.currentWeather.wind.direction} winds at {weatherData.currentWeather.wind.speed} km/h.
-              </>
-            )}
-          </div>
-        </div>
+        <Header
+          weatherData={weatherData}
+          location={location}
+          currentTime={currentTime}
+          tempUnit={tempUnit}
+          loading={loading}
+          onLocationSelect={setLocation}
+          onTempUnitToggle={toggleTempUnit}
+          convertTemp={convertTemp}
+          getWindRotationDegree={getWindRotationDegree}
+          formatDate={formatDate}
+          formatTime={formatTime}
+          handleRefresh={handleRefresh}
+          showSettings={showSettings}
+          setShowSettings={setShowSettings}
+          autoRefreshInterval={autoRefreshInterval}
+          handleAutoRefreshChange={handleAutoRefreshChange}
+        />
 
         <WeatherMetrics weatherData={weatherData} loading={loading} />
+
+        <HourlyForecast
+          weatherData={weatherData}
+          loading={loading}
+          tempUnit={tempUnit}
+          convertTemp={convertTemp}
+        />
 
         <DailyForecast
           forecastPeriod={forecastPeriod}
@@ -296,17 +280,7 @@ export default function WeatherApp() {
           onClose={() => setSelectedDay(null)}
         />
 
-        <div className="glass-container p-2 text-center text-[10px] text-white/40 rounded-lg backdrop-blur-md bg-white/5 mt-4">
-          <p>
-            Created with 🩷 by dheroefic • Images: {imageAttribution ? (
-              <>
-                Photo by <a href={imageAttribution.photographerUrl} className="hover:text-white/60" target="_blank" rel="noopener noreferrer">{imageAttribution.photographerName}</a> on <a href="https://unsplash.com" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Unsplash</a>
-              </>
-            ) : (
-              <a href="https://unsplash.com" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Unsplash</a>
-            )} • Weather Data: <a href="https://open-meteo.com" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Open Meteo</a> • Icons: <a href="https://bas.dev/about" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Bas Milius</a>
-          </p>
-        </div>
+        <Footer imageAttribution={imageAttribution} />
       </div>
     </div>
   );

@@ -44,6 +44,7 @@ export default function WeatherMetrics({ weatherData, loading }: WeatherMetricsP
     return (
       <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5">
         <div className="grid grid-cols-2 gap-3 md:gap-4">
+          <LoadingMetric title="Weather Condition" width="w-32" />
           <LoadingMetric title="Precipitation" width="w-16" />
           <LoadingMetric title="UV Index" width="w-32" />
           <LoadingMetric title="Humidity" width="w-16" />
@@ -57,6 +58,26 @@ export default function WeatherMetrics({ weatherData, loading }: WeatherMetricsP
   return (
     <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5">
       <div className="grid grid-cols-2 gap-3 md:gap-4">
+        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-xs md:text-sm opacity-70">Weather Condition</div>
+              <div className="text-base md:text-lg font-semibold">
+                {weatherData ? weatherData.currentWeather.condition : ''}
+              </div>
+            </div>
+            {weatherData && (
+              <Image
+                src={weatherData.currentWeather.icon}
+                alt={weatherData.currentWeather.condition}
+                width={56}
+                height={56}
+                className="w-12 md:w-14 h-12 md:h-14 opacity-80"
+              />
+            )}
+          </div>
+        </div>
+
         <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
           <div className="flex items-center justify-between gap-2">
             <div>
