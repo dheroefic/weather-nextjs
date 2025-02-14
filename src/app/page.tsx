@@ -14,7 +14,7 @@ import type { Location, WeatherData, ForecastDay, TemperatureUnit } from '@/type
 
 export default function WeatherApp() {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  const [location, setLocation] = useState<Location>({ city: 'Loading...', country: '' });
+  const [location, setLocation] = useState<Location>({ city: '', country: '' });
   const [forecastPeriod, setForecastPeriod] = useState<'4 days' | '8 days' | '14 days'>('4 days');
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [tempUnit, setTempUnit] = useState<TemperatureUnit>('C');
@@ -254,19 +254,25 @@ export default function WeatherApp() {
 
         <div className="glass-container p-3 md:p-6 mb-3 md:mb-6 rounded-xl md:rounded-2xl backdrop-blur-md bg-white/5">
           <div className={`text-2xl md:text-5xl mb-3 md:mb-5 font-bold ${loading ? 'loading-element' : ''} flex items-center gap-2 md:gap-3`}>
-            {weatherData ? (
+            {weatherData && (
               <>
                 {weatherData.currentWeather.condition}
-                <weatherData.currentWeather.icon className="weather-icon w-6 h-6 md:w-12 md:h-12" />
+                <Image
+                  src={`${weatherData.currentWeather.icon}`}
+                  alt={weatherData.currentWeather.condition}
+                  width={48}
+                  height={48}
+                  className="weather-icon w-6 h-6 md:w-12 md:h-12"
+                />
               </>
-            ) : 'Loading...'}
+            )}
           </div>
           <div className={`text-base md:text-xl text-white/90 ${loading ? 'loading-element' : ''} flex items-center gap-2`}>
-            {weatherData ? (
+            {weatherData && (
               <>
                 {weatherData.currentWeather.condition} with a temperature of {convertTemp(weatherData.currentWeather.temperature, tempUnit)}°{tempUnit}. {weatherData.currentWeather.wind.speed > 20 ? 'Strong' : 'Light to moderate'} {weatherData.currentWeather.wind.direction} winds at {weatherData.currentWeather.wind.speed} km/h.
               </>
-            ) : 'Fetching weather information...'}
+            )}
           </div>
         </div>
 

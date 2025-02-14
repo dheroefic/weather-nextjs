@@ -1,9 +1,7 @@
 import type { ForecastDay } from '@/types/weather';
-import type { ComponentType } from 'react';
-import { ClearSkyIcon, PartlyCloudyIcon, CloudyIcon, FogIcon, LightRainIcon, RainIcon, HeavyRainIcon } from '@/components/icons/WeatherIcons';
 import { debug } from '@/utils/debug';
 
-type WeatherIcon = ComponentType<{ className?: string }>;
+type WeatherIconPath = string;
 
 interface OpenMeteoResponse {
   latitude: number;
@@ -29,22 +27,65 @@ interface OpenMeteoResponse {
   };
 }
 
+export function getUVIndexIcon(uvIndex: number): WeatherIconPath {
+  if (uvIndex <= 0) return '/icons/weathers/uv-index-1.svg';
+  if (uvIndex <= 2) return '/icons/weathers/uv-index-2.svg';
+  if (uvIndex <= 3) return '/icons/weathers/uv-index-3.svg';
+  if (uvIndex <= 4) return '/icons/weathers/uv-index-4.svg';
+  if (uvIndex <= 5) return '/icons/weathers/uv-index-5.svg';
+  if (uvIndex <= 6) return '/icons/weathers/uv-index-6.svg';
+  if (uvIndex <= 7) return '/icons/weathers/uv-index-7.svg';
+  if (uvIndex <= 8) return '/icons/weathers/uv-index-8.svg';
+  return '/icons/weathers/uv-index-9.svg';
+}
+
+export function getWindBeaufortIcon(windSpeed: number): WeatherIconPath {
+  if (windSpeed < 1) return '/icons/weathers/wind-beaufort-0.svg';
+  if (windSpeed < 6) return '/icons/weathers/wind-beaufort-1.svg';
+  if (windSpeed < 12) return '/icons/weathers/wind-beaufort-2.svg';
+  if (windSpeed < 20) return '/icons/weathers/wind-beaufort-3.svg';
+  if (windSpeed < 29) return '/icons/weathers/wind-beaufort-4.svg';
+  if (windSpeed < 39) return '/icons/weathers/wind-beaufort-5.svg';
+  if (windSpeed < 50) return '/icons/weathers/wind-beaufort-6.svg';
+  if (windSpeed < 62) return '/icons/weathers/wind-beaufort-7.svg';
+  if (windSpeed < 75) return '/icons/weathers/wind-beaufort-8.svg';
+  if (windSpeed < 89) return '/icons/weathers/wind-beaufort-9.svg';
+  if (windSpeed < 103) return '/icons/weathers/wind-beaufort-10.svg';
+  if (windSpeed < 118) return '/icons/weathers/wind-beaufort-11.svg';
+  return '/icons/weathers/wind-beaufort-12.svg';
+}
+
+type WeatherIcon = string;
+
 const WMO_CODES: { [key: number]: { condition: string; icon: WeatherIcon } } = {
-  0: { condition: 'Clear Sky', icon: ClearSkyIcon },
-  1: { condition: 'Partly Cloudy', icon: PartlyCloudyIcon },
-  2: { condition: 'Partly Cloudy', icon: PartlyCloudyIcon },
-  3: { condition: 'Cloudy', icon: CloudyIcon },
-  45: { condition: 'Fog', icon: FogIcon },
-  48: { condition: 'Fog', icon: FogIcon },
-  51: { condition: 'Light Rain', icon: LightRainIcon },
-  53: { condition: 'Rain', icon: RainIcon },
-  55: { condition: 'Heavy Rain', icon: HeavyRainIcon },
-  61: { condition: 'Light Rain', icon: LightRainIcon },
-  63: { condition: 'Rain', icon: RainIcon },
-  65: { condition: 'Heavy Rain', icon: HeavyRainIcon },
-  80: { condition: 'Light Rain', icon: LightRainIcon },
-  81: { condition: 'Rain', icon: RainIcon },
-  82: { condition: 'Heavy Rain', icon: HeavyRainIcon },
+  0: { condition: 'Clear Sky', icon: '/icons/weathers/clear-day.svg' },
+  1: { condition: 'Partly Cloudy', icon: '/icons/weathers/partly-cloudy-day.svg' },
+  2: { condition: 'Partly Cloudy', icon: '/icons/weathers/partly-cloudy-day.svg' },
+  3: { condition: 'Overcast', icon: '/icons/weathers/overcast.svg' },
+  45: { condition: 'Foggy', icon: '/icons/weathers/fog.svg' },
+  48: { condition: 'Freezing Fog', icon: '/icons/weathers/fog.svg' },
+  51: { condition: 'Light Drizzle', icon: '/icons/weathers/drizzle.svg' },
+  53: { condition: 'Moderate Drizzle', icon: '/icons/weathers/partly-cloudy-day-drizzle.svg' },
+  55: { condition: 'Heavy Drizzle', icon: '/icons/weathers/rain.svg' },
+  56: { condition: 'Light Freezing Drizzle', icon: '/icons/weathers/sleet.svg' },
+  57: { condition: 'Heavy Freezing Drizzle', icon: '/icons/weathers/sleet.svg' },
+  61: { condition: 'Light Rain', icon: '/icons/weathers/partly-cloudy-day-rain.svg' },
+  63: { condition: 'Moderate Rain', icon: '/icons/weathers/rain.svg' },
+  65: { condition: 'Heavy Rain', icon: '/icons/weathers/thunderstorms-rain.svg' },
+  66: { condition: 'Light Freezing Rain', icon: '/icons/weathers/sleet.svg' },
+  67: { condition: 'Heavy Freezing Rain', icon: '/icons/weathers/sleet.svg' },
+  71: { condition: 'Light Snow', icon: '/icons/weathers/partly-cloudy-day-snow.svg' },
+  73: { condition: 'Moderate Snow', icon: '/icons/weathers/snow.svg' },
+  75: { condition: 'Heavy Snow', icon: '/icons/weathers/snow.svg' },
+  77: { condition: 'Snow Grains', icon: '/icons/weathers/snowflake.svg' },
+  80: { condition: 'Light Rain Showers', icon: '/icons/weathers/partly-cloudy-day-rain.svg' },
+  81: { condition: 'Moderate Rain Showers', icon: '/icons/weathers/rain.svg' },
+  82: { condition: 'Heavy Rain Showers', icon: '/icons/weathers/thunderstorms-rain.svg' },
+  85: { condition: 'Light Snow Showers', icon: '/icons/weathers/partly-cloudy-day-snow.svg' },
+  86: { condition: 'Heavy Snow Showers', icon: '/icons/weathers/snow.svg' },
+  95: { condition: 'Thunderstorm', icon: '/icons/weathers/thunderstorms.svg' },
+  96: { condition: 'Thunderstorm with Light Hail', icon: '/icons/weathers/thunderstorms-day-rain.svg' },
+  99: { condition: 'Thunderstorm with Heavy Hail', icon: '/icons/weathers/thunderstorms-day-rain.svg' }
 };
 
 /**
@@ -171,11 +212,15 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
     pressure: response.hourly.surface_pressure[index]
   }));
 
-  const dailyForecast = response.daily.time.map((date, index) => {
-    // Get the start hour index for this day
-    const dayStartIndex = index * 24;
-    // Get 24 hours of data for this day
-    const dayHourlyData = Array.from({ length: 24 }, (_, hourIndex) => {
+  // Filter out current date and map remaining days
+  const currentDate = new Date().toISOString().split('T')[0];
+  const dailyForecast = response.daily.time
+    .filter(date => date > currentDate)
+    .map((date, index) => {
+      // Get the start hour index for this day
+      const dayStartIndex = (response.daily.time.indexOf(date)) * 24;
+      // Get 24 hours of data for this day
+      const dayHourlyData = Array.from({ length: 24 }, (_, hourIndex) => {
       const absoluteIndex = dayStartIndex + hourIndex;
       return {
         time: new Date(response.hourly.time[absoluteIndex]).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),

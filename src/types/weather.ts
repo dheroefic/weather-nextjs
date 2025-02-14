@@ -1,6 +1,4 @@
-import type { ComponentType } from 'react';
-
-export type WeatherIcon = ComponentType<{ className?: string }>;
+export type WeatherIcon = string;
 
 export type TemperatureUnit = 'C' | 'F';
 
@@ -43,7 +41,6 @@ export interface ForecastDay {
 }
 
 export interface WeatherData {
-  wind: any;
   currentWeather: {
     precipitation: number;
     uvIndex: {

@@ -3,6 +3,7 @@
 import { PrecipitationIcon, UVIndexIcon, HumidityIcon, PressureIcon } from '@/components/icons';
 import type { ForecastDay, WeatherData, TemperatureUnit } from '@/types/weather';
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface DetailPanelProps {
   selectedDay: ForecastDay | null;
@@ -44,7 +45,13 @@ export default function DetailPanel({
           <h2 className="text-3xl font-bold mb-6">{new Date(selectedDay.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}</h2>
           <div className="glass-container p-4 rounded-xl backdrop-blur-md bg-white/5 mb-6">
             <div className="flex items-center gap-4">
-              <selectedDay.icon className="weather-icon w-16 h-16" />
+              <Image
+                src={selectedDay.icon}
+                alt={selectedDay.condition}
+                width={64}
+                height={64}
+                className="weather-icon w-16 h-16"
+              />
               <div>
                 <div className="text-xl mb-1">{selectedDay.condition}</div>
                 <div className="text-3xl font-bold">
@@ -116,7 +123,13 @@ export default function DetailPanel({
                   >
                     <div className="text-sm mb-2">{hour.time}</div>
                     <div className="flex items-center justify-center mb-2">
-                      <hour.icon className="weather-icon w-8 h-8" />
+                      <Image
+                        src={hour.icon}
+                        alt="Weather condition"
+                        width={32}
+                        height={32}
+                        className="weather-icon w-8 h-8"
+                      />
                     </div>
                     <div className="text-lg font-semibold">
                       {convertTemp(hour.temp, tempUnit)}°{tempUnit}

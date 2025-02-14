@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import type { ForecastDay } from '@/types/weather';
 import type { TemperatureUnit } from '@/types/weather';
 
@@ -63,7 +64,6 @@ export default function DailyForecast({
             dailyForecast
               ?.slice(0, forecastPeriod === '4 days' ? 4 : forecastPeriod === '8 days' ? 8 : 14)
               .map((day, index) => {
-                const Icon = day.icon;
                 return (
                   <div 
                     key={index} 
@@ -71,7 +71,13 @@ export default function DailyForecast({
                     onClick={() => onDaySelect(day)}
                   >
                     <div className="text-xs md:text-sm mb-2">{new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}</div>
-                    <Icon className="weather-icon w-7 md:w-10 h-7 md:h-10" />
+                    <Image
+                      src={day.icon}
+                      alt={day.condition}
+                      width={40}
+                      height={40}
+                      className="weather-icon w-7 md:w-10 h-7 md:h-10"
+                    />
                     <div className="text-xs md:text-sm mt-2">{day.condition}</div>
                     <div className="text-xs md:text-sm">
                       {convertTemp(day.temp.min, tempUnit)}° - {convertTemp(day.temp.max, tempUnit)}°{tempUnit}
