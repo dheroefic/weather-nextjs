@@ -10,7 +10,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@lxg/weather-icons": "^3.0.1",
     "@vercel/analytics": "^1.5.0",
     "next": "15.1.7",
     "openmeteo": "^1.1.4",
