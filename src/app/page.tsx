@@ -221,7 +221,7 @@ export default function WeatherApp() {
         />
       </div>
       <div className="w-full h-full min-h-screen md:h-auto md:min-h-0 md:max-w-3xl bg-black/20 backdrop-blur-lg md:rounded-3xl overflow-hidden text-white p-3 md:p-8 relative z-10">
-        <div className="flex justify-between items-start md:items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 w-full">
           <CurrentWeather
             weatherData={weatherData}
             location={location}
@@ -242,12 +242,12 @@ export default function WeatherApp() {
           />
         </div>
 
-        <div className="glass-container p-4 md:p-6 mb-6 md:mb-8 rounded-xl md:rounded-2xl backdrop-blur-md bg-white/5">
-          <div className={`text-2xl md:text-4xl mb-3 md:mb-4 font-bold ${loading ? 'loading-element' : ''} flex items-center gap-3`}>
+        <div className="glass-container p-3 md:p-6 mb-3 md:mb-6 rounded-xl md:rounded-2xl backdrop-blur-md bg-white/5">
+          <div className={`text-lg md:text-4xl mb-2 md:mb-4 font-bold ${loading ? 'loading-element' : ''} flex items-center gap-2 md:gap-3`}>
             {weatherData ? (
               <>
                 {weatherData.currentWeather.condition}
-                <weatherData.currentWeather.icon className="weather-icon w-8 h-8 md:w-10 md:h-10" />
+                <weatherData.currentWeather.icon className="weather-icon w-5 h-5 md:w-10 md:h-10" />
               </>
             ) : 'Loading...'}
           </div>

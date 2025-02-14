@@ -29,34 +29,34 @@ export default function DailyForecast({
         <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3">
           <button
             onClick={() => onForecastPeriodChange('4 days')}
-            className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '4 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
+            className={`px-2.5 md:px-4 py-1 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '4 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
           >
             4 days
           </button>
           <button
             onClick={() => onForecastPeriodChange('8 days')}
-            className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '8 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
+            className={`px-2.5 md:px-4 py-1 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '8 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
           >
             8 days
           </button>
           <button
             onClick={() => onForecastPeriodChange('14 days')}
-            className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '14 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
+            className={`px-2.5 md:px-4 py-1 md:py-2 rounded-full text-xs md:text-sm transition-all duration-300 ${forecastPeriod === '14 days' ? 'bg-white/20 shadow-lg' : 'bg-white/5 hover:bg-white/10'}`}
           >
             14 days
           </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto relative">
-        <div className="inline-grid grid-flow-col auto-cols-[minmax(200px,1fr)] gap-3 md:gap-4 pb-4">
+      <div className="overflow-x-auto relative -mx-2 md:-mx-0 px-2 md:px-0">
+        <div className="inline-grid grid-flow-col auto-cols-[minmax(140px,1fr)] md:auto-cols-[minmax(200px,1fr)] gap-2 md:gap-4 pb-4">
           {loading ? (
             Array.from({ length: forecastPeriod === '4 days' ? 4 : forecastPeriod === '8 days' ? 8 : 14 }).map((_, index) => (
-              <div key={index} className="p-3 md:p-4 bg-white/5 rounded-xl min-w-[200px]">
-                <div className="loading-element w-24 h-4 mb-2"></div>
-                <div className="loading-element w-10 h-10 mb-2"></div>
-                <div className="loading-element w-32 h-4 mt-2"></div>
-                <div className="loading-element w-24 h-4 mt-2"></div>
+              <div key={index} className="p-2.5 md:p-4 bg-white/5 rounded-xl min-w-[140px] md:min-w-[200px]">
+                <div className="loading-element w-16 md:w-24 h-4 mb-2"></div>
+                <div className="loading-element w-8 md:w-10 h-8 md:h-10 mb-2"></div>
+                <div className="loading-element w-24 md:w-32 h-4 mt-2"></div>
+                <div className="loading-element w-16 md:w-24 h-4 mt-2"></div>
               </div>
             ))
           ) : (
@@ -67,11 +67,11 @@ export default function DailyForecast({
                 return (
                   <div 
                     key={index} 
-                    className="p-3 md:p-4 bg-white/5 rounded-xl min-w-[200px] cursor-pointer hover:bg-white/10 transition-all duration-300"
+                    className="p-2.5 md:p-4 bg-white/5 rounded-xl min-w-[140px] md:min-w-[200px] cursor-pointer hover:bg-white/10 transition-all duration-300"
                     onClick={() => onDaySelect(day)}
                   >
                     <div className="text-xs md:text-sm mb-2">{new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}</div>
-                    <Icon className="weather-icon" />
+                    <Icon className="weather-icon w-7 md:w-10 h-7 md:h-10" />
                     <div className="text-xs md:text-sm mt-2">{day.condition}</div>
                     <div className="text-xs md:text-sm">
                       {convertTemp(day.temp.min, tempUnit)}° - {convertTemp(day.temp.max, tempUnit)}°{tempUnit}
