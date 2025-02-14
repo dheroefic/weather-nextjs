@@ -1,6 +1,5 @@
 'use client';
 
-import { PrecipitationIcon, UVIndexIcon, HumidityIcon, PressureIcon } from '@/components/icons';
 import type { WeatherData } from '@/types/weather';
 
 interface WeatherMetricsProps {
@@ -20,7 +19,7 @@ export default function WeatherMetrics({ weatherData, loading }: WeatherMetricsP
                 {weatherData ? `${weatherData.currentWeather.precipitation}%` : ''}
               </div>
             </div>
-            <PrecipitationIcon className="w-4 md:w-5 h-4 md:h-5 opacity-70" />
+            <img src="/icons/weathers/raindrops.svg" alt="Precipitation" className="w-12 md:w-14 h-12 md:h-14 opacity-80" />
           </div>
         </div>
 
@@ -36,7 +35,7 @@ export default function WeatherMetrics({ weatherData, loading }: WeatherMetricsP
                 ) : ''}
               </div>
             </div>
-            <UVIndexIcon className="w-4 md:w-5 h-4 md:h-5 opacity-70" />
+            <img src="/icons/weathers/uv-index.svg" alt="UV Index" className="w-12 md:w-14 h-12 md:h-14 opacity-80" />
           </div>
         </div>
 
@@ -48,7 +47,7 @@ export default function WeatherMetrics({ weatherData, loading }: WeatherMetricsP
                 {weatherData ? `${weatherData.currentWeather.humidity}%` : ''}
               </div>
             </div>
-            <HumidityIcon className="w-4 md:w-5 h-4 md:h-5 opacity-70" />
+            <img src="/icons/weathers/humidity.svg" alt="Humidity" className="w-12 md:w-14 h-12 md:h-14 opacity-80" />
           </div>
         </div>
 
@@ -60,7 +59,7 @@ export default function WeatherMetrics({ weatherData, loading }: WeatherMetricsP
                 {weatherData ? `${weatherData.currentWeather.pressure} hPa` : ''}
               </div>
             </div>
-            <PressureIcon className="w-4 md:w-5 h-4 md:h-5 opacity-70" />
+            <img src="/icons/weathers/barometer.svg" alt="Pressure" className="w-12 md:w-14 h-12 md:h-14 opacity-80" />
           </div>
         </div>
       </div>

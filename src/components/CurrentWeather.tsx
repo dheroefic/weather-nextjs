@@ -119,20 +119,8 @@ export default function CurrentWeather({
             </button>
           </div>
           <div className="flex items-center gap-3">
-            <WindIcon
-              className={`w-6 h-6 transform transition-transform duration-300 ${loading ? 'loading-element' : ''}`}
-              style={{
-                transform: weatherData
-                  ? `rotate(${getWindRotationDegree(weatherData.currentWeather.wind.direction)}deg)`
-                  : 'rotate(0deg)',
-                animation: weatherData
-                  ? `float ${Math.max(5 - weatherData.currentWeather.wind.speed / 10, 1)}s ease-in-out infinite`
-                  : 'none'
-              }}
-            />
-            <span className={`text-lg text-white/90 ${loading ? 'loading-element' : ''}`}>
-              {weatherData ? `${weatherData.currentWeather.wind.direction}, ${weatherData.currentWeather.wind.speed} km/h` : '--'}
-            </span>
+            <WindIcon className="w-8 h-8" style={{ transform: `rotate(${weatherData ? getWindRotationDegree(weatherData.currentWeather.wind.direction) : 0}deg)` }} />
+            <span className="text-lg">{weatherData ? `${weatherData.currentWeather.wind.speed} km/h` : '--'}</span>
           </div>
         </div>
       </div>

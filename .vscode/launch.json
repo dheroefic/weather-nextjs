@@ -7,7 +7,6 @@
             "request": "launch",
             "command": "npm run dev",
             "skipFiles": ["<node_internals>/**"],
-            "console": "integratedTerminal"
         },
         {
             "name": "Next.js: debug client-side",
@@ -28,8 +27,7 @@
                 "pattern": "- Local:.+(https?://.+)",
                 "uriFormat": "%s",
                 "action": "debugWithChrome"
-            },
-            "console": "integratedTerminal"
+            }
         }
     ]
 }

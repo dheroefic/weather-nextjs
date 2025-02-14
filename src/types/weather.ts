@@ -43,6 +43,7 @@ export interface ForecastDay {
 }
 
 export interface WeatherData {
+  wind: any;
   currentWeather: {
     precipitation: number;
     uvIndex: {

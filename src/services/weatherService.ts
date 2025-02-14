@@ -1,6 +1,6 @@
 import type { ForecastDay } from '@/types/weather';
 import type { ComponentType } from 'react';
-import { HeavyRainIcon, PartlyCloudyIcon, FogIcon } from '@/components/icons';
+import { ClearSkyIcon, PartlyCloudyIcon, CloudyIcon, FogIcon, LightRainIcon, RainIcon, HeavyRainIcon } from '@/components/icons/WeatherIcons';
 import { debug } from '@/utils/debug';
 
 type WeatherIcon = ComponentType<{ className?: string }>;
@@ -30,20 +30,20 @@ interface OpenMeteoResponse {
 }
 
 const WMO_CODES: { [key: number]: { condition: string; icon: WeatherIcon } } = {
-  0: { condition: 'Clear Sky', icon: PartlyCloudyIcon },
+  0: { condition: 'Clear Sky', icon: ClearSkyIcon },
   1: { condition: 'Partly Cloudy', icon: PartlyCloudyIcon },
   2: { condition: 'Partly Cloudy', icon: PartlyCloudyIcon },
-  3: { condition: 'Cloudy', icon: PartlyCloudyIcon },
+  3: { condition: 'Cloudy', icon: CloudyIcon },
   45: { condition: 'Fog', icon: FogIcon },
   48: { condition: 'Fog', icon: FogIcon },
-  51: { condition: 'Light Rain', icon: HeavyRainIcon },
-  53: { condition: 'Rain', icon: HeavyRainIcon },
+  51: { condition: 'Light Rain', icon: LightRainIcon },
+  53: { condition: 'Rain', icon: RainIcon },
   55: { condition: 'Heavy Rain', icon: HeavyRainIcon },
-  61: { condition: 'Light Rain', icon: HeavyRainIcon },
-  63: { condition: 'Rain', icon: HeavyRainIcon },
+  61: { condition: 'Light Rain', icon: LightRainIcon },
+  63: { condition: 'Rain', icon: RainIcon },
   65: { condition: 'Heavy Rain', icon: HeavyRainIcon },
-  80: { condition: 'Light Rain', icon: HeavyRainIcon },
-  81: { condition: 'Rain', icon: HeavyRainIcon },
+  80: { condition: 'Light Rain', icon: LightRainIcon },
+  81: { condition: 'Rain', icon: RainIcon },
   82: { condition: 'Heavy Rain', icon: HeavyRainIcon },
 };
 

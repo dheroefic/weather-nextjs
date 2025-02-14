@@ -96,6 +96,16 @@ export default function WeatherApp() {
   useEffect(() => {
     setLoading(true);
     fetchData();
+
+    // Set default auto-refresh interval to 10 minutes
+    setAutoRefreshInterval(10);
+
+    // Start auto-refresh timer
+    const timer = setInterval(() => {
+      fetchData();
+    }, 10 * 60 * 1000); // 10 minutes in milliseconds
+
+    return () => clearInterval(timer);
   }, [location.coordinates, fetchData]);
 
   useEffect(() => {
@@ -288,7 +298,7 @@ export default function WeatherApp() {
               </>
             ) : (
               <a href="https://unsplash.com" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Unsplash</a>
-            )} • Weather Data: <a href="https://open-meteo.com" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Open Meteo</a>
+            )} • Weather Data: <a href="https://open-meteo.com" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Open Meteo</a> • Icons: <a href="https://bas.dev/about" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Bas Milius</a>
           </p>
         </div>
       </div>
