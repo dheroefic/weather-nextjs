@@ -277,6 +277,7 @@ export default function WeatherApp() {
           tempUnit={tempUnit}
           convertTemp={convertTemp}
           onClose={() => setSelectedDay(null)}
+          onDaySelect={setSelectedDay}
         />
 
         <Footer imageAttribution={imageAttribution} />

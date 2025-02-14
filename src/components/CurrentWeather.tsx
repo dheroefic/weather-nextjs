@@ -88,7 +88,7 @@ export default function CurrentWeather({
                   </button>
                   {showSettings && (
                     <div 
-                      className="absolute right-0 mt-2 w-48 rounded-lg bg-black/80 backdrop-blur-xl shadow-lg z-[9999] border border-white/10"
+                      className="absolute right-0 mt-2 w-48 rounded-lg bg-black/80 backdrop-blur-xl shadow-lg z-30 border border-white/10"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="p-2">
