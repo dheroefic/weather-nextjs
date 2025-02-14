@@ -1,6 +1,7 @@
 import type { ForecastDay } from '@/types/weather';
 import type { ComponentType } from 'react';
 import { HeavyRainIcon, PartlyCloudyIcon, FogIcon } from '@/components/icons';
+import { debug } from '@/utils/debug';
 
 type WeatherIcon = ComponentType<{ className?: string }>;
 
@@ -71,11 +72,18 @@ async function fetchWeatherApi(url: string, params: WeatherApiParams): Promise<O
     }
   });
 
-  const response = await fetch(`${url}?${queryParams.toString()}`);
+  const requestUrl = `${url}?${queryParams.toString()}`;
+  debug.api('Fetching weather data from:', requestUrl);
+
+  const response = await fetch(requestUrl);
   if (!response.ok) {
+    debug.api('Weather API request failed:', { status: response.status, statusText: response.statusText });
     throw new Error('Network response was not ok');
   }
-  return response.json();
+
+  const data = await response.json();
+  debug.api('Weather API response:', data);
+  return data;
 }
 
 export async function fetchWeatherData(latitude: number, longitude: number): Promise<{

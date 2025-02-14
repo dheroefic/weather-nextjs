@@ -7,6 +7,7 @@ import WeatherMetrics from '@/components/WeatherMetrics';
 import DailyForecast from '@/components/DailyForecast';
 import DetailPanel from '@/components/DetailPanel';
 import { fetchWeatherData } from '@/services/weatherService';
+import { getBackgroundImage } from '@/services/backgroundService';
 import './weather-backgrounds.css';
 
 import type { Location, WeatherData, ForecastDay, TemperatureUnit } from '@/types/weather';
@@ -21,6 +22,12 @@ export default function WeatherApp() {
   const [selectedDay, setSelectedDay] = useState<ForecastDay | null>(null);
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [imageAttribution, setImageAttribution] = useState<{
+    photographerName: string;
+    photographerUsername: string;
+    photographerUrl: string;
+  } | null>(null);
 
   const convertTemp = (temp: number, unit: TemperatureUnit): number => {
     if (unit === 'F') {
@@ -51,6 +58,19 @@ export default function WeatherApp() {
 
       if (data && data.currentWeather && data.hourlyForecast && data.dailyForecast) {
         setWeatherData(data);
+
+        // Get background image based on weather condition
+        const weatherCondition = data.currentWeather.condition.toLowerCase();
+        const condition = weatherCondition.includes('rain') ? 'rain'
+          : weatherCondition.includes('cloud') ? 'cloudy'
+          : weatherCondition.includes('snow') ? 'snow'
+          : weatherCondition.includes('storm') ? 'storm'
+          : weatherCondition.includes('clear') || weatherCondition.includes('sunny') ? 'sunny'
+          : 'default';
+
+        const backgroundResult = await getBackgroundImage(condition);
+        setBackgroundImage(backgroundResult.imageUrl);
+        setImageAttribution(backgroundResult.attribution || null);
       } else {
         console.error('Invalid weather data structure received');
         setWeatherData(null);
@@ -181,33 +201,13 @@ export default function WeatherApp() {
     return directions[direction as keyof typeof directions] || 0;
   };
 
-  const getWeatherImage = (condition: string): string => {
-    switch (condition.toLowerCase()) {
-      case 'heavy rain':
-      case 'rain':
-      case 'light rain':
-        return '/background-weather/a-rain.jpg';
-      case 'partly cloudy':
-        return '/background-weather/a-sunny.jpg';
-      case 'cloudy':
-        return '/background-weather/a-cloudy.jpg';
-      case 'fog':
-        return '/background-weather/a-storm.jpg';
-      case 'clear sky':
-        return '/background-weather/a-sunny.jpg';
-      default:
-        return '/background-weather/a-default.jpg';
-    }
-  };
-
   const currentWeather = weatherData?.currentWeather.condition || 'Loading...';
-  const weatherImage = getWeatherImage(currentWeather);
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center p-0 md:p-4 relative">
       <div className="fixed inset-0 z-0">
         <Image
-          src={weatherImage}
+          src={backgroundImage || '/background-weather/a-default.jpg'}
           alt={`Weather background showing ${currentWeather}`}
           fill
           priority
@@ -281,7 +281,15 @@ export default function WeatherApp() {
         />
 
         <div className="glass-container p-2 text-center text-[10px] text-white/40 rounded-lg backdrop-blur-md bg-white/5 mt-4">
-          <p>Created with 🩷 by dheroefic • Images: <a href="https://unsplash.com" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Unsplash</a> • Data: <a href="https://open-meteo.com" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Open Meteo</a></p>
+          <p>
+            Created with 🩷 by dheroefic • Images: {imageAttribution ? (
+              <>
+                Photo by <a href={imageAttribution.photographerUrl} className="hover:text-white/60" target="_blank" rel="noopener noreferrer">{imageAttribution.photographerName}</a> on <a href="https://unsplash.com" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Unsplash</a>
+              </>
+            ) : (
+              <a href="https://unsplash.com" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Unsplash</a>
+            )} • Weather Data: <a href="https://open-meteo.com" className="hover:text-white/60" target="_blank" rel="noopener noreferrer">Open Meteo</a>
+          </p>
         </div>
       </div>
     </div>

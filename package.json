@@ -9,11 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@lxg/weather-icons": "^3.0.1",
     "@vercel/analytics": "^1.5.0",
     "next": "15.1.7",
     "openmeteo": "^1.1.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "unsplash-js": "^7.0.19"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
