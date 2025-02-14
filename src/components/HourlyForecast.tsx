@@ -44,7 +44,7 @@ export default function HourlyForecast({
 
   return (
     <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5">
-      <div className="text-base md:text-xl font-semibold mb-4">Today's Hourly Forecast</div>
+      <div className="text-base md:text-xl font-semibold mb-4">Today&apos;s Hourly Forecast</div>
       {loading ? (
         <LoadingHourlyForecast />
       ) : (

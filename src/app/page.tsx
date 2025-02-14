@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import CurrentWeather from '@/components/CurrentWeather';
 import Header from '@/components/Header';
 import WeatherMetrics from '@/components/WeatherMetrics';
 import HourlyForecast from '@/components/HourlyForecast';
