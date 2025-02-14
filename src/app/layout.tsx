@@ -9,7 +9,7 @@ export const metadata = {
   metadataBase: new URL('http://weather.dheroefic.my.id'),
   title: 'Real-Time Weather Updates & Forecasts',
   description: 'Get accurate real-time weather updates, hourly forecasts, and multi-day predictions. Features dynamic weather visualization and location-based updates.',
-  keywords: 'weather app, weather forecast, real-time weather, hourly forecast, local weather, AI weather app, weather predictions, weather updates',
+  keywords: 'weather app, weather forecast, real-time weather, hourly forecast, local weather, weather predictions, weather updates',
   authors: [{ name: 'Weather App Team' }],
   openGraph: {
     title: 'Real-Time Weather Updates & Forecasts',
@@ -21,14 +21,14 @@ export const metadata = {
         url: '/background-weather/a-default.jpg',
         width: 1200,
         height: 630,
-        alt: 'AI-Powered Weather App Preview'
+        alt: 'Weather App Preview'
       }
     ]
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Real-Time Weather Updates & Forecasts',
-    description: 'Get accurate real-time weather updates, hourly forecasts, and multi-day predictions with our modern AI-powered weather application.',
+    description: 'Get accurate real-time weather updates, hourly forecasts, and multi-day predictions with our modern weather application.',
     images: ['/background-weather/a-default.jpg']
   },
   alternates: {
