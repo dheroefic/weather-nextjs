@@ -44,14 +44,14 @@ export default function CurrentWeather({
   handleAutoRefreshChange
 }: CurrentWeatherProps) {
   return (
-    <div className="flex flex-col gap-2 mb-2 md:mb-8 w-full">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-8 w-full">
-        <div className="flex flex-col items-start space-y-1 w-full md:w-auto">
-          <div className="flex flex-col space-y-0.5">
-            <div className="text-sm md:text-xl font-medium opacity-90">{formatDate(currentTime)}</div>
-            <div className="text-xl md:text-3xl font-bold">{formatTime(currentTime)}</div>
+    <div className="flex flex-col gap-3 mb-4 md:mb-8 w-full">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-8 w-full">
+        <div className="flex flex-col items-start space-y-2 w-full md:w-auto">
+          <div className="flex flex-col space-y-1">
+            <div className="text-base md:text-2xl font-medium opacity-90">{formatDate(currentTime)}</div>
+            <div className="text-2xl md:text-4xl font-bold">{formatTime(currentTime)}</div>
           </div>
-          <div className="w-full md:w-auto mt-2">
+          <div className="w-full md:w-auto mt-3">
             <div className="flex items-center gap-2">
               <LocationSelector
                 currentLocation={location}
@@ -106,21 +106,21 @@ export default function CurrentWeather({
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-start md:items-end space-y-2 w-full md:w-auto">
-          <div className="flex items-center gap-3">
-            <div className="text-4xl md:text-6xl font-bold temperature-display">
+        <div className="flex flex-col items-start md:items-end space-y-3 w-full md:w-auto">
+          <div className="flex items-center gap-4">
+            <div className="text-5xl md:text-7xl font-bold temperature-display">
               {weatherData ? convertTemp(weatherData.currentWeather.temperature, tempUnit) : '--'}°{tempUnit}
             </div>
             <button
               onClick={onTempUnitToggle}
-              className="px-3 py-1.5 rounded-lg bg-black/40 hover:bg-white/20 transition-all duration-300 text-sm font-medium backdrop-blur-sm self-start mt-2"
+              className="px-3 py-1.5 rounded-lg bg-black/40 hover:bg-white/20 transition-all duration-300 text-base font-medium backdrop-blur-sm self-start mt-2"
             >
               °{tempUnit === 'C' ? 'F' : 'C'}
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <WindIcon
-              className={`w-5 h-5 transform transition-transform duration-300 ${loading ? 'loading-element' : ''}`}
+              className={`w-6 h-6 transform transition-transform duration-300 ${loading ? 'loading-element' : ''}`}
               style={{
                 transform: weatherData
                   ? `rotate(${getWindRotationDegree(weatherData.currentWeather.wind.direction)}deg)`
@@ -130,7 +130,7 @@ export default function CurrentWeather({
                   : 'none'
               }}
             />
-            <span className={`text-base text-white/80 ${loading ? 'loading-element' : ''}`}>
+            <span className={`text-lg text-white/90 ${loading ? 'loading-element' : ''}`}>
               {weatherData ? `${weatherData.currentWeather.wind.direction}, ${weatherData.currentWeather.wind.speed} km/h` : '--'}
             </span>
           </div>
