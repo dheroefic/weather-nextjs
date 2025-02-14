@@ -112,11 +112,13 @@ export default function DetailPanel({
                   <div
                     key={index}
                     onClick={() => setSelectedHour(index)}
-                    className={`p-3 bg-white/5 rounded-lg cursor-pointer transition-all duration-300 min-w-[100px] ${hour.isSelected ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10'}`}
+                    className={`p-3 bg-white/5 rounded-lg cursor-pointer transition-all duration-300 min-w-[100px] flex flex-col items-center ${hour.isSelected ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10'}`}
                   >
-                    <div className="text-sm text-center mb-2">{hour.time}</div>
-                    <hour.icon className="weather-icon w-8 h-8 mx-auto mb-2" />
-                    <div className="text-lg font-semibold text-center">
+                    <div className="text-sm mb-2">{hour.time}</div>
+                    <div className="flex items-center justify-center mb-2">
+                      <hour.icon className="weather-icon w-8 h-8" />
+                    </div>
+                    <div className="text-lg font-semibold">
                       {convertTemp(hour.temp, tempUnit)}°{tempUnit}
                     </div>
                   </div>

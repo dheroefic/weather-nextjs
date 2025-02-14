@@ -6,13 +6,13 @@ import Script from 'next/script';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  metadataBase: new URL('http://localhost:3001'),
-  title: 'AI-Powered Weather App | Real-Time Weather Updates & Forecasts',
+  metadataBase: new URL('http://weather.dheroefic.my.id'),
+  title: 'Real-Time Weather Updates & Forecasts',
   description: 'Get accurate real-time weather updates, hourly forecasts, and multi-day predictions with our modern AI-powered weather application. Features dynamic weather visualization and location-based updates.',
   keywords: 'weather app, weather forecast, real-time weather, hourly forecast, local weather, AI weather app, weather predictions, weather updates',
   authors: [{ name: 'Weather App Team' }],
   openGraph: {
-    title: 'AI-Powered Weather App | Real-Time Weather Updates & Forecasts',
+    title: 'Real-Time Weather Updates & Forecasts',
     description: 'Get accurate real-time weather updates, hourly forecasts, and multi-day predictions with our modern AI-powered weather application.',
     type: 'website',
     locale: 'en_US',
@@ -27,7 +27,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI-Powered Weather App | Real-Time Weather Updates & Forecasts',
+    title: 'Real-Time Weather Updates & Forecasts',
     description: 'Get accurate real-time weather updates, hourly forecasts, and multi-day predictions with our modern AI-powered weather application.',
     images: ['/background-weather/a-default.jpg']
   },
