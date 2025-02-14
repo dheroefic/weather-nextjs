@@ -181,25 +181,6 @@ export default function WeatherApp() {
     return directions[direction as keyof typeof directions] || 0;
   };
 
-  const getWeatherClass = (condition: string) => {
-    switch (condition.toLowerCase()) {
-      case 'heavy rain':
-      case 'rain':
-      case 'light rain':
-        return 'weather-heavy-rain';
-      case 'partly cloudy':
-        return 'weather-partly-cloudy';
-      case 'cloudy':
-        return 'weather-cloudy';
-      case 'fog':
-        return 'weather-fog';
-      case 'clear sky':
-        return 'weather-sunny';
-      default:
-        return 'weather-default';
-    }
-  };
-
   const getWeatherImage = (condition: string): string => {
     switch (condition.toLowerCase()) {
       case 'heavy rain':
