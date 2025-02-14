@@ -41,7 +41,7 @@ export default function Header({
   handleAutoRefreshChange
 }: HeaderProps) {
   return (
-    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-8 w-full">
+    <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5">
       <CurrentWeather
         weatherData={weatherData}
         location={location}

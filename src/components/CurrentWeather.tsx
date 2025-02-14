@@ -44,19 +44,19 @@ export default function CurrentWeather({
   handleAutoRefreshChange
 }: CurrentWeatherProps) {
   return (
-    <div className="flex flex-col gap-3 mb-4 md:mb-8 w-full">
+    <div className="flex flex-col gap-4 md:gap-6 w-full">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-8 w-full">
-        <div className="flex flex-col items-start space-y-2 w-full md:w-auto">
-          <div className="flex flex-col space-y-1">
+        <div className="flex flex-col items-start space-y-3 w-full md:w-auto">
+          <div className="flex flex-col space-y-2">
             {loading ? (
               <>
-                <div className="text-base md:text-2xl font-medium opacity-90 loading-element w-48"></div>
-                <div className="text-2xl md:text-4xl font-bold loading-element w-24"></div>
+                <div className="text-lg md:text-2xl font-medium opacity-90 loading-element w-48"></div>
+                <div className="text-3xl md:text-4xl font-bold loading-element w-24"></div>
               </>
             ) : (
               <>
-                <div className="text-base md:text-2xl font-medium opacity-90">{formatDate(currentTime)}</div>
-                <div className="text-2xl md:text-4xl font-bold">{formatTime(currentTime)}</div>
+                <div className="text-lg md:text-2xl font-medium opacity-90">{formatDate(currentTime)}</div>
+                <div className="text-3xl md:text-4xl font-bold">{formatTime(currentTime)}</div>
               </>
             )}
           </div>
