@@ -1,5 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+'use client';
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import citiesData from '@/data/cities.json';
+
+interface GeocodingResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  address: {
+    city?: string;
+    town?: string;
+    village?: string;
+    state?: string;
+    country: string;
+  };
+}
 
 interface City {
   name: string;
@@ -19,11 +34,59 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [cities] = useState<City[]>(citiesData);
+  const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const filteredCities = cities.filter(city =>
-    city.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    city.country.toLowerCase().includes(searchTerm.toLowerCase())
-  ).slice(0, 5);
+  const searchLocation = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5`
+      );
+      const data = await response.json();
+      setSearchResults(data);
+    } catch (error) {
+      console.error('Error searching locations:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (searchTerm) {
+      searchTimeoutRef.current = setTimeout(() => {
+        searchLocation(searchTerm);
+      }, 500);
+    } else {
+      setSearchResults([]);
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchTerm, searchLocation]);
+
+  const filteredCities = searchTerm
+    ? searchResults.map(result => ({
+        name: result.display_name.split(",")[0] || 'Unknown City',
+        country: result.address.country,
+        latitude: parseFloat(result.lat),
+        longitude: parseFloat(result.lon)
+      }))
+    : cities.slice(0, 5);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -35,7 +98,7 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
+  
   return (
     <div className="relative" ref={dropdownRef} onClick={(e) => e.stopPropagation()}>
       <button
@@ -43,7 +106,7 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
         className="text-base md:text-xl font-semibold bg-black/40 px-3 py-1.5 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 hover:bg-black/50 flex items-center gap-2 shadow-md"
       >
         <svg
-          className="w-4 h-4"
+          className="w-4 h-4 flex-shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -62,11 +125,13 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
             d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
           />
         </svg>
-        {currentLocation.city}, {currentLocation.country}
+        <div className="truncate">
+          {currentLocation.city}, {currentLocation.country}
+        </div>
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-72 max-h-80 overflow-y-auto rounded-lg bg-black/80 backdrop-blur-xl shadow-2xl z-[999] border border-white/10" onClick={(e) => e.stopPropagation()}>
+        <div className="absolute top-full left-0 mt-2 w-[300px] md:w-[400px] rounded-lg bg-black/80 backdrop-blur-xl shadow-2xl z-[999] border border-white/10" onClick={(e) => e.stopPropagation()}>
           <input
             type="text"
             placeholder="Search cities..."
@@ -74,8 +139,16 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full p-3 bg-black/60 border-none outline-none text-white placeholder-white/50 rounded-t-lg focus:bg-black/70 transition-colors duration-200"
           />
-          <div className="divide-y divide-white/20">
-            {filteredCities.map((city, index) => (
+          <div className="max-h-[320px] overflow-y-auto divide-y divide-white/20">
+            {isSearching ? (
+              <div className="p-3 text-center text-white/60">
+                Searching...
+              </div>
+            ) : filteredCities.length === 0 ? (
+              <div className="p-3 text-center text-white/60">
+                No results found
+              </div>
+            ) : filteredCities.map((city, index) => (
               <button
                 key={index}
                 className="w-full p-3 text-left hover:bg-white/10 transition-colors duration-200"
@@ -92,8 +165,8 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
                   setSearchTerm('');
                 }}
               >
-                <div className="font-medium text-white/90">{city.name}</div>
-                <div className="text-sm text-white/60">{city.country}</div>
+                <div className="font-medium text-white/90 truncate max-w-[calc(100%-1rem)]">{city.name}</div>
+                <div className="text-sm text-white/60 truncate max-w-[calc(100%-1rem)]">{city.country}</div>
               </button>
             ))}
           </div>

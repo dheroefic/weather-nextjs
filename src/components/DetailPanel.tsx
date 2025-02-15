@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import Image from 'next/image';
 import type { ForecastDay, TemperatureUnit, WeatherData } from '@/types/weather';
-import { PrecipitationIcon, HumidityIcon } from '@/components/icons';
+
 import { getUVIndexIcon } from '@/services/weatherService';
 
 const LoadingFallback = () => (
@@ -113,7 +113,7 @@ export default function DetailPanel({
         style={{ pointerEvents: isVisible ? 'auto' : 'none', zIndex: 100, backfaceVisibility: 'hidden', willChange: 'transform, opacity' }}
       >
         <div ref={panelRef} className="relative h-full p-3 md:p-6 overflow-y-auto">
-          <div className="flex items-center mb-4 md:mb-6 mt-2">
+          <div className="flex items-center justify-between mb-4 md:mb-6 mt-2">
             <button 
               onClick={handleClose}
               className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 backdrop-blur-sm"
@@ -123,6 +123,26 @@ export default function DetailPanel({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrevDay}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!weatherData?.dailyForecast?.some(day => new Date(day.date) < new Date(selectedDay?.date))}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={handleNextDay}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!weatherData?.dailyForecast?.some(day => new Date(day.date) > new Date(selectedDay?.date))}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
           
           <div className="mt-4 md:mt-6">
@@ -142,11 +162,11 @@ export default function DetailPanel({
               <div className="glass-container p-2.5 md:p-3 rounded-lg md:rounded-xl backdrop-blur-md bg-white/5 mb-4 md:mb-6">
                 <div className="flex items-center gap-4">
                   <Image
-                    src={`/icons/weathers/${selectedDay.icon.split('/').pop()}`}
+                    src={selectedDay.icon}
                     alt={selectedDay.condition}
                     width={56}
                     height={56}
-                    className="weather-icon w-12 md:w-14 h-12 md:h-14 opacity-80"
+                    className="w-12 md:w-14 h-12 md:h-14 opacity-80"
                   />
                   <div>
                     <div className="text-base md:text-lg font-semibold">{selectedDay.condition}</div>
@@ -178,13 +198,7 @@ export default function DetailPanel({
                         {selectedDay.uvIndex.value} - {selectedDay.uvIndex.category}
                       </div>
                     </div>
-                    <Image
-                      src={getUVIndexIcon(selectedDay.uvIndex.value)}
-                      alt={`UV Index - ${selectedDay.uvIndex.category}`}
-                      width={56}
-                      height={56}
-                      className="w-12 md:w-14 h-12 md:h-14 opacity-80"
-                    />
+                    <Image src={getUVIndexIcon(selectedDay.uvIndex.value)} alt={`UV Index - ${selectedDay.uvIndex.category}`} width={56} height={56} className="w-12 md:w-14 h-12 md:h-14 opacity-80" />
                   </div>
                 </div>
 
@@ -220,66 +234,78 @@ export default function DetailPanel({
                     {hourlyData?.map((hour, index) => (
                       <div
                         key={index}
-                        onClick={() => setSelectedHour(index)}
-                        className={`p-2.5 md:p-3 bg-white/5 rounded-lg cursor-pointer transition-all duration-300 min-w-[100px] flex flex-col items-center ${hour.isSelected ? 'bg-white/20 shadow-lg' : 'hover:bg-white/10'}`}
+                        onClick={() => setSelectedHour(selectedHour === index ? null : index)}
+                        className={`p-2.5 md:p-3 bg-white/5 rounded-lg cursor-pointer transition-all duration-300 min-w-[120px] flex flex-col items-center gap-2 transform hover:scale-[1.002] hover:bg-white/10 hover:shadow-lg relative group overflow-hidden ${hour.isSelected ? 'bg-white/20 shadow-lg scale-[1.002] ring-2 ring-white/20' : ''}`}
                       >
-                        <div className="text-xs md:text-sm mb-2">{hour.time}</div>
+                        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg pointer-events-none"></div>
+                        <div className="text-xs md:text-sm mb-2 mt-1">{hour.time}</div>
                         <div className="flex items-center justify-center mb-2">
                           <Image
                             src={hour.icon}
                             alt="Weather condition"
-                            width={32}
-                            height={32}
-                            className="weather-icon w-8 h-8"
+                            width={40}
+                            height={40}
+                            className="w-8 h-8 md:w-10 md:h-10 opacity-80"
                           />
                         </div>
-                        <div className="text-base md:text-lg font-semibold">
+                        <div className="text-base md:text-lg font-semibold mb-1">
                           {convertTemp(hour.temp, tempUnit)}°{tempUnit}
                         </div>
+                        <div className="text-[10px] text-white/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap mb-1">Click for details</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {selectedHour !== null && hourlyData && (
-                  <div className="mt-4 p-2.5 md:p-3 bg-white/5 rounded-lg backdrop-blur-sm transition-all duration-300">
-                    <div className="text-base md:text-lg font-semibold mb-3">{hourlyData[selectedHour].time}</div>
+                  <div className="mt-4 p-3 bg-white/5 rounded-lg">
+                    <div className="flex items-center justify-between gap-4 mb-3">
+                      <div>
+                        <div className="text-sm opacity-70">Selected Hour</div>
+                        <div className="text-lg font-semibold">{hourlyData[selectedHour].time}</div>
+                      </div>
+                      <Image
+                        src={hourlyData[selectedHour].icon}
+                        alt="Weather condition"
+                        width={48}
+                        height={48}
+                        className="w-12 h-12 opacity-80"
+                      />
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex items-center gap-2">
-                        <PrecipitationIcon className="w-4 h-4 opacity-70" />
-                        <span className="text-xs md:text-sm">{hourlyData[selectedHour].precipitation}%</span>
+                        <Image src={hourlyData[selectedHour].icon} alt="Temperature" width={24} height={24} className="w-6 h-6 opacity-80" />
+                        <div>
+                          <div className="text-xs opacity-70">Temperature</div>
+                          <div className="text-base font-semibold">{convertTemp(hourlyData[selectedHour].temp, tempUnit)}°{tempUnit}</div>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <HumidityIcon className="w-4 h-4 opacity-70" />
-                        <span className="text-xs md:text-sm">{hourlyData[selectedHour].humidity}%</span>
+                        <Image src="/icons/weathers/raindrops.svg" alt="Precipitation" width={24} height={24} className="w-6 h-6 opacity-80" />
+                        <div>
+                          <div className="text-xs opacity-70">Precipitation</div>
+                          <div className="text-base font-semibold">{hourlyData[selectedHour].precipitation}%</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Image src={getUVIndexIcon(hourlyData[selectedHour].uvIndex.value)} alt="UV Index" width={24} height={24} className="w-6 h-6 opacity-80" />
+                        <div>
+                          <div className="text-xs opacity-70">UV Index</div>
+                          <div className="text-base font-semibold">{hourlyData[selectedHour].uvIndex.value} - {hourlyData[selectedHour].uvIndex.category}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Image src="/icons/weathers/humidity.svg" alt="Humidity" width={24} height={24} className="w-6 h-6 opacity-80" />
+                        <div>
+                          <div className="text-xs opacity-70">Humidity</div>
+                          <div className="text-base font-semibold">{hourlyData[selectedHour].humidity}%</div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
             </Suspense>
-          </div>
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/50 backdrop-blur-sm md:static md:mt-4 md:bg-transparent md:backdrop-blur-none z-[999] w-full">
-            <div className="flex items-center justify-center gap-3 max-w-3xl mx-auto">
-              <button
-                onClick={handlePrevDay}
-                className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!weatherData?.dailyForecast?.some(day => new Date(day.date) < new Date(selectedDay?.date))}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                onClick={handleNextDay}
-                className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!weatherData?.dailyForecast?.some(day => new Date(day.date) > new Date(selectedDay?.date))}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
           </div>
         </div>
       </div>
