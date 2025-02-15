@@ -2,26 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import citiesData from '@/data/cities.json';
-
-interface GeocodingResult {
-  display_name: string;
-  lat: string;
-  lon: string;
-  address: {
-    city?: string;
-    town?: string;
-    village?: string;
-    state?: string;
-    country: string;
-  };
-}
-
-interface City {
-  name: string;
-  country: string;
-  latitude: number;
-  longitude: number;
-}
+import type { SearchResult } from '@/services/geolocationService';
+import { searchLocations } from '@/services/geolocationService';
 
 interface LocationSelectorProps {
   onLocationSelect: (location: { city: string; country: string; coordinates?: { latitude: number; longitude: number } }) => void;
@@ -32,25 +14,26 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const [cities] = useState<City[]>(citiesData);
-  const [searchResults, setSearchResults] = useState<GeocodingResult[]>([]);
+  const [cities] = useState<SearchResult[]>(citiesData);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const searchLocation = useCallback(async (query: string) => {
+  const handleSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
       return;
     }
-
+  
     setIsSearching(true);
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5`
-      );
-      const data = await response.json();
-      setSearchResults(data);
+      const response = await searchLocations(query);
+      if (response.success && response.data) {
+        setSearchResults(response.data);
+      } else {
+        setSearchResults([]);
+        console.warn('No results found or invalid response format');
+      }
     } catch (error) {
       console.error('Error searching locations:', error);
       setSearchResults([]);
@@ -66,7 +49,7 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
 
     if (searchTerm) {
       searchTimeoutRef.current = setTimeout(() => {
-        searchLocation(searchTerm);
+        handleSearch(searchTerm);
       }, 500);
     } else {
       setSearchResults([]);
@@ -77,16 +60,9 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchTerm, searchLocation]);
+  }, [searchTerm, handleSearch]);
 
-  const filteredCities = searchTerm
-    ? searchResults.map(result => ({
-        name: result.display_name.split(",")[0] || 'Unknown City',
-        country: result.address.country,
-        latitude: parseFloat(result.lat),
-        longitude: parseFloat(result.lon)
-      }))
-    : cities.slice(0, 5);
+  const filteredResults = searchTerm ? searchResults : cities.slice(0, 5);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -144,29 +120,29 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
               <div className="p-3 text-center text-white/60">
                 Searching...
               </div>
-            ) : filteredCities.length === 0 ? (
+            ) : filteredResults.length === 0 ? (
               <div className="p-3 text-center text-white/60">
                 No results found
               </div>
-            ) : filteredCities.map((city, index) => (
+            ) : filteredResults.map((result, index) => (
               <button
                 key={index}
                 className="w-full p-3 text-left hover:bg-white/10 transition-colors duration-200"
                 onClick={() => {
                   onLocationSelect({
-                    city: city.name,
-                    country: city.country,
+                    city: result.name,
+                    country: result.country,
                     coordinates: {
-                      latitude: city.latitude,
-                      longitude: city.longitude
+                      latitude: result.latitude,
+                      longitude: result.longitude
                     }
                   });
                   setIsOpen(false);
                   setSearchTerm('');
                 }}
               >
-                <div className="font-medium text-white/90 truncate max-w-[calc(100%-1rem)]">{city.name}</div>
-                <div className="text-sm text-white/60 truncate max-w-[calc(100%-1rem)]">{city.country}</div>
+                <div className="font-medium text-white/90 truncate max-w-[calc(100%-1rem)]">{result.name}</div>
+                <div className="text-sm text-white/60 truncate max-w-[calc(100%-1rem)]">{result.country}</div>
               </button>
             ))}
           </div>

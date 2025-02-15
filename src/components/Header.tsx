@@ -20,6 +20,8 @@ interface HeaderProps {
   setShowSettings: (show: boolean) => void;
   autoRefreshInterval: number | null;
   handleAutoRefreshChange: (minutes: number | null) => void;
+  showMap: boolean;
+  setShowMap: (show: boolean) => void;
 }
 
 export default function Header({
@@ -38,7 +40,9 @@ export default function Header({
   showSettings,
   setShowSettings,
   autoRefreshInterval,
-  handleAutoRefreshChange
+  handleAutoRefreshChange,
+  showMap,
+  setShowMap
 }: HeaderProps) {
   return (
     <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5 relative z-20">
@@ -60,6 +64,8 @@ export default function Header({
           setShowSettings={setShowSettings}
           autoRefreshInterval={autoRefreshInterval}
           handleAutoRefreshChange={handleAutoRefreshChange}
+          showMap={showMap}
+          setShowMap={setShowMap}
         />
       </div>
     </div>

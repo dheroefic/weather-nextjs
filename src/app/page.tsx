@@ -7,9 +7,11 @@ import WeatherMetrics from '@/components/WeatherMetrics';
 import HourlyForecast from '@/components/HourlyForecast';
 import DailyForecast from '@/components/DailyForecast';
 import DetailPanel from '@/components/DetailPanel';
+import MapPanel from '@/components/MapPanel';
 import Footer from '@/components/Footer';
 import { fetchWeatherData } from '@/services/weatherService';
 import { getBackgroundImage } from '@/services/backgroundService';
+import { loadPreferences, savePreferences } from '@/services/preferencesService';
 import './weather-backgrounds.css';
 
 import type { Location, WeatherData, ForecastDay, TemperatureUnit } from '@/types/weather';
@@ -25,11 +27,19 @@ export default function WeatherApp() {
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [showMap, setShowMap] = useState(false);
   const [imageAttribution, setImageAttribution] = useState<{
     photographerName: string;
     photographerUsername: string;
     photographerUrl: string;
   } | null>(null);
+
+  // Load preferences on initial mount
+  useEffect(() => {
+    const preferences = loadPreferences();
+    if (preferences.tempUnit) setTempUnit(preferences.tempUnit);
+    if (preferences.location) setLocation(preferences.location);
+  }, []);
 
   const convertTemp = (temp: number, unit: TemperatureUnit): number => {
     if (unit === 'F') {
@@ -39,7 +49,9 @@ export default function WeatherApp() {
   };
 
   const toggleTempUnit = () => {
-    setTempUnit(prev => prev === 'C' ? 'F' : 'C');
+    const newUnit = tempUnit === 'C' ? 'F' : 'C';
+    setTempUnit(newUnit);
+    savePreferences({ tempUnit: newUnit });
   };
 
   const fetchData = useCallback(async () => {
@@ -250,6 +262,8 @@ export default function WeatherApp() {
           setShowSettings={setShowSettings}
           autoRefreshInterval={autoRefreshInterval}
           handleAutoRefreshChange={handleAutoRefreshChange}
+          showMap={showMap}
+          setShowMap={setShowMap}
         />
 
         <WeatherMetrics weatherData={weatherData} loading={loading} />
@@ -278,6 +292,23 @@ export default function WeatherApp() {
           convertTemp={convertTemp}
           onClose={() => setSelectedDay(null)}
           onDaySelect={setSelectedDay}
+        />
+
+        <MapPanel
+          isOpen={showMap}
+          weatherData={weatherData}
+          onClose={() => setShowMap(false)}
+          location={location}
+          tempUnit={tempUnit}
+          convertTemp={convertTemp}
+          onLocationSelect={(coordinates) => {
+            setLocation(prev => ({
+              ...prev,
+              coordinates,
+              city: coordinates.city || prev.city,
+              country: coordinates.country || prev.country
+            }));
+          }}
         />
 
         <Footer imageAttribution={imageAttribution} />
