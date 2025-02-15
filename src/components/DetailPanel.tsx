@@ -113,56 +113,36 @@ export default function DetailPanel({
         style={{ pointerEvents: isVisible ? 'auto' : 'none', zIndex: 100, backfaceVisibility: 'hidden', willChange: 'transform, opacity' }}
       >
         <div ref={panelRef} className="relative h-full p-3 md:p-6 overflow-y-auto">
-          <button 
-            onClick={handleClose}
-            className="absolute top-3 md:top-6 right-3 md:right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 backdrop-blur-sm"
-            aria-label="Close panel"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center mb-4 md:mb-6 mt-2">
+            <button 
+              onClick={handleClose}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 backdrop-blur-sm"
+              aria-label="Close panel"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
           
-          <div className="mt-8 md:mt-12">
+          <div className="mt-4 md:mt-6">
             <Suspense fallback={<LoadingFallback />}>
               <div 
                 className={`transition-transform duration-300 ease-in-out ${slideDirection === 'left' ? '-translate-x-full opacity-0' : slideDirection === 'right' ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'}`}
               >
               </div>
-              <div className="flex items-center justify-between mb-4 md:mb-6">
-                <h2 className="text-xl md:text-2xl font-semibold">
-                  {new Date(selectedDay.date).toLocaleDateString('en-US', { 
-                    month: 'short',
-                    day: 'numeric',
-                    weekday: 'short',
-                    year: 'numeric'
-                  })}
-                </h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handlePrevDay}
-                    className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={!weatherData?.dailyForecast?.some(day => new Date(day.date) < new Date(selectedDay.date))}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={handleNextDay}
-                    className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={!weatherData?.dailyForecast?.some(day => new Date(day.date) > new Date(selectedDay.date))}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+              <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">
+                {new Date(selectedDay.date).toLocaleDateString('en-US', { 
+                  month: 'short',
+                  day: 'numeric',
+                  weekday: 'short',
+                  year: 'numeric'
+                })}
+              </h2>
               <div className="glass-container p-2.5 md:p-3 rounded-lg md:rounded-xl backdrop-blur-md bg-white/5 mb-4 md:mb-6">
                 <div className="flex items-center gap-4">
                   <Image
-                    src={selectedDay.icon}
+                    src={`/icons/weathers/${selectedDay.icon.split('/').pop()}`}
                     alt={selectedDay.condition}
                     width={56}
                     height={56}
@@ -278,6 +258,28 @@ export default function DetailPanel({
                 )}
               </div>
             </Suspense>
+          </div>
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/50 backdrop-blur-sm md:static md:mt-4 md:bg-transparent md:backdrop-blur-none z-[999] w-full">
+            <div className="flex items-center justify-center gap-3 max-w-3xl mx-auto">
+              <button
+                onClick={handlePrevDay}
+                className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!weatherData?.dailyForecast?.some(day => new Date(day.date) < new Date(selectedDay?.date))}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={handleNextDay}
+                className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!weatherData?.dailyForecast?.some(day => new Date(day.date) > new Date(selectedDay?.date))}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
