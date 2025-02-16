@@ -112,23 +112,29 @@ export default function MapPanel({
   convertTemp,
   onLocationSelect,
 }: MapPanelProps) {
-  // Always call hooks at the top level.
+  // Create a flag and fallback coordinates
+  const hasCoordinates = Boolean(location.coordinates);
+  const initialCoordinates = location.coordinates || { latitude: 0, longitude: 0 };
+
+  // All hooks are called unconditionally.
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRenderMap, setShouldRenderMap] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [mapCenter, setMapCenter] = useState<LatLngExpression>([
-    location.coordinates?.latitude ?? 0,
-    location.coordinates?.longitude ?? 0,
+    initialCoordinates.latitude,
+    initialCoordinates.longitude,
   ]);
 
   const mapRef = useRef<HTMLDivElement | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [mapInstance, setMapInstance] = useState<Map | null>(null);
+
   const [nearbyLocations, setNearbyLocations] = useState<NearbyLocation[]>([]);
 
+  // Define callbacks and effects unconditionally.
   const handleSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -256,27 +262,19 @@ export default function MapPanel({
         }
       );
 
-      const handleMoveStart = () => {
-        // Removed isDragging update since it's not used
-      };
-
       const handleMoveEnd = () => {
-        // Clear any existing timeout
         if (debounceTimeoutRef.current) {
           clearTimeout(debounceTimeoutRef.current);
         }
-        // Set a new timeout to fetch data after user stops moving the map
         debounceTimeoutRef.current = setTimeout(() => {
           const center = mapInstance.getCenter();
           fetchNearbyData(center.lat, center.lng);
-        }, 1000); // Wait 1 second after movement stops before fetching
+        }, 1000);
       };
 
-      mapInstance.on('movestart', handleMoveStart);
       mapInstance.on('moveend', handleMoveEnd);
       mapInstance.on('zoomend', handleMoveEnd);
 
-      // Initial fetch
       fetchNearbyData(
         location.coordinates.latitude,
         location.coordinates.longitude
@@ -286,7 +284,6 @@ export default function MapPanel({
         if (debounceTimeoutRef.current) {
           clearTimeout(debounceTimeoutRef.current);
         }
-        mapInstance.off('movestart', handleMoveStart);
         mapInstance.off('moveend', handleMoveEnd);
         mapInstance.off('zoomend', handleMoveEnd);
       };
@@ -320,7 +317,6 @@ export default function MapPanel({
     setSearchResults([]);
   };
 
-  // Centers the map to the user's current location
   const handleCenterToUserLocation = async () => {
     try {
       const geoResponse = await getUserGeolocation();
@@ -357,288 +353,274 @@ export default function MapPanel({
     }
   };
 
-  // Now, after all hooks are called, conditionally render based on coordinates.
-  if (!location.coordinates) {
-    return null;
-  }
-
+  // Instead of returning early, always return (all hooks were called above)
+  // and conditionally render the UI based on `hasCoordinates`.
   return (
     <>
-      <div
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-500 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
-        }`}
-        style={{ pointerEvents: isVisible ? 'auto' : 'none', zIndex: 99 }}
-        onClick={handleClose}
-      />
-      <div
-        className={`fixed top-0 right-0 h-full w-full md:w-[600px] bg-black/85 backdrop-blur-xl transform transition-all duration-500 ease-in-out ${
-          isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
-        }`}
-        style={{
-          pointerEvents: isVisible ? 'auto' : 'none',
-          zIndex: 100,
-          backfaceVisibility: 'hidden',
-          willChange: 'transform, opacity',
-        }}
-      >
-        <div className="relative h-full w-full">
-          <div className="absolute top-0 left-0 right-0 z-[1001] p-4 flex flex-row items-center gap-3">
-            <button
-              onClick={handleClose}
-              className="p-2 rounded-lg bg-black/80 hover:bg-black/90 transition-all duration-300 backdrop-blur-xl shadow-lg text-white ring-1 ring-white/20 w-fit flex-shrink-0"
-              title="Close panel"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search location..."
-                className="w-full p-3 rounded-lg bg-black/80 hover:bg-black/90 transition-all duration-300 backdrop-blur-xl shadow-lg text-white ring-1 ring-white/20 outline-none placeholder-white/50 focus:ring-2 focus:ring-white/40"
-                aria-label="Search locations"
-                disabled={isSearching}
-              />
-              {searchQuery && (
-                <div className="absolute top-full left-0 right-0 mt-2 rounded-lg bg-black/80 backdrop-blur-xl shadow-2xl border border-white/10 max-h-[320px] overflow-y-auto">
-                  {isSearching ? (
-                    <div className="p-4 text-center text-white/60 flex items-center justify-center">
-                      <svg
-                        className="animate-spin h-5 w-5 mr-2"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Searching...
-                    </div>
-                  ) : searchResults.length === 0 ? (
-                    <div className="p-4 text-center text-white/60">
-                      No results found
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-white/10">
-                      {searchResults.map((result, index) => (
-                        <button
-                          key={index}
-                          className="w-full p-3 text-left hover:bg-white/10 transition-colors duration-200 focus:outline-none focus:bg-white/20"
-                          onClick={() => handleLocationSelect(result)}
-                        >
-                          <div className="font-medium text-white/90 truncate">
-                            {result.name}
-                          </div>
-                          <div className="text-sm text-white/60 truncate">
-                            {result.country}
-                          </div>
-                        </button>
-                      ))}
+      {hasCoordinates && (
+        <>
+          <div
+            className={`fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-500 ${
+              isVisible ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{ pointerEvents: isVisible ? 'auto' : 'none', zIndex: 99 }}
+            onClick={handleClose}
+          />
+          <div
+            className={`fixed top-0 right-0 h-full w-full md:w-[600px] bg-black/85 backdrop-blur-xl transform transition-all duration-500 ease-in-out ${
+              isVisible ? 'translate-x-0' : 'translate-x-full'
+            }`}
+            style={{
+              pointerEvents: isVisible ? 'auto' : 'none',
+              zIndex: 100,
+              backfaceVisibility: 'hidden',
+              willChange: 'transform, opacity',
+            }}
+          >
+            <div className="relative h-full w-full">
+              {/* Search and Close Area */}
+              <div className="absolute top-0 left-0 right-0 z-[1001] p-4 flex flex-row items-center gap-3">
+                <button
+                  onClick={handleClose}
+                  className="p-2 rounded-lg bg-black/80 hover:bg-black/90 transition-all duration-300 backdrop-blur-xl shadow-lg text-white ring-1 ring-white/20 w-fit flex-shrink-0"
+                  title="Close panel"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search location..."
+                    className="w-full p-3 rounded-lg bg-black/80 hover:bg-black/90 transition-all duration-300 backdrop-blur-xl shadow-lg text-white ring-1 ring-white/20 outline-none placeholder-white/50 focus:ring-2 focus:ring-white/40"
+                    aria-label="Search locations"
+                    disabled={isSearching}
+                  />
+                  {searchQuery && (
+                    <div className="absolute top-full left-0 right-0 mt-2 rounded-lg bg-black/80 backdrop-blur-xl shadow-2xl border border-white/10 max-h-[320px] overflow-y-auto">
+                      {isSearching ? (
+                        <div className="p-4 text-center text-white/60 flex items-center justify-center">
+                          <svg
+                            className="animate-spin h-5 w-5 mr-2"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Searching...
+                        </div>
+                      ) : searchResults.length === 0 ? (
+                        <div className="p-4 text-center text-white/60">No results found</div>
+                      ) : (
+                        <div className="divide-y divide-white/10">
+                          {searchResults.map((result, index) => (
+                            <button
+                              key={index}
+                              className="w-full p-3 text-left hover:bg-white/10 transition-colors duration-200 focus:outline-none focus:bg-white/20"
+                              onClick={() => handleLocationSelect(result)}
+                            >
+                              <div className="font-medium text-white/90 truncate">{result.name}</div>
+                              <div className="text-sm text-white/60 truncate">{result.country}</div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          </div>
-          <div className="relative h-full w-full">
-            {shouldRenderMap && (
-              <div className="h-full w-full leaflet-container-custom">
-                <Suspense fallback={<LoadingFallback />}>
-                  <MapContainer
-                    center={mapCenter}
-                    zoom={defaultMapConfig.defaultZoom}
-                    minZoom={defaultMapConfig.minZoom}
-                    maxZoom={defaultMapConfig.maxZoom}
-                    style={{ height: '100%', width: '100%' }}
-                    zoomControl={defaultMapConfig.controls.zoomControl}
-                    attributionControl={defaultMapConfig.controls.attributionControl}
-                  >
-                    {/* Set the map instance using a child component */}
-                    <SetMapInstance setMapInstance={setMapInstance} />
-                    <TileLayer
-                      url={defaultMapConfig.tileLayer.url}
-                      attribution={defaultMapConfig.tileLayer.attribution}
-                      maxZoom={defaultMapConfig.tileLayer.maxZoom}
-                    />
-                    <Marker
-                      position={[
-                        location.coordinates.latitude,
-                        location.coordinates.longitude,
-                      ]}
-                      icon={L.icon({
-                        iconUrl:
-                          weatherMetrics[0]?.icon ||
-                          '/icons/weathers/map-marker.svg',
-                        iconSize: [32, 32],
-                        iconAnchor: [16, 32],
-                        popupAnchor: [0, -32],
-                      })}
-                    />
-                    {nearbyLocations.map((loc: NearbyLocation) => (
-                      <Marker
-                        key={`${loc.latitude}-${loc.longitude}`}
-                        position={[loc.latitude, loc.longitude]}
-                        icon={new L.Icon({
-                          iconUrl: loc.weatherData?.currentWeather.icon || '/icons/weathers/map-marker.svg',
-                          iconSize: [32, 32],
-                          iconAnchor: [16, 16],
-                          popupAnchor: [0, -16],
-                          className: 'weather-marker',
-                        })}
-                      />
-                    ))}
-                  </MapContainer>
-                </Suspense>
-                <div className="absolute bottom-0 left-0 right-0 z-[1000] p-2 md:p-4 mb-16 md:mb-20">
-                  <div className="glass-container p-3 md:p-4 rounded-lg md:rounded-xl backdrop-blur-md bg-black/40 shadow-lg border border-white/10">
-                    <div className="flex flex-col gap-2 md:gap-4">
-                      <div className="flex items-center justify-between gap-2 md:gap-4">
-                        <div className="flex items-center gap-2 md:gap-3">
-                          {weatherData && (
-                            <Image
-                              src={weatherData.currentWeather.icon}
-                              alt={weatherData.currentWeather.condition}
-                              width={48}
-                              height={48}
-                              className="w-8 h-8 md:w-12 md:h-12 opacity-80"
-                            />
-                          )}
-                          <div>
-                            <div className="text-sm md:text-lg font-semibold truncate max-w-[150px] md:max-w-none">
-                              {location.city}, {location.country}
-                            </div>
-                            <div className="text-xs md:text-base opacity-80 truncate max-w-[150px] md:max-w-none">
-                              {weatherData?.currentWeather.condition}
-                            </div>
+              </div>
+
+              {/* Weather Card - Positioned Below Search */}
+              <div className="absolute top-[80px] left-0 right-0 z-[1000] p-2 md:p-4">
+                <div className="glass-container p-3 md:p-4 rounded-lg md:rounded-xl backdrop-blur-md bg-black/40 shadow-lg border border-white/10">
+                  <div className="flex flex-col gap-2 md:gap-4">
+                    <div className="flex items-center justify-between gap-2 md:gap-4">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        {weatherData && (
+                          <Image
+                            src={weatherData.currentWeather.icon}
+                            alt={weatherData.currentWeather.condition}
+                            width={48}
+                            height={48}
+                            className="w-8 h-8 md:w-12 md:h-12 opacity-80"
+                          />
+                        )}
+                        <div>
+                          <div className="text-sm md:text-lg font-semibold truncate max-w-[150px] md:max-w-none">
+                            {location.city}, {location.country}
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xl md:text-3xl font-bold">
-                            {weatherData
-                              ? `${convertTemp(
-                                  weatherData.currentWeather.temperature,
-                                  tempUnit
-                                )}°${tempUnit}`
-                              : ''}
-                          </div>
-                          <div className="text-xs md:text-sm opacity-80 flex items-center justify-end gap-1 md:gap-2">
-                            <Image
-                              src="/icons/weathers/humidity.svg"
-                              alt="Humidity"
-                              width={16}
-                              height={16}
-                              className="w-3 h-3 md:w-4 md:h-4"
-                            />
-                            <span>{weatherData?.currentWeather.humidity}%</span>
-                            <span className="mx-1">•</span>
-                            <Image
-                              src="/icons/weathers/barometer.svg"
-                              alt="Pressure"
-                              width={16}
-                              height={16}
-                              className="w-3 h-3 md:w-4 md:h-4"
-                            />
-                            <span>{weatherData?.currentWeather.pressure} hPa</span>
+                          <div className="text-xs md:text-base opacity-80 truncate max-w-[150px] md:max-w-none">
+                            {weatherData?.currentWeather.condition}
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={handleCenterToUserLocation}
-                          className="flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300 backdrop-blur-md text-white/90 hover:text-white border border-white/10 hover:border-white/20 flex items-center justify-center gap-2 group"
-                          title="Use your current location"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 md:h-5 md:w-5 opacity-70 group-hover:opacity-100 transition-opacity"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.5}
-                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.5}
-                              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
-                          </svg>
-                          <span className="text-xs md:text-sm font-medium">
-                            Current Location
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (mapInstance) {
-                              const center = mapInstance.getCenter();
-                              onLocationSelect({
-                                latitude: center.lat,
-                                longitude: center.lng,
-                              });
-                              handleClose();
-                            }
-                          }}
-                          className="flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300 backdrop-blur-md text-white/90 hover:text-white border border-white/10 hover:border-white/20 flex items-center justify-center gap-2 group"
-                          title="Use the current map center as location"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 md:h-5 md:w-5 opacity-70 group-hover:opacity-100 transition-opacity"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.5}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span className="text-xs md:text-sm font-medium">
-                            Set Location
-                          </span>
-                        </button>
+                      <div className="text-right">
+                        <div className="text-xl md:text-3xl font-bold">
+                          {weatherData
+                            ? `${convertTemp(
+                                weatherData.currentWeather.temperature,
+                                tempUnit
+                              )}°${tempUnit}`
+                            : ''}
+                        </div>
+                        <div className="text-xs md:text-sm opacity-80 flex items-center justify-end gap-1 md:gap-2">
+                          <Image
+                            src="/icons/weathers/humidity.svg"
+                            alt="Humidity"
+                            width={16}
+                            height={16}
+                            className="w-3 h-3 md:w-4 md:h-4"
+                          />
+                          <span>{weatherData?.currentWeather.humidity}%</span>
+                          <span className="mx-1">•</span>
+                          <Image
+                            src="/icons/weathers/barometer.svg"
+                            alt="Pressure"
+                            width={16}
+                            height={16}
+                            className="w-3 h-3 md:w-4 md:h-4"
+                          />
+                          <span>{weatherData?.currentWeather.pressure} hPa</span>
+                        </div>
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleCenterToUserLocation}
+                        className="flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300 backdrop-blur-md text-white/90 hover:text-white border border-white/10 hover:border-white/20 flex items-center justify-center gap-2 group"
+                        title="Use your current location"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 md:h-5 md:w-5 opacity-70 group-hover:opacity-100 transition-opacity"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                        </svg>
+                        <span className="text-xs md:text-sm font-medium">Current Location</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (mapInstance) {
+                            const center = mapInstance.getCenter();
+                            onLocationSelect({
+                              latitude: center.lat,
+                              longitude: center.lng,
+                            });
+                            handleClose();
+                          }
+                        }}
+                        className="flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300 backdrop-blur-md text-white/90 hover:text-white border border-white/10 hover:border-white/20 flex items-center justify-center gap-2 group"
+                        title="Use the current map center as location"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 md:h-5 md:w-5 opacity-70 group-hover:opacity-100 transition-opacity"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-xs md:text-sm font-medium">Set Location</span>
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
-            )}
+
+              {/* Map Container */}
+              <div className="relative h-full w-full">
+                {shouldRenderMap && (
+                  <div className="h-full w-full leaflet-container-custom">
+                    <Suspense fallback={<LoadingFallback />}>
+                      <MapContainer
+                        center={mapCenter}
+                        zoom={defaultMapConfig.defaultZoom}
+                        minZoom={defaultMapConfig.minZoom}
+                        maxZoom={defaultMapConfig.maxZoom}
+                        style={{ height: '100%', width: '100%' }}
+                        zoomControl={defaultMapConfig.controls.zoomControl}
+                        attributionControl={defaultMapConfig.controls.attributionControl}
+                      >
+                        <SetMapInstance setMapInstance={setMapInstance} />
+                        <TileLayer
+                          url={defaultMapConfig.tileLayer.url}
+                          attribution={defaultMapConfig.tileLayer.attribution}
+                          maxZoom={defaultMapConfig.tileLayer.maxZoom}
+                        />
+                        <Marker
+                          position={[
+                            location.coordinates!.latitude,
+                            location.coordinates!.longitude,
+                          ]}
+                          icon={L.icon({
+                            iconUrl:
+                              weatherMetrics[0]?.icon || '/icons/weathers/map-marker.svg',
+                            iconSize: [32, 32],
+                            iconAnchor: [16, 32],
+                            popupAnchor: [0, -32],
+                          })}
+                        />
+                        {nearbyLocations.map((loc: NearbyLocation) => (
+                          <Marker
+                            key={`${loc.latitude}-${loc.longitude}`}
+                            position={[loc.latitude, loc.longitude]}
+                            icon={new L.Icon({
+                              iconUrl:
+                                loc.weatherData?.currentWeather.icon ||
+                                '/icons/weathers/map-marker.svg',
+                              iconSize: [32, 32],
+                              iconAnchor: [16, 16],
+                              popupAnchor: [0, -16],
+                              className: 'weather-marker',
+                            })}
+                          />
+                        ))}
+                      </MapContainer>
+                    </Suspense>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </>
   );
 }
