@@ -134,7 +134,7 @@ export function getWindBeaufortIcon(windSpeed: number): WeatherIconPath {
 
 type WeatherIcon = string;
 
-const WMO_CODES: { [key: number]: { condition: string; icon: WeatherIcon } } = {
+const WMO_CODES: { [key: number]: { condition: string; icon: string } } = {
   0: { condition: 'Clear Sky', icon: '/icons/weathers/clear-day.svg' },
   1: { condition: 'Partly Cloudy', icon: '/icons/weathers/partly-cloudy-day.svg' },
   2: { condition: 'Partly Cloudy', icon: '/icons/weathers/partly-cloudy-day.svg' },
@@ -148,7 +148,7 @@ const WMO_CODES: { [key: number]: { condition: string; icon: WeatherIcon } } = {
   57: { condition: 'Heavy Freezing Drizzle', icon: '/icons/weathers/sleet.svg' },
   61: { condition: 'Light Rain', icon: '/icons/weathers/partly-cloudy-day-rain.svg' },
   63: { condition: 'Moderate Rain', icon: '/icons/weathers/rain.svg' },
-  65: { condition: 'Heavy Rain', icon: '/icons/weathers/thunderstorms-rain.svg' },
+  65: { condition: 'Heavy Rain', icon: '/icons/weathers/thunderstorms-day-rain.svg' },
   66: { condition: 'Light Freezing Rain', icon: '/icons/weathers/sleet.svg' },
   67: { condition: 'Heavy Freezing Rain', icon: '/icons/weathers/sleet.svg' },
   71: { condition: 'Light Snow', icon: '/icons/weathers/partly-cloudy-day-snow.svg' },
@@ -157,13 +157,15 @@ const WMO_CODES: { [key: number]: { condition: string; icon: WeatherIcon } } = {
   77: { condition: 'Snow Grains', icon: '/icons/weathers/snowflake.svg' },
   80: { condition: 'Light Rain Showers', icon: '/icons/weathers/partly-cloudy-day-rain.svg' },
   81: { condition: 'Moderate Rain Showers', icon: '/icons/weathers/rain.svg' },
-  82: { condition: 'Heavy Rain Showers', icon: '/icons/weathers/thunderstorms-rain.svg' },
+  82: { condition: 'Heavy Rain Showers', icon: '/icons/weathers/thunderstorms-day-rain.svg' },
   85: { condition: 'Light Snow Showers', icon: '/icons/weathers/partly-cloudy-day-snow.svg' },
   86: { condition: 'Heavy Snow Showers', icon: '/icons/weathers/snow.svg' },
   95: { condition: 'Thunderstorm', icon: '/icons/weathers/thunderstorms.svg' },
   96: { condition: 'Thunderstorm with Light Hail', icon: '/icons/weathers/thunderstorms-day-rain.svg' },
   99: { condition: 'Thunderstorm with Heavy Hail', icon: '/icons/weathers/thunderstorms-day-rain.svg' }
 };
+
+export { WMO_CODES };
 
 interface WeatherApiParams {
   latitude: string | number;

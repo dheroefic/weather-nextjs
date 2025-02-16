@@ -10,7 +10,7 @@ import {
   searchLocations,
   formatSearchResults,
 } from '@/services/geolocationService';
-import { fetchNearbyWeatherData } from '@/services/weatherService';
+import { fetchNearbyWeatherData, WMO_CODES } from '@/services/weatherService';
 import type { SearchResult } from '@/services/geolocationService';
 import 'leaflet/dist/leaflet.css';
 import type { LatLngExpression, Map } from 'leaflet';
@@ -61,10 +61,10 @@ const defaultMapConfig: MapConfig = {
   minZoom: 3,
   maxZoom: 18,
   tileLayer: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    url: 'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png',
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    maxZoom: 19,
+    maxZoom: 18,
   },
   controls: {
     zoomControl: false,
@@ -100,6 +100,27 @@ interface WeatherMetric {
   title: string;
   value: string;
 }
+
+
+// MapLegend component to display the weather icon legend.
+const MapLegend = () => {
+  return (
+    <div
+      className="absolute bottom-4 left-4 z-[1010] bg-black/70 text-white p-3 rounded-lg shadow-lg max-h-[50%] overflow-auto"
+      style={{ maxWidth: '250px' }}
+    >
+      <h4 className="text-sm font-bold mb-2">Legend</h4>
+      <div className="grid grid-cols-2 gap-2">
+        {Object.entries(WMO_CODES).map(([code, { condition, icon }]) => (
+          <div key={code} className="flex items-center gap-2">
+            <img src={icon} alt={condition} className="w-6 h-6" />
+            <span className="text-xs">{condition}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export default function MapPanel({
   isOpen,
@@ -355,7 +376,7 @@ export default function MapPanel({
             country: locationResponse.data.country,
           });
         } else {
-          onLocationSelect({ latitude, longitude });
+          onLocationSelect({ latitude, longitude, city: latitude.toString(), country: longitude.toString() });
         }
       } else {
         console.error('Geolocation error:', geoResponse.error);
@@ -615,7 +636,8 @@ export default function MapPanel({
                             ]}
                             icon={leaflet.icon({
                               iconUrl:
-                                weatherMetrics[0]?.icon || '/icons/weathers/map-marker.svg',
+                                weatherMetrics[0]?.icon ||
+                                '/icons/weathers/not-available.svg',
                               iconSize: [32, 32],
                               iconAnchor: [16, 32],
                               popupAnchor: [0, -32],
@@ -630,7 +652,7 @@ export default function MapPanel({
                               icon={new leaflet.Icon({
                                 iconUrl:
                                   loc.weatherData?.currentWeather.icon ||
-                                  '/icons/weathers/map-marker.svg',
+                                  '/icons/weathers/not-available.svg',
                                 iconSize: [32, 32],
                                 iconAnchor: [16, 16],
                                 popupAnchor: [0, -16],
@@ -642,6 +664,9 @@ export default function MapPanel({
                     </Suspense>
                   </div>
                 )}
+
+                {/* Render the Map Legend */}
+                {shouldRenderMap && <MapLegend />}
               </div>
             </div>
           </div>
