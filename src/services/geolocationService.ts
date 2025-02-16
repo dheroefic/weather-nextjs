@@ -23,11 +23,12 @@ const GEOCODING_API_BASE_URL = 'https://geocoding-api.open-meteo.com/v1';
 
 export const getUserGeolocation = async (): Promise<GeolocationResponse<Coordinates>> => {
   return new Promise((resolve) => {
-    if (!navigator.geolocation) {
+    // Ensure we are running in a browser environment.
+    if (typeof window === 'undefined' || typeof navigator === 'undefined' || !navigator.geolocation) {
       resolve({
         success: false,
         data: null,
-        error: 'Geolocation is not supported by your browser'
+        error: 'Geolocation is not supported in this environment'
       });
       return;
     }
@@ -43,7 +44,7 @@ export const getUserGeolocation = async (): Promise<GeolocationResponse<Coordina
             }
           });
         } catch (error) {
-          console.log(error)
+          console.error(error);
           resolve({
             success: false,
             data: null,

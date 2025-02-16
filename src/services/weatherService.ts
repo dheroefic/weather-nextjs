@@ -29,10 +29,11 @@ const getUVCategory = (uvIndex: number): string => {
 
 export async function getUserGeolocation(): Promise<GeolocationResponse> {
   return new Promise((resolve) => {
-    if (!navigator.geolocation) {
+    // Guard against non-browser environments.
+    if (typeof window === 'undefined' || typeof navigator === 'undefined' || !navigator.geolocation) {
       resolve({
         success: false,
-        error: 'Geolocation is not supported by your browser'
+        error: 'Geolocation is not supported in this environment'
       });
       return;
     }
@@ -55,7 +56,7 @@ export async function getUserGeolocation(): Promise<GeolocationResponse> {
             }
           });
         } catch (error) {
-          console.log(error)
+          console.error(error);
           resolve({
             success: false,
             error: 'Error fetching location details'
@@ -164,10 +165,6 @@ const WMO_CODES: { [key: number]: { condition: string; icon: WeatherIcon } } = {
   99: { condition: 'Thunderstorm with Heavy Hail', icon: '/icons/weathers/thunderstorms-day-rain.svg' }
 };
 
-/**
- * A helper function to fetch data from the Open-Meteo API.
- * It converts arrays to comma-separated strings for the query parameters.
- */
 interface WeatherApiParams {
   latitude: string | number;
   longitude: string | number;
@@ -178,7 +175,7 @@ interface WeatherApiParams {
 
 async function fetchWeatherApi(url: string, params: WeatherApiParams): Promise<OpenMeteoResponse> {
   const queryParams = new URLSearchParams();
-  // Add forecast_days parameter to get extended forecast data
+  // Add extended forecast days
   queryParams.append('forecast_days', '14');
   
   Object.entries(params).forEach(([key, value]) => {
@@ -202,7 +199,6 @@ async function fetchWeatherApi(url: string, params: WeatherApiParams): Promise<O
   debug.api('Weather API response:', data);
   return data;
 }
-
 
 async function fetchWeatherForeacastMultipleLocationApi(
   url: string,
@@ -291,8 +287,6 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
   const currentWeatherCode = response.hourly.weathercode[currentIndex];
   const weatherInfo = WMO_CODES[currentWeatherCode] || WMO_CODES[0];
 
-
-
   const hourlyForecast = response.hourly.time.map((time, index) => ({
     time,
     temp: response.hourly.temperature_2m[index],
@@ -306,48 +300,45 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
     pressure: response.hourly.surface_pressure[index]
   }));
 
-  // Filter out current date and map remaining days
   const currentDate = new Date().toISOString().split('T')[0];
   const dailyForecast = response.daily.time
     .filter(date => date > currentDate)
     .map((date, index) => {
-      // Get the start hour index for this day
       const dayStartIndex = (response.daily.time.indexOf(date)) * 24;
-      // Get 24 hours of data for this day
       const dayHourlyData = Array.from({ length: 24 }, (_, hourIndex) => {
-      const absoluteIndex = dayStartIndex + hourIndex;
+        const absoluteIndex = dayStartIndex + hourIndex;
+        return {
+          time: new Date(response.hourly.time[absoluteIndex]).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          temp: response.hourly.temperature_2m[absoluteIndex],
+          icon: WMO_CODES[response.hourly.weathercode[absoluteIndex]]?.icon || WMO_CODES[0].icon,
+          precipitation: response.hourly.precipitation_probability[absoluteIndex],
+          uvIndex: {
+            value: response.hourly.uv_index[absoluteIndex],
+            category: getUVCategory(response.hourly.uv_index[absoluteIndex])
+          },
+          humidity: response.hourly.relative_humidity_2m[absoluteIndex],
+          pressure: response.hourly.surface_pressure[absoluteIndex]
+        };
+      });
+
       return {
-        time: new Date(response.hourly.time[absoluteIndex]).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-        temp: response.hourly.temperature_2m[absoluteIndex],
-        icon: WMO_CODES[response.hourly.weathercode[absoluteIndex]]?.icon || WMO_CODES[0].icon,
-        precipitation: response.hourly.precipitation_probability[absoluteIndex],
-        uvIndex: {
-          value: response.hourly.uv_index[absoluteIndex],
-          category: getUVCategory(response.hourly.uv_index[absoluteIndex])
+        date,
+        condition: WMO_CODES[response.daily.weathercode[index]]?.condition || 'Clear Sky',
+        icon: WMO_CODES[response.daily.weathercode[index]]?.icon || WMO_CODES[0].icon,
+        temp: {
+          min: response.daily.temperature_2m_min[index],
+          max: response.daily.temperature_2m_max[index]
         },
-        humidity: response.hourly.relative_humidity_2m[absoluteIndex],
-        pressure: response.hourly.surface_pressure[absoluteIndex]
+        precipitation: response.daily.precipitation_probability_max[index],
+        uvIndex: {
+          value: response.daily.uv_index_max[index],
+          category: getUVCategory(response.daily.uv_index_max[index])
+        },
+        humidity: response.hourly.relative_humidity_2m[index * 24],
+        pressure: response.hourly.surface_pressure[index * 24],
+        hourly: dayHourlyData
       };
     });
-
-    return {
-      date,
-      condition: WMO_CODES[response.daily.weathercode[index]]?.condition || 'Clear Sky',
-      icon: WMO_CODES[response.daily.weathercode[index]]?.icon || WMO_CODES[0].icon,
-      temp: {
-        min: response.daily.temperature_2m_min[index],
-        max: response.daily.temperature_2m_max[index]
-      },
-      precipitation: response.daily.precipitation_probability_max[index],
-      uvIndex: {
-        value: response.daily.uv_index_max[index],
-        category: getUVCategory(response.daily.uv_index_max[index])
-      },
-      humidity: response.hourly.relative_humidity_2m[index * 24],
-      pressure: response.hourly.surface_pressure[index * 24],
-      hourly: dayHourlyData
-    };
-  });
 
   return {
     currentWeather: {
@@ -392,7 +383,6 @@ export async function fetchNearbyWeatherData(centerLat: number, centerLng: numbe
     }
   }
 
-  // Use Open-Meteo Weather API with string coordinates
   const latitudes = points.map(point => point.latitude.toString()).join(',');
   const longitudes = points.map(point => point.longitude.toString()).join(',');
   
@@ -422,7 +412,6 @@ export async function fetchNearbyWeatherData(centerLat: number, centerLng: numbe
   const currentIndex = new Date().getHours();
   const nearbyLocations: NearbyLocation[] = [];
 
-  // Process each response for each location
   responses.forEach((response, i) => {
     const weatherCode = response.hourly.weathercode[currentIndex];
     const weatherInfo = WMO_CODES[weatherCode] || WMO_CODES[0];
@@ -456,4 +445,3 @@ export async function fetchNearbyWeatherData(centerLat: number, centerLng: numbe
 
   return nearbyLocations;
 }
-

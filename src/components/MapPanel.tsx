@@ -14,8 +14,6 @@ import { fetchNearbyWeatherData } from '@/services/weatherService';
 import type { SearchResult } from '@/services/geolocationService';
 import 'leaflet/dist/leaflet.css';
 import type { LatLngExpression, Map } from 'leaflet';
-import * as L from 'leaflet';
-
 import type { Location } from '@/types/weather';
 import { NearbyLocation } from '@/types/nearbyWeather';
 
@@ -33,7 +31,7 @@ const Marker = dynamic(
   { ssr: false }
 );
 
-// A helper component that uses the useMap hook to set the map instance.
+// Helper component to capture the map instance via useMap.
 import { useMap } from 'react-leaflet';
 const SetMapInstance = ({ setMapInstance }: { setMapInstance: (map: Map) => void }) => {
   const map = useMap();
@@ -112,11 +110,17 @@ export default function MapPanel({
   convertTemp,
   onLocationSelect,
 }: MapPanelProps) {
-  // Create a flag and fallback coordinates
+  // Dynamically import Leaflet on the client.
+  const [leaflet, setLeaflet] = useState<typeof import('leaflet') | null>(null);
+  useEffect(() => {
+    import('leaflet').then((L) => setLeaflet(L));
+  }, []);
+
+  // Determine if coordinates are available.
   const hasCoordinates = Boolean(location.coordinates);
   const initialCoordinates = location.coordinates || { latitude: 0, longitude: 0 };
 
-  // All hooks are called unconditionally.
+  // State hooks.
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRenderMap, setShouldRenderMap] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -126,15 +130,17 @@ export default function MapPanel({
     initialCoordinates.latitude,
     initialCoordinates.longitude,
   ]);
-
-  const mapRef = useRef<HTMLDivElement | null>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [mapInstance, setMapInstance] = useState<Map | null>(null);
-
   const [nearbyLocations, setNearbyLocations] = useState<NearbyLocation[]>([]);
 
-  // Define callbacks and effects unconditionally.
+  // Timeout refs.
+  const searchTimeoutRef = useRef<number | null>(null);
+  const debounceTimeoutRef = useRef<number | null>(null);
+  
+  // Optional ref for the map container.
+  const mapRef = useRef<HTMLDivElement | null>(null);
+
+  // Callback for handling location search.
   const handleSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -157,12 +163,13 @@ export default function MapPanel({
     }
   }, []);
 
+  // Debounce search query.
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
     if (searchQuery) {
-      searchTimeoutRef.current = setTimeout(() => {
+      searchTimeoutRef.current = window.setTimeout(() => {
         handleSearch(searchQuery);
       }, 500);
     } else {
@@ -175,8 +182,9 @@ export default function MapPanel({
     };
   }, [searchQuery, handleSearch]);
 
+  // Effect to handle panel open/close and map rendering.
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: number;
     const currentMapRef = mapRef.current;
     if (isOpen && location.coordinates) {
       setIsVisible(true);
@@ -184,12 +192,12 @@ export default function MapPanel({
         location.coordinates.latitude,
         location.coordinates.longitude,
       ]);
-      timer = setTimeout(() => {
+      timer = window.setTimeout(() => {
         setShouldRenderMap(true);
       }, 300);
     } else {
       setIsVisible(false);
-      timer = setTimeout(() => {
+      timer = window.setTimeout(() => {
         setShouldRenderMap(false);
         if (currentMapRef && mapInstance) {
           mapInstance.remove();
@@ -211,6 +219,7 @@ export default function MapPanel({
     setTimeout(onClose, 500);
   };
 
+  // Define weather metrics.
   const weatherMetrics = weatherData?.currentWeather
     ? [
         {
@@ -240,6 +249,7 @@ export default function MapPanel({
       ]
     : ([] as WeatherMetric[]);
 
+  // Callback to fetch nearby weather data.
   const fetchNearbyData = useCallback(
     async (centerLat: number, centerLng: number) => {
       const locations = await fetchNearbyWeatherData(centerLat, centerLng);
@@ -250,9 +260,9 @@ export default function MapPanel({
     []
   );
 
+  // Effect to animate the map and fetch nearby locations on movement.
   useEffect(() => {
     if (mapInstance && location.coordinates) {
-      // Smoothly animate when location changes
       mapInstance.flyTo(
         [location.coordinates.latitude, location.coordinates.longitude],
         defaultMapConfig.defaultZoom,
@@ -266,7 +276,7 @@ export default function MapPanel({
         if (debounceTimeoutRef.current) {
           clearTimeout(debounceTimeoutRef.current);
         }
-        debounceTimeoutRef.current = setTimeout(() => {
+        debounceTimeoutRef.current = window.setTimeout(() => {
           const center = mapInstance.getCenter();
           fetchNearbyData(center.lat, center.lng);
         }, 1000);
@@ -290,6 +300,7 @@ export default function MapPanel({
     }
   }, [mapInstance, location.coordinates, fetchNearbyData]);
 
+  // Handle location selection from search results.
   const handleLocationSelect = (result: {
     latitude: number;
     longitude: number;
@@ -317,6 +328,7 @@ export default function MapPanel({
     setSearchResults([]);
   };
 
+  // Center map on user location.
   const handleCenterToUserLocation = async () => {
     try {
       const geoResponse = await getUserGeolocation();
@@ -353,12 +365,11 @@ export default function MapPanel({
     }
   };
 
-  // Instead of returning early, always return (all hooks were called above)
-  // and conditionally render the UI based on `hasCoordinates`.
   return (
     <>
       {hasCoordinates && (
         <>
+          {/* Overlay */}
           <div
             className={`fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-500 ${
               isVisible ? 'opacity-100' : 'opacity-0'
@@ -366,6 +377,8 @@ export default function MapPanel({
             style={{ pointerEvents: isVisible ? 'auto' : 'none', zIndex: 99 }}
             onClick={handleClose}
           />
+
+          {/* Map Panel */}
           <div
             className={`fixed top-0 right-0 h-full w-full md:w-[600px] bg-black/85 backdrop-blur-xl transform transition-all duration-500 ease-in-out ${
               isVisible ? 'translate-x-0' : 'translate-x-full'
@@ -392,7 +405,12 @@ export default function MapPanel({
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
                 <div className="flex-1 relative">
@@ -452,7 +470,7 @@ export default function MapPanel({
                 </div>
               </div>
 
-              {/* Weather Card - Positioned Below Search */}
+              {/* Weather Card */}
               <div className="absolute top-[80px] left-0 right-0 z-[1000] p-2 md:p-4">
                 <div className="glass-container p-3 md:p-4 rounded-lg md:rounded-xl backdrop-blur-md bg-black/40 shadow-lg border border-white/10">
                   <div className="flex flex-col gap-2 md:gap-4">
@@ -555,7 +573,12 @@ export default function MapPanel({
                           viewBox="0 0 24 24"
                           stroke="currentColor"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M5 13l4 4L19 7"
+                          />
                         </svg>
                         <span className="text-xs md:text-sm font-medium">Set Location</span>
                       </button>
@@ -584,34 +607,37 @@ export default function MapPanel({
                           attribution={defaultMapConfig.tileLayer.attribution}
                           maxZoom={defaultMapConfig.tileLayer.maxZoom}
                         />
-                        <Marker
-                          position={[
-                            location.coordinates!.latitude,
-                            location.coordinates!.longitude,
-                          ]}
-                          icon={L.icon({
-                            iconUrl:
-                              weatherMetrics[0]?.icon || '/icons/weathers/map-marker.svg',
-                            iconSize: [32, 32],
-                            iconAnchor: [16, 32],
-                            popupAnchor: [0, -32],
-                          })}
-                        />
-                        {nearbyLocations.map((loc: NearbyLocation) => (
+                        {leaflet && (
                           <Marker
-                            key={`${loc.latitude}-${loc.longitude}`}
-                            position={[loc.latitude, loc.longitude]}
-                            icon={new L.Icon({
+                            position={[
+                              location.coordinates!.latitude,
+                              location.coordinates!.longitude,
+                            ]}
+                            icon={leaflet.icon({
                               iconUrl:
-                                loc.weatherData?.currentWeather.icon ||
-                                '/icons/weathers/map-marker.svg',
+                                weatherMetrics[0]?.icon || '/icons/weathers/map-marker.svg',
                               iconSize: [32, 32],
-                              iconAnchor: [16, 16],
-                              popupAnchor: [0, -16],
-                              className: 'weather-marker',
+                              iconAnchor: [16, 32],
+                              popupAnchor: [0, -32],
                             })}
                           />
-                        ))}
+                        )}
+                        {leaflet &&
+                          nearbyLocations.map((loc: NearbyLocation) => (
+                            <Marker
+                              key={`${loc.latitude}-${loc.longitude}`}
+                              position={[loc.latitude, loc.longitude]}
+                              icon={new leaflet.Icon({
+                                iconUrl:
+                                  loc.weatherData?.currentWeather.icon ||
+                                  '/icons/weathers/map-marker.svg',
+                                iconSize: [32, 32],
+                                iconAnchor: [16, 16],
+                                popupAnchor: [0, -16],
+                                className: 'weather-marker',
+                              })}
+                            />
+                          ))}
                       </MapContainer>
                     </Suspense>
                   </div>

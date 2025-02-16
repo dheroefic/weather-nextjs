@@ -9,10 +9,11 @@ const STORAGE_KEY = 'weather_preferences';
 
 const defaultPreferences: UserPreferences = {
   tempUnit: 'C',
-  location: null
+  location: null,
 };
 
 export const loadPreferences = (): UserPreferences => {
+  // Ensure this code runs only in the browser
   if (typeof window === 'undefined') return defaultPreferences;
   
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -20,12 +21,14 @@ export const loadPreferences = (): UserPreferences => {
 
   try {
     return JSON.parse(stored) as UserPreferences;
-  } catch {
+  } catch (error) {
+    console.error('Error parsing stored preferences', error);
     return defaultPreferences;
   }
 };
 
 export const savePreferences = (preferences: Partial<UserPreferences>): void => {
+  // Ensure this code runs only in the browser
   if (typeof window === 'undefined') return;
 
   const current = loadPreferences();
@@ -34,6 +37,8 @@ export const savePreferences = (preferences: Partial<UserPreferences>): void => 
 };
 
 export const clearPreferences = (): void => {
+  // Ensure this code runs only in the browser
   if (typeof window === 'undefined') return;
+
   localStorage.removeItem(STORAGE_KEY);
 };
