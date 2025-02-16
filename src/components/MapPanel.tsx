@@ -113,7 +113,7 @@ const MapLegend = () => {
       <div className="grid grid-cols-2 gap-2">
         {Object.entries(WMO_CODES).map(([code, { condition, icon }]) => (
           <div key={code} className="flex items-center gap-2">
-            <img src={icon} alt={condition} className="w-6 h-6" />
+            <Image src={icon} alt={condition} width={24} height={24} className="w-6 h-6" />
             <span className="text-xs">{condition}</span>
           </div>
         ))}
