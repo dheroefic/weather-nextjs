@@ -1,5 +1,81 @@
 import type { ForecastDay } from '@/types/weather';
 import { debug } from '@/utils/debug';
+import { NearbyLocation } from '@/types/nearbyWeather';
+
+interface GeolocationResponse {
+  success: boolean;
+  data?: {
+    latitude: number;
+    longitude: number;
+    city?: string;
+    country?: string;
+  };
+  error?: string;
+}
+
+function getWindDirection(degrees: number): string {
+  const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  const index = Math.round(((degrees % 360) / 22.5));
+  return directions[index % 16];
+}
+
+const getUVCategory = (uvIndex: number): string => {
+  if (uvIndex <= 2) return 'Low';
+  if (uvIndex <= 5) return 'Moderate';
+  if (uvIndex <= 7) return 'High';
+  if (uvIndex <= 10) return 'Very High';
+  return 'Extreme';
+};
+
+export async function getUserGeolocation(): Promise<GeolocationResponse> {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve({
+        success: false,
+        error: 'Geolocation is not supported by your browser'
+      });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const response = await fetch(
+            `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&language=en`
+          );
+          const data = await response.json();
+          
+          resolve({
+            success: true,
+            data: {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              city: data.features?.[0]?.name || 'Unknown City',
+              country: data.features?.[0]?.country || 'Unknown Country'
+            }
+          });
+        } catch (error) {
+          console.log(error)
+          resolve({
+            success: false,
+            error: 'Error fetching location details'
+          });
+        }
+      },
+      (error) => {
+        resolve({
+          success: false,
+          error: `Geolocation error: ${error.message}`
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+    );
+  });
+}
 
 type WeatherIconPath = string;
 
@@ -93,8 +169,8 @@ const WMO_CODES: { [key: number]: { condition: string; icon: WeatherIcon } } = {
  * It converts arrays to comma-separated strings for the query parameters.
  */
 interface WeatherApiParams {
-  latitude: number;
-  longitude: number;
+  latitude: string | number;
+  longitude: string | number;
   hourly: string[];
   daily: string[];
   timezone: string;
@@ -104,6 +180,36 @@ async function fetchWeatherApi(url: string, params: WeatherApiParams): Promise<O
   const queryParams = new URLSearchParams();
   // Add forecast_days parameter to get extended forecast data
   queryParams.append('forecast_days', '14');
+  
+  Object.entries(params).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      queryParams.append(key, value.join(','));
+    } else {
+      queryParams.append(key, value.toString());
+    }
+  });
+
+  const requestUrl = `${url}?${queryParams.toString()}`;
+  debug.api('Fetching weather data from:', requestUrl);
+
+  const response = await fetch(requestUrl);
+  if (!response.ok) {
+    debug.api('Weather API request failed:', { status: response.status, statusText: response.statusText });
+    throw new Error('Network response was not ok');
+  }
+
+  const data = await response.json();
+  debug.api('Weather API response:', data);
+  return data;
+}
+
+
+async function fetchWeatherForeacastMultipleLocationApi(
+  url: string,
+  params: WeatherApiParams
+): Promise<OpenMeteoResponse[]> {
+  const queryParams = new URLSearchParams();
+  queryParams.append('forecast_days', '1');
   
   Object.entries(params).forEach(([key, value]) => {
     if (Array.isArray(value)) {
@@ -185,19 +291,7 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
   const currentWeatherCode = response.hourly.weathercode[currentIndex];
   const weatherInfo = WMO_CODES[currentWeatherCode] || WMO_CODES[0];
 
-  const getWindDirection = (degrees: number): string => {
-    const directions = ['North', 'Northeast', 'East', 'Southeast', 'South', 'Southwest', 'West', 'Northwest'];
-    const index = Math.round(degrees / 45) % 8;
-    return directions[index];
-  };
 
-  const getUVCategory = (uvIndex: number): string => {
-    if (uvIndex <= 2) return 'Low';
-    if (uvIndex <= 5) return 'Moderate';
-    if (uvIndex <= 7) return 'High';
-    if (uvIndex <= 10) return 'Very High';
-    return 'Extreme';
-  };
 
   const hourlyForecast = response.hourly.time.map((time, index) => ({
     time,
@@ -276,3 +370,90 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
     dailyForecast
   };
 }
+
+export async function fetchNearbyWeatherData(centerLat: number, centerLng: number): Promise<NearbyLocation[]> {
+  const radiusKm = 10;
+  const latDelta = radiusKm / 111;
+  const lngDelta = radiusKm / (111 * Math.cos(centerLat * Math.PI / 180));
+  const gridSize = 4;
+
+  const points: { latitude: number; longitude: number }[] = [];
+  for (let i = 0; i < gridSize; i++) {
+    for (let j = 0; j < gridSize; j++) {
+      const baseLat = centerLat - latDelta + (2 * latDelta * i) / (gridSize - 1);
+      const baseLng = centerLng - lngDelta + (2 * lngDelta * j) / (gridSize - 1);
+
+      const randomLat = (Math.random() - 0.5) * latDelta * 0.3;
+      const randomLng = (Math.random() - 0.5) * lngDelta * 0.3;
+      points.push({
+        latitude: baseLat + randomLat,
+        longitude: baseLng + randomLng,
+      });
+    }
+  }
+
+  // Use Open-Meteo Weather API with string coordinates
+  const latitudes = points.map(point => point.latitude.toString()).join(',');
+  const longitudes = points.map(point => point.longitude.toString()).join(',');
+  
+  const responses = await fetchWeatherForeacastMultipleLocationApi('https://api.open-meteo.com/v1/forecast', {
+    latitude: latitudes,
+    longitude: longitudes,
+    hourly: [
+      'temperature_2m',
+      'weathercode',
+      'windspeed_10m',
+      'winddirection_10m',
+      'precipitation_probability',
+      'uv_index',
+      'relative_humidity_2m',
+      'surface_pressure'
+    ],
+    daily: [
+      'temperature_2m_max',
+      'temperature_2m_min',
+      'weathercode',
+      'precipitation_probability_max',
+      'uv_index_max'
+    ],
+    timezone: 'auto'
+  });
+
+  const currentIndex = new Date().getHours();
+  const nearbyLocations: NearbyLocation[] = [];
+
+  // Process each response for each location
+  responses.forEach((response, i) => {
+    const weatherCode = response.hourly.weathercode[currentIndex];
+    const weatherInfo = WMO_CODES[weatherCode] || WMO_CODES[0];
+
+    const nearbyLocation: NearbyLocation = {
+      latitude: points[i].latitude,
+      longitude: points[i].longitude,
+      city: `Point ${i + 1}`,
+      country: '',
+      weatherData: {
+        currentWeather: {
+          temperature: response.hourly.temperature_2m[currentIndex],
+          humidity: response.hourly.relative_humidity_2m[currentIndex],
+          pressure: response.hourly.surface_pressure[currentIndex],
+          wind: {
+            speed: response.hourly.windspeed_10m[currentIndex],
+            direction: getWindDirection(response.hourly.winddirection_10m[currentIndex]),
+          },
+          icon: weatherInfo.icon,
+          condition: weatherInfo.condition,
+          precipitation: response.hourly.precipitation_probability[currentIndex],
+          uvIndex: {
+            value: response.hourly.uv_index[currentIndex],
+            category: getUVCategory(response.hourly.uv_index[currentIndex]),
+          },
+        },
+      },
+    };
+    nearbyLocations.push(nearbyLocation);
+  });
+
+  return nearbyLocations;
+}
+

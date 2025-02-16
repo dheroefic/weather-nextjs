@@ -12,6 +12,7 @@ import Footer from '@/components/Footer';
 import { fetchWeatherData } from '@/services/weatherService';
 import { getBackgroundImage } from '@/services/backgroundService';
 import { loadPreferences, savePreferences } from '@/services/preferencesService';
+import { getUserGeolocation, reverseGeocode } from '@/services/geolocationService';
 import './weather-backgrounds.css';
 
 import type { Location, WeatherData, ForecastDay, TemperatureUnit } from '@/types/weather';
@@ -151,41 +152,29 @@ export default function WeatherApp() {
       }
     };
 
-    if (navigator.geolocation) {
+    const initializeLocation = async () => {
       timeoutId = setTimeout(() => {
         setLocation(defaultLocation);
       }, 5000);
 
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          clearTimeout(timeoutId);
-          try {
-            const response = await fetch(
-              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&localityLanguage=en`
-            );
-            const data = await response.json();
-            setLocation({
-              city: data.city || 'Unknown City',
-              country: data.countryName || 'Unknown Country',
-              coordinates: {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude
-              }
-            });
-          } catch (error) {
-            console.error('Error fetching location:', error);
-            setLocation(defaultLocation);
-          }
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-          clearTimeout(timeoutId);
+      const geoResponse = await getUserGeolocation();
+      clearTimeout(timeoutId);
+
+      if (geoResponse.success && geoResponse.data) {
+        const locationResponse = await reverseGeocode(geoResponse.data);
+        if (locationResponse.success && locationResponse.data) {
+          setLocation(locationResponse.data);
+        } else {
+          console.error('Reverse geocoding error:', locationResponse.error);
           setLocation(defaultLocation);
         }
-      );
-    } else {
-      setLocation(defaultLocation);
-    }
+      } else {
+        console.error('Geolocation error:', geoResponse.error);
+        setLocation(defaultLocation);
+      }
+    };
+
+    initializeLocation();
 
     return () => {
       if (timeoutId) {

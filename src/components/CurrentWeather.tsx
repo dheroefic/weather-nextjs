@@ -67,10 +67,21 @@ export default function CurrentWeather({
           </div>
           <div className="w-full md:w-auto">
             <div className="flex flex-col gap-2">
-              <LocationSelector
-                currentLocation={location}
-                onLocationSelect={onLocationSelect}
-              />
+              <div className="flex gap-2 items-start">
+                <LocationSelector
+                  currentLocation={location}
+                  onLocationSelect={onLocationSelect}
+                />
+                <button
+                  onClick={() => setShowMap(!showMap)}
+                  className={`h-[42px] px-3 rounded-lg bg-black/40 hover:bg-white/20 transition-all duration-300 ${showMap ? 'bg-white/20' : ''} ${!location.coordinates ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={!location.coordinates}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-3l-6-3m6 3l6 3m0-13l4.553 2.276A1 1 0 0121 8.618v10.764a1 1 0 01-1.447.894L15 17m-6-3l6-3" />
+                  </svg>
+                </button>
+              </div>
               <div className="flex flex-wrap items-center gap-2 bg-black/40 rounded-lg p-1.5 w-fit">
                 <button
                   onClick={handleRefresh}
@@ -79,15 +90,6 @@ export default function CurrentWeather({
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => setShowMap(!showMap)}
-                  className={`p-2 rounded-lg hover:bg-white/20 transition-all duration-300 ${showMap ? 'bg-white/20' : ''} ${!location.coordinates ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={!location.coordinates}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-3l-6-3m6 3l6 3m0-13l4.553 2.276A1 1 0 0121 8.618v10.764a1 1 0 01-1.447.894L15 17m-6-3l6-3" />
                   </svg>
                 </button>
                 <div className="relative">

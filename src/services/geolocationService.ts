@@ -1,4 +1,5 @@
 import type { Location } from '@/types/weather';
+import { getFromCache, setInCache } from './cacheService';
 
 export interface SearchResult {
   name: string;
@@ -18,9 +19,9 @@ export interface Coordinates {
   longitude: number;
 }
 
-const GEOCODING_API_BASE_URL = 'https://api.bigdatacloud.net/data';
+const GEOCODING_API_BASE_URL = 'https://geocoding-api.open-meteo.com/v1';
 
-export async function getUserLocation(): Promise<GeolocationResponse<Coordinates>> {
+export const getUserGeolocation = async (): Promise<GeolocationResponse<Coordinates>> => {
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
       resolve({
@@ -32,81 +33,39 @@ export async function getUserLocation(): Promise<GeolocationResponse<Coordinates
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          success: true,
-          data: {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          }
-        });
+      async (position) => {
+        try {
+          resolve({
+            success: true,
+            data: {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            }
+          });
+        } catch (error) {
+          console.log(error)
+          resolve({
+            success: false,
+            data: null,
+            error: 'Error getting location details'
+          });
+        }
       },
       (error) => {
-        let errorMessage = 'Failed to get location';
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Location permission denied';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information unavailable';
-            break;
-          case error.TIMEOUT:
-            errorMessage = 'Location request timed out';
-            break;
-        }
         resolve({
           success: false,
           data: null,
-          error: errorMessage
+          error: error.message
         });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
       }
     );
   });
-}
-
-export async function searchLocations(query: string): Promise<GeolocationResponse<SearchResult[]>> {
-  if (!query.trim()) {
-    return {
-      success: false,
-      data: null,
-      error: 'Search query is empty'
-    };
-  }
-
-  try {
-    // Use Nominatim API for geocoding
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch location data');
-    }
-
-    const data = await response.json();
-    if (!Array.isArray(data)) {
-      throw new Error('Invalid response format');
-    }
-
-    const results = data.map(item => ({
-      name: item.display_name.split(',')[0] || 'Unknown City',
-      country: item.display_name.split(',').slice(-1)[0]?.trim() || 'Unknown Country',
-      latitude: parseFloat(item.lat),
-      longitude: parseFloat(item.lon)
-    }));
-
-    return {
-      success: true,
-      data: results
-    };
-  } catch (error) {
-    return {
-      success: false,
-      data: null,
-      error: error instanceof Error ? error.message : 'An unknown error occurred'
-    };
-  }
-}
+};
 
 export function formatSearchResults(results: SearchResult[]): SearchResult[] {
   return results.map(result => ({
@@ -117,11 +76,69 @@ export function formatSearchResults(results: SearchResult[]): SearchResult[] {
   }));
 }
 
+export async function searchLocations(query: string): Promise<GeolocationResponse<SearchResult[]>> {
+  const cacheKey = `search-${query.toLowerCase().trim()}`;
+  const cached = getFromCache<GeolocationResponse<SearchResult[]>>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  if (!query.trim()) {
+    return {
+      success: false,
+      data: null,
+      error: 'Search query is empty'
+    };
+  }
+
+  try {
+    const response = await fetch(
+      `${GEOCODING_API_BASE_URL}/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch location data');
+    }
+
+    const data = await response.json();
+    if (!data.results || !Array.isArray(data.results)) {
+      throw new Error('Invalid response format');
+    }
+
+    const results = data.results.map((item: { name: string; country: string; latitude: number; longitude: number; }) => ({
+      name: item.name || 'Unknown City',
+      country: item.country || 'Unknown Country',
+      latitude: item.latitude,
+      longitude: item.longitude
+    }));
+
+    const result = {
+      success: true,
+      data: results
+    };
+    
+    setInCache(cacheKey, result);
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      data: null,
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    };
+  }
+}
+
 export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationResponse<Location>> {
+  const cacheKey = `reverse-geo-${coordinates.latitude}-${coordinates.longitude}`;
+  const cached = getFromCache<GeolocationResponse<Location>>(cacheKey);
+  if (cached) {
+    return Promise.resolve(cached);
+  }
+
   return new Promise(async (resolve) => {
     try {
       const response = await fetch(
-        `${GEOCODING_API_BASE_URL}/reverse-geocode-client?latitude=${coordinates.latitude}&longitude=${coordinates.longitude}&localityLanguage=en`
+        `${GEOCODING_API_BASE_URL}/reverse?latitude=${coordinates.latitude}&longitude=${coordinates.longitude}&language=en`
       );
 
       if (!response.ok) {
@@ -129,17 +146,20 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
       }
 
       const data = await response.json();
-      resolve({
+      const result = {
         success: true,
         data: {
-          city: data.city || 'Unknown City',
-          country: data.countryName || 'Unknown Country',
+          city: data.name || 'Unknown City',
+          country: data.country || 'Unknown Country',
           coordinates: {
             latitude: coordinates.latitude,
             longitude: coordinates.longitude
           }
         }
-      });
+      };
+      
+      setInCache(cacheKey, result);
+      resolve(result);
     } catch (error) {
       resolve({
         success: false,
