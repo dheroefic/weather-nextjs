@@ -104,19 +104,54 @@ interface WeatherMetric {
 
 // MapLegend component to display the weather icon legend.
 const MapLegend = () => {
+  const [isMinimized, setIsMinimized] = useState(true);
+
   return (
     <div
-      className="absolute bottom-4 left-4 z-[1010] bg-black/70 text-white p-3 rounded-lg shadow-lg max-h-[50%] overflow-auto"
-      style={{ maxWidth: '250px' }}
+      className={`absolute bottom-4 left-4 z-[1010] transition-all duration-300 ease-in-out ${
+        isMinimized ? 'max-h-[120px] w-[180px]' : 'max-h-[80vh] w-[300px]'
+      }`}
     >
-      <h4 className="text-sm font-bold mb-2">Legend</h4>
-      <div className="grid grid-cols-2 gap-2">
-        {Object.entries(WMO_CODES).map(([code, { condition, icon }]) => (
-          <div key={code} className="flex items-center gap-2">
-            <Image src={icon} alt={condition} width={24} height={24} className="w-6 h-6" />
-            <span className="text-xs">{condition}</span>
+      <div className="glass-container backdrop-blur-md bg-black/40 border border-white/10 rounded-lg shadow-lg overflow-hidden">
+        <div className="flex items-center justify-between p-3 border-b border-white/10">
+          <h4 className="text-sm font-bold text-white">Weather Legend</h4>
+          <button
+            onClick={() => setIsMinimized(!isMinimized)}
+            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+            title={isMinimized ? 'Expand' : 'Minimize'}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`h-4 w-4 text-white transition-transform duration-300 ${
+                isMinimized ? 'rotate-180' : ''
+              }`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+        </div>
+        <div
+          className={`overflow-y-auto transition-all duration-300 ${
+            isMinimized ? 'max-h-[60px]' : 'max-h-[calc(80vh-48px)]'
+          }`}
+        >
+          <div className="grid grid-cols-2 gap-2 p-3">
+            {Object.entries(WMO_CODES).map(([code, { condition, icon }]) => (
+              <div key={code} className="flex items-center gap-2">
+                <Image src={icon} alt={condition} width={24} height={24} className="w-6 h-6" />
+                <span className="text-xs text-white/90">{condition}</span>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
@@ -411,88 +446,91 @@ export default function MapPanel({
               willChange: 'transform, opacity',
             }}
           >
-            <div className="relative h-full w-full">
-              {/* Search and Close Area */}
-              <div className="absolute top-0 left-0 right-0 z-[1001] p-4 flex flex-row items-center gap-3">
-                <button
-                  onClick={handleClose}
-                  className="p-2 rounded-lg bg-black/80 hover:bg-black/90 transition-all duration-300 backdrop-blur-xl shadow-lg text-white ring-1 ring-white/20 w-fit flex-shrink-0"
-                  title="Close panel"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+            <div className="relative h-full w-full flex flex-col">
+              {/* Header Area with Search and Close */}
+              <div className="flex-none p-4">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={handleClose}
+                    className="flex-none p-2 rounded-lg glass-container backdrop-blur-md bg-black/40 border border-white/10 hover:bg-white/10 transition-all duration-300 shadow-lg text-white"
+                    title="Close panel"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search location..."
+                      className="w-full p-3 rounded-lg glass-container backdrop-blur-md bg-black/40 border border-white/10 hover:bg-white/10 transition-all duration-300 shadow-lg text-white outline-none placeholder-white/50 focus:ring-2 focus:ring-white/20"
+                      aria-label="Search locations"
+                      disabled={isSearching}
                     />
-                  </svg>
-                </button>
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search location..."
-                    className="w-full p-3 rounded-lg bg-black/80 hover:bg-black/90 transition-all duration-300 backdrop-blur-xl shadow-lg text-white ring-1 ring-white/20 outline-none placeholder-white/50 focus:ring-2 focus:ring-white/40"
-                    aria-label="Search locations"
-                    disabled={isSearching}
-                  />
-                  {searchQuery && (
-                    <div className="absolute top-full left-0 right-0 mt-2 rounded-lg bg-black/80 backdrop-blur-xl shadow-2xl border border-white/10 max-h-[320px] overflow-y-auto">
-                      {isSearching ? (
-                        <div className="p-4 text-center text-white/60 flex items-center justify-center">
-                          <svg
-                            className="animate-spin h-5 w-5 mr-2"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Searching...
-                        </div>
-                      ) : searchResults.length === 0 ? (
-                        <div className="p-4 text-center text-white/60">No results found</div>
-                      ) : (
-                        <div className="divide-y divide-white/10">
-                          {searchResults.map((result, index) => (
-                            <button
-                              key={index}
-                              className="w-full p-3 text-left hover:bg-white/10 transition-colors duration-200 focus:outline-none focus:bg-white/20"
-                              onClick={() => handleLocationSelect(result)}
+                    {/* Search Results Dropdown */}
+                    {searchQuery && (
+                      <div className="absolute top-full left-0 right-0 mt-2 rounded-lg glass-container backdrop-blur-md bg-black/40 border border-white/10 shadow-2xl max-h-[320px] overflow-y-auto z-[1003]">
+                        {isSearching ? (
+                          <div className="p-4 text-center text-white/60 flex items-center justify-center">
+                            <svg
+                              className="animate-spin h-5 w-5 mr-2"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
                             >
-                              <div className="font-medium text-white/90 truncate">{result.name}</div>
-                              <div className="text-sm text-white/60 truncate">{result.country}</div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                            Searching...
+                          </div>
+                        ) : searchResults.length === 0 ? (
+                          <div className="p-4 text-center text-white/60">No results found</div>
+                        ) : (
+                          <div className="divide-y divide-white/10">
+                            {searchResults.map((result, index) => (
+                              <button
+                                key={index}
+                                className="w-full p-3 text-left hover:bg-white/10 transition-colors duration-200 focus:outline-none focus:bg-white/20 text-white/90"
+                                onClick={() => handleLocationSelect(result)}
+                              >
+                                <div className="font-medium truncate">{result.name}</div>
+                                <div className="text-sm text-white/60 truncate">{result.country}</div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Weather Card */}
-              <div className="absolute top-[80px] left-0 right-0 z-[1000] p-2 md:p-4">
+              <div className="flex-none px-4 pb-4">
                 <div className="glass-container p-3 md:p-4 rounded-lg md:rounded-xl backdrop-blur-md bg-black/40 shadow-lg border border-white/10">
                   <div className="flex flex-col gap-2 md:gap-4">
                     <div className="flex items-center justify-between gap-2 md:gap-4">
