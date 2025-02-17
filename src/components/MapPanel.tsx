@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -101,7 +99,6 @@ interface WeatherMetric {
   value: string;
 }
 
-
 // MapLegend component to display the weather icon legend.
 const MapLegend = () => {
   const [isMinimized, setIsMinimized] = useState(true);
@@ -195,6 +192,21 @@ export default function MapPanel({
   
   // Optional ref for the map container.
   const mapRef = useRef<HTMLDivElement | null>(null);
+
+  // Helper: safely call flyTo if the container is valid.
+  const safeFlyTo = useCallback((lat: number, lng: number, zoom: number) => {
+    if (mapInstance) {
+      const container = mapInstance.getContainer();
+      if (container && document.body.contains(container)) {
+        mapInstance.flyTo([lat, lng], zoom, {
+          duration: 1.5,
+          easeLinearity: 0.25,
+        });
+      } else {
+        console.warn('Map container is destroyed or not available. Skipping flyTo.');
+      }
+    }
+  }, [mapInstance]);
 
   // Callback for handling location search.
   const handleSearch = useCallback(async (query: string) => {
@@ -319,13 +331,11 @@ export default function MapPanel({
   // Effect to animate the map and fetch nearby locations on movement.
   useEffect(() => {
     if (mapInstance && location.coordinates) {
-      mapInstance.flyTo(
-        [location.coordinates.latitude, location.coordinates.longitude],
-        defaultMapConfig.defaultZoom,
-        {
-          duration: 1.5,
-          easeLinearity: 0.25,
-        }
+      // Use safeFlyTo to ensure the container is valid.
+      safeFlyTo(
+        location.coordinates.latitude,
+        location.coordinates.longitude,
+        defaultMapConfig.defaultZoom
       );
 
       const handleMoveEnd = () => {
@@ -354,7 +364,7 @@ export default function MapPanel({
         mapInstance.off('zoomend', handleMoveEnd);
       };
     }
-  }, [mapInstance, location.coordinates, fetchNearbyData]);
+  }, [mapInstance, location.coordinates, fetchNearbyData, safeFlyTo]);
 
   // Handle location selection from search results.
   const handleLocationSelect = (result: {
@@ -365,14 +375,7 @@ export default function MapPanel({
   }) => {
     setMapCenter([result.latitude, result.longitude]);
     if (mapInstance) {
-      mapInstance.flyTo(
-        [result.latitude, result.longitude],
-        defaultMapConfig.defaultZoom,
-        {
-          duration: 1.5,
-          easeLinearity: 0.25,
-        }
-      );
+      safeFlyTo(result.latitude, result.longitude, defaultMapConfig.defaultZoom);
     }
     onLocationSelect({
       latitude: result.latitude,
@@ -392,14 +395,7 @@ export default function MapPanel({
         const { latitude, longitude } = geoResponse.data;
         setMapCenter([latitude, longitude]);
         if (mapInstance) {
-          mapInstance.flyTo(
-            [latitude, longitude],
-            defaultMapConfig.defaultZoom,
-            {
-              duration: 1.5,
-              easeLinearity: 0.25,
-            }
-          );
+          safeFlyTo(latitude, longitude, defaultMapConfig.defaultZoom);
         }
 
         const locationResponse = await reverseGeocode({ latitude, longitude });
@@ -411,7 +407,12 @@ export default function MapPanel({
             country: locationResponse.data.country,
           });
         } else {
-          onLocationSelect({ latitude, longitude, city: latitude.toString(), country: longitude.toString() });
+          onLocationSelect({
+            latitude,
+            longitude,
+            city: latitude.toString(),
+            country: longitude.toString(),
+          });
         }
       } else {
         console.error('Geolocation error:', geoResponse.error);
