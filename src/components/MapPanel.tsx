@@ -8,7 +8,7 @@ import {
   searchLocations,
   formatSearchResults,
 } from '@/services/geolocationService';
-import { fetchNearbyWeatherData, WMO_CODES } from '@/services/weatherService';
+import { fetchNearbyWeatherData, fetchWeatherData, WMO_CODES } from '@/services/weatherService';
 import type { SearchResult } from '@/services/geolocationService';
 import 'leaflet/dist/leaflet.css';
 import type { LatLngExpression, Map } from 'leaflet';
@@ -183,8 +183,20 @@ export default function MapPanel({
     initialCoordinates.latitude,
     initialCoordinates.longitude,
   ]);
+  const [previewLocation, setPreviewLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [previewLocationName, setPreviewLocationName] = useState<string | null>(null);
   const [mapInstance, setMapInstance] = useState<Map | null>(null);
-  const [nearbyLocations, setNearbyLocations] = useState<NearbyLocation[]>([]);
+  const [previewWeatherData, setPreviewWeatherData] = useState<WeatherData | null>(null);
+  // Removed separate state for nearby markers.
+  // Create a unified array that holds both the current location marker and nearby markers.
+  interface MarkerInfo {
+    id: string;
+    latitude: number;
+    longitude: number;
+    iconUrl: string;
+    type: 'current' | 'nearby';
+  }
+  const [markers, setMarkers] = useState<MarkerInfo[]>([]);
 
   // Timeout refs.
   const searchTimeoutRef = useRef<number | null>(null);
@@ -251,6 +263,11 @@ export default function MapPanel({
   }, [searchQuery, handleSearch]);
 
   // Effect to handle panel open/close and map rendering.
+  const [isMapReady, setIsMapReady] = useState(false);
+
+  // Add a ref to track if the initial markers load has been performed.
+  const hasFetchedInitialMarkers = useRef(false);
+
   useEffect(() => {
     let timer: number;
     const currentMapRef = mapRef.current;
@@ -262,6 +279,7 @@ export default function MapPanel({
       ]);
       timer = window.setTimeout(() => {
         setShouldRenderMap(true);
+        setIsMapReady(true);
       }, 300);
     } else {
       setIsVisible(false);
@@ -281,6 +299,26 @@ export default function MapPanel({
       }
     };
   }, [isOpen, location.coordinates, mapInstance]);
+
+  useEffect(() => {
+    if (isMapReady && mapInstance && !hasFetchedInitialMarkers.current) {
+      try {
+        const container = mapInstance.getContainer();
+        // Only proceed if the container exists and is still in the document
+        if (!container || !document.body.contains(container)) return;
+        if (mapInstance.whenReady) {
+          mapInstance.whenReady(() => {
+            const center = mapInstance.getCenter();
+            updateMarkers(center.lat, center.lng);
+            setIsMapReady(false);
+            hasFetchedInitialMarkers.current = true;
+          });
+        }
+      } catch (error) {
+        console.error("Error accessing map center: ", error);
+      }
+    }
+  }, [isMapReady, mapInstance]);
 
   const handleClose = () => {
     setIsVisible(false);
@@ -321,8 +359,14 @@ export default function MapPanel({
   const fetchNearbyData = useCallback(
     async (centerLat: number, centerLng: number) => {
       const locations = await fetchNearbyWeatherData(centerLat, centerLng);
-      setNearbyLocations(
-        locations.filter((loc): loc is NonNullable<typeof loc> => loc !== null)
+      setMarkers(
+        locations.filter((loc): loc is NonNullable<typeof loc> => loc !== null).map((loc) => ({
+          id: `${loc.latitude}-${loc.longitude}`,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          iconUrl: loc.weatherData?.currentWeather.icon || '/icons/weathers/not-available.svg',
+          type: 'nearby',
+        }))
       );
     },
     []
@@ -365,6 +409,25 @@ export default function MapPanel({
       };
     }
   }, [mapInstance, location.coordinates, fetchNearbyData, safeFlyTo]);
+
+  // When the location prop changes, update the markers and center the map.
+  useEffect(() => {
+    if (location.coordinates) {
+      const newCenter: [number, number] = [
+        location.coordinates.latitude,
+        location.coordinates.longitude,
+      ];
+      setMapCenter(newCenter);
+      if (mapInstance) {
+        safeFlyTo(
+          location.coordinates.latitude,
+          location.coordinates.longitude,
+          defaultMapConfig.defaultZoom
+        );
+      }
+      updateMarkers(location.coordinates.latitude, location.coordinates.longitude);
+    }
+  }, [location.coordinates?.latitude, location.coordinates?.longitude, mapInstance, safeFlyTo]);
 
   // Handle location selection from search results.
   const handleLocationSelect = (result: {
@@ -421,6 +484,85 @@ export default function MapPanel({
       console.error('Error getting user location:', error);
     }
   };
+
+  const updateMarkers = async (lat: number, lng: number) => {
+    // Create the current marker
+    const currentMarker: MarkerInfo = {
+      id: `current-${lat}-${lng}`,
+      latitude: lat,
+      longitude: lng,
+      iconUrl: weatherMetrics[0]?.icon || '/icons/weathers/not-available.svg',
+      type: 'current',
+    };
+
+    try {
+      // Fetch nearby markers using your API function.
+      const nearbyData = await fetchNearbyWeatherData(lat, lng);
+      const nearbyMarkers: MarkerInfo[] = nearbyData.map((loc, index) => ({
+        id: `nearby-${index}-${loc.latitude}-${loc.longitude}`,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        iconUrl: loc.weatherData?.currentWeather.icon || '/icons/weathers/not-available.svg',
+        type: 'nearby',
+      }));
+
+      // Set the markers as an array starting with the current marker followed by nearby ones.
+      setMarkers([currentMarker, ...nearbyMarkers]);
+    } catch (err) {
+      // In case of error, only set the current marker.
+      setMarkers([currentMarker]);
+    }
+  };
+
+  const handleMapClick = (e: any) => {
+    const newPreviewLocation = { latitude: e.latlng.lat, longitude: e.latlng.lng };
+    setPreviewLocation(newPreviewLocation);
+
+    // Clear the previous timeout if it exists
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // Set a new timeout to fetch data after a delay
+    debounceTimeoutRef.current = window.setTimeout(() => {
+      fetchWeatherData(newPreviewLocation.latitude, newPreviewLocation.longitude)
+        .then((data) => {
+          setPreviewWeatherData(data);
+          reverseGeocode(newPreviewLocation)
+            .then((response) => {
+              if (response.success && response.data) {
+                setPreviewLocationName(`${response.data.city}, ${response.data.country}`);
+              } else {
+                setPreviewLocationName(`${newPreviewLocation.latitude.toFixed(2)}, ${newPreviewLocation.longitude.toFixed(2)}`);
+              }
+            })
+            .catch(() => {
+              setPreviewLocationName(`${newPreviewLocation.latitude.toFixed(2)}, ${newPreviewLocation.longitude.toFixed(2)}`);
+            });
+        })
+        .catch((error) => console.error('Error fetching weather data:', error));
+    }, 500); // Adjust the delay as needed (e.g., 500ms)
+  };
+
+  useEffect(() => {
+    if (mapInstance) {
+      const handleMapChange = () => {
+        const center = mapInstance.getCenter();
+        setMapCenter([center.lat, center.lng]);
+        updateMarkers(center.lat, center.lng);
+      };
+
+      mapInstance.on('moveend', handleMapChange);
+      mapInstance.on('zoomend', handleMapChange);
+      mapInstance.on('click', handleMapClick);
+
+      return () => {
+        mapInstance.off('moveend', handleMapChange);
+        mapInstance.off('zoomend', handleMapChange);
+        mapInstance.off('click', handleMapClick);
+      };
+    }
+  }, [mapInstance]);
 
   return (
     <>
@@ -536,29 +678,27 @@ export default function MapPanel({
                   <div className="flex flex-col gap-2 md:gap-4">
                     <div className="flex items-center justify-between gap-2 md:gap-4">
                       <div className="flex items-center gap-2 md:gap-3">
-                        {weatherData && (
-                          <Image
-                            src={weatherData.currentWeather.icon}
-                            alt={weatherData.currentWeather.condition}
-                            width={48}
-                            height={48}
-                            className="w-8 h-8 md:w-12 md:h-12 opacity-80"
-                          />
-                        )}
+                        <Image
+                          src={(previewWeatherData?.currentWeather.icon ?? weatherData?.currentWeather.icon) || '/icons/weathers/not-available.svg'}
+                          alt={(previewWeatherData?.currentWeather.condition ?? weatherData?.currentWeather.condition) || 'Unknown Condition'}
+                          width={48}
+                          height={48}
+                          className="w-8 h-8 md:w-12 md:h-12 opacity-80"
+                        />
                         <div>
                           <div className="text-sm md:text-lg font-semibold truncate max-w-[150px] md:max-w-none">
-                            {location.city}, {location.country}
+                            {previewLocation ? previewLocationName ?? `${previewLocation.latitude.toFixed(2)}, ${previewLocation.longitude.toFixed(2)}` : `${location.city ?? 'Unknown City'}, ${location.country ?? 'Unknown Country'}`}
                           </div>
                           <div className="text-xs md:text-base opacity-80 truncate max-w-[150px] md:max-w-none">
-                            {weatherData?.currentWeather.condition}
+                            {(previewWeatherData?.currentWeather.condition ?? weatherData?.currentWeather.condition) || 'Unknown Condition'}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-xl md:text-3xl font-bold">
-                          {weatherData
+                          {((previewWeatherData?.currentWeather.temperature ?? weatherData?.currentWeather.temperature) !== undefined)
                             ? `${convertTemp(
-                                weatherData.currentWeather.temperature,
+                                previewWeatherData?.currentWeather.temperature ?? weatherData?.currentWeather.temperature ?? 0,
                                 tempUnit
                               )}°${tempUnit}`
                             : ''}
@@ -571,7 +711,7 @@ export default function MapPanel({
                             height={16}
                             className="w-3 h-3 md:w-4 md:h-4"
                           />
-                          <span>{weatherData?.currentWeather.humidity}%</span>
+                          <span>{(previewWeatherData?.currentWeather.humidity ?? weatherData?.currentWeather.humidity) ?? 'N/A'}%</span>
                           <span className="mx-1">•</span>
                           <Image
                             src="/icons/weathers/barometer.svg"
@@ -580,7 +720,7 @@ export default function MapPanel({
                             height={16}
                             className="w-3 h-3 md:w-4 md:h-4"
                           />
-                          <span>{weatherData?.currentWeather.pressure} hPa</span>
+                          <span>{(previewWeatherData?.currentWeather.pressure ?? weatherData?.currentWeather.pressure) ?? 'N/A'} hPa</span>
                         </div>
                       </div>
                     </div>
@@ -614,11 +754,10 @@ export default function MapPanel({
                       </button>
                       <button
                         onClick={() => {
-                          if (mapInstance) {
-                            const center = mapInstance.getCenter();
+                          if (previewLocation) {
                             onLocationSelect({
-                              latitude: center.lat,
-                              longitude: center.lng,
+                              latitude: previewLocation.latitude,
+                              longitude: previewLocation.longitude,
                             });
                             handleClose();
                           }
@@ -667,38 +806,18 @@ export default function MapPanel({
                           attribution={defaultMapConfig.tileLayer.attribution}
                           maxZoom={defaultMapConfig.tileLayer.maxZoom}
                         />
-                        {leaflet && (
+                        {leaflet && markers.map((marker) => (
                           <Marker
-                            position={[
-                              location.coordinates!.latitude,
-                              location.coordinates!.longitude,
-                            ]}
+                            key={marker.id}
+                            position={[marker.latitude, marker.longitude]}
                             icon={leaflet.icon({
-                              iconUrl:
-                                weatherMetrics[0]?.icon ||
-                                '/icons/weathers/not-available.svg',
-                              iconSize: [32, 32],
-                              iconAnchor: [16, 32],
-                              popupAnchor: [0, -32],
+                              iconUrl: marker.iconUrl,
+                              iconSize: marker.type === 'current' ? [32, 32] : [32, 32],
+                              iconAnchor: marker.type === 'current' ? [16, 32] : [16, 16],
+                              popupAnchor: marker.type === 'current' ? [0, -32] : [0, -16],
                             })}
                           />
-                        )}
-                        {leaflet &&
-                          nearbyLocations.map((loc: NearbyLocation) => (
-                            <Marker
-                              key={`${loc.latitude}-${loc.longitude}`}
-                              position={[loc.latitude, loc.longitude]}
-                              icon={new leaflet.Icon({
-                                iconUrl:
-                                  loc.weatherData?.currentWeather.icon ||
-                                  '/icons/weathers/not-available.svg',
-                                iconSize: [32, 32],
-                                iconAnchor: [16, 16],
-                                popupAnchor: [0, -16],
-                                className: 'weather-marker',
-                              })}
-                            />
-                          ))}
+                        ))}
                       </MapContainer>
                     </Suspense>
                   </div>
