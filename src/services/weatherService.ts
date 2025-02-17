@@ -175,10 +175,10 @@ interface WeatherApiParams {
   timezone: string;
 }
 
-async function fetchWeatherApi(url: string, params: WeatherApiParams): Promise<OpenMeteoResponse> {
+async function fetchWeatherDataGeneric<T>(url: string, params: WeatherApiParams, forecastDays: number): Promise<T> {
   const queryParams = new URLSearchParams();
-  // Add extended forecast days
-  queryParams.append('forecast_days', '14');
+  // Append the forecast_days parameter dynamically
+  queryParams.append('forecast_days', forecastDays.toString());
   
   Object.entries(params).forEach(([key, value]) => {
     if (Array.isArray(value)) {
@@ -199,36 +199,7 @@ async function fetchWeatherApi(url: string, params: WeatherApiParams): Promise<O
 
   const data = await response.json();
   debug.api('Weather API response:', data);
-  return data;
-}
-
-async function fetchWeatherForeacastMultipleLocationApi(
-  url: string,
-  params: WeatherApiParams
-): Promise<OpenMeteoResponse[]> {
-  const queryParams = new URLSearchParams();
-  queryParams.append('forecast_days', '1');
-  
-  Object.entries(params).forEach(([key, value]) => {
-    if (Array.isArray(value)) {
-      queryParams.append(key, value.join(','));
-    } else {
-      queryParams.append(key, value.toString());
-    }
-  });
-
-  const requestUrl = `${url}?${queryParams.toString()}`;
-  debug.api('Fetching weather data from:', requestUrl);
-
-  const response = await fetch(requestUrl);
-  if (!response.ok) {
-    debug.api('Weather API request failed:', { status: response.status, statusText: response.statusText });
-    throw new Error('Network response was not ok');
-  }
-
-  const data = await response.json();
-  debug.api('Weather API response:', data);
-  return data;
+  return data as T;
 }
 
 export async function fetchWeatherData(latitude: number, longitude: number): Promise<{
@@ -262,7 +233,7 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
   }>;
   dailyForecast: ForecastDay[];
 }> {
-  const response = await fetchWeatherApi('https://api.open-meteo.com/v1/forecast', {
+  const response = await fetchWeatherDataGeneric<OpenMeteoResponse>('https://api.open-meteo.com/v1/forecast', {
     latitude,
     longitude,
     hourly: [
@@ -283,8 +254,8 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
       'uv_index_max'
     ],
     timezone: 'auto'
-  });
-
+  }, 14);
+  
   const currentIndex = new Date().getHours();
   const currentWeatherCode = response.hourly.weathercode[currentIndex];
   const weatherInfo = WMO_CODES[currentWeatherCode] || WMO_CODES[0];
@@ -387,8 +358,8 @@ export async function fetchNearbyWeatherData(centerLat: number, centerLng: numbe
 
   const latitudes = points.map(point => point.latitude.toString()).join(',');
   const longitudes = points.map(point => point.longitude.toString()).join(',');
-  
-  const responses = await fetchWeatherForeacastMultipleLocationApi('https://api.open-meteo.com/v1/forecast', {
+
+  const responses = await fetchWeatherDataGeneric<OpenMeteoResponse[]>('https://api.open-meteo.com/v1/forecast', {
     latitude: latitudes,
     longitude: longitudes,
     hourly: [
@@ -409,7 +380,7 @@ export async function fetchNearbyWeatherData(centerLat: number, centerLng: numbe
       'uv_index_max'
     ],
     timezone: 'auto'
-  });
+  }, 1);
 
   const currentIndex = new Date().getHours();
   const nearbyLocations: NearbyLocation[] = [];
