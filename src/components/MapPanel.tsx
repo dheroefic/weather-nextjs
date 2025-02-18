@@ -254,6 +254,10 @@ export default function MapPanel({
   useEffect(() => {
     let timer: number;
     const currentMapRef = mapRef.current;
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
     if (isOpen && location.coordinates) {
       setIsVisible(true);
       setMapCenter([
