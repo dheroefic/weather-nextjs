@@ -51,7 +51,7 @@ export default function HourlyForecast({
       {loading ? (
         <LoadingHourlyForecast />
       ) : (
-        <div className="overflow-x-auto pb-4">
+        <div className="overflow-x-auto pb-4 relative">
           <div className="inline-flex gap-3">
             {currentDayHourlyForecast?.map((hour, index) => (
               <div
@@ -77,7 +77,7 @@ export default function HourlyForecast({
           </div>
 
           {selectedHour !== null && currentDayHourlyForecast && (
-            <div className="mt-4 p-3 bg-white/5 rounded-lg">
+            <div className="mt-4 p-3 bg-white/5 rounded-lg sticky left-0">
               <div className="flex items-center justify-between gap-4 mb-3">
                 <div>
                   <div className="text-sm opacity-70">Selected Hour</div>
