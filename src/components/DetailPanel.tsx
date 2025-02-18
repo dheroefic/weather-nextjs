@@ -48,6 +48,10 @@ export default function DetailPanel({
 
   useEffect(() => {
     if (selectedDay) {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
       setIsVisible(true);
       setSlideDirection(null);
     } else {
