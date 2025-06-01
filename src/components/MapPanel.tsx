@@ -772,7 +772,7 @@ export default function MapPanel({
                             // Markers farther from center are slightly smaller
                             const zoom = mapInstance?.getZoom() || defaultMapConfig.defaultZoom;
                             const baseSize = Math.min(Math.max(24 + (zoom - 10) * 1.5, 24), 36);
-                            const distanceFactor = Math.max(0.8, 1 - (distance / 50000) * 0.3);
+                            const distanceFactor = distance > 0 ? Math.max(0.8, 1 - (distance / 50000) * 0.3) : 1;
                             const iconSize = Math.round(baseSize * distanceFactor);
                             
                             return (

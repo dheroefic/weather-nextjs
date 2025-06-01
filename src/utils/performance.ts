@@ -94,7 +94,7 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
 
 // Generic request queue for managing API calls
 class RequestQueue<T = unknown> {
-  private queue: Array<() => Promise<T>> = [];
+  private queue: Array<() => Promise<void>> = [];
   private processing = false;
   private concurrent = 0;
   private maxConcurrent = 3;
