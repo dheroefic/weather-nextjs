@@ -1,6 +1,4 @@
 // Weather data cache expires in 10 minutes, location cache in 24 hours
-import { performanceMonitor } from '@/utils/performance';
-
 const WEATHER_CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutes
 const LOCATION_CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -10,7 +8,7 @@ interface CacheItem<T> {
 }
 
 // In-memory cache for faster access during the same session
-const memoryCache = new Map<string, CacheItem<any>>();
+const memoryCache = new Map<string, CacheItem<unknown>>();
 
 export function getFromCache<T>(key: string, isWeatherData = false): T | null {
   const expiry = isWeatherData ? WEATHER_CACHE_EXPIRY : LOCATION_CACHE_EXPIRY;
@@ -18,7 +16,7 @@ export function getFromCache<T>(key: string, isWeatherData = false): T | null {
   // Try memory cache first
   const memoryItem = memoryCache.get(key);
   if (memoryItem && Date.now() - memoryItem.timestamp < expiry) {
-    return memoryItem.data;
+    return memoryItem.data as T;
   }
 
   // Check if running in the browser
@@ -36,7 +34,7 @@ export function getFromCache<T>(key: string, isWeatherData = false): T | null {
     }
     
     // Update memory cache
-    memoryCache.set(key, cached);
+    memoryCache.set(key, cached as CacheItem<unknown>);
     return cached.data;
   } catch (error) {
     console.error('Error parsing cache item', error);
@@ -46,7 +44,7 @@ export function getFromCache<T>(key: string, isWeatherData = false): T | null {
   }
 }
 
-export function setInCache<T>(key: string, data: T, isWeatherData = false): void {
+export function setInCache<T>(key: string, data: T): void {
   // Check if running in the browser
   if (typeof window === 'undefined') return;
 
@@ -56,7 +54,7 @@ export function setInCache<T>(key: string, data: T, isWeatherData = false): void
   };
   
   // Set in both memory and localStorage
-  memoryCache.set(key, item);
+  memoryCache.set(key, item as CacheItem<unknown>);
   try {
     localStorage.setItem(key, JSON.stringify(item));
   } catch (error) {

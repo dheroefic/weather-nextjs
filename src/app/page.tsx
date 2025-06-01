@@ -6,15 +6,14 @@ import Header from '@/components/Header';
 import WeatherMetrics from '@/components/WeatherMetrics';
 import HourlyForecast from '@/components/HourlyForecast';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import PerformanceDashboard from '@/components/PerformanceDashboard';
 import { fetchWeatherData } from '@/services/weatherService';
 import { getBackgroundImage } from '@/services/backgroundService';
 import { loadPreferences, savePreferences } from '@/services/preferencesService';
 import { getUserGeolocation, reverseGeocode } from '@/services/geolocationService';
-import { performanceMonitor } from '@/utils/performance';
 import './weather-backgrounds.css';
 
 import type { Location, WeatherData, ForecastDay, TemperatureUnit } from '@/types/weather';
+import PerformanceDashboard from '@/components/PerformanceDashboard';
 
 // Lazy load heavy components
 const DailyForecast = lazy(() => import('@/components/DailyForecast'));

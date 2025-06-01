@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, Suspense, memo, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import type { TemperatureUnit, WeatherData } from '@/types/weather';
@@ -8,7 +8,8 @@ import {
   searchLocations,
   formatSearchResults,
 } from '@/services/geolocationService';
-import { fetchNearbyWeatherData, WMO_CODES } from '@/services/weatherService';
+import { WMO_CODES } from '@/services/weatherService';
+import { fetchNearbyWeatherData } from '@/services/weatherDistribution';
 import type { SearchResult } from '@/services/geolocationService';
 import 'leaflet/dist/leaflet.css';
 import type { LatLngExpression, Map } from 'leaflet';
@@ -28,16 +29,30 @@ const Marker = dynamic(
   () => import('react-leaflet').then((mod) => mod.Marker),
   { ssr: false }
 );
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+);
 
-// Helper component to capture the map instance via useMap.
-import { useMap } from 'react-leaflet';
-const SetMapInstance = ({ setMapInstance }: { setMapInstance: (map: Map) => void }) => {
-  const map = useMap();
-  useEffect(() => {
-    setMapInstance(map);
-  }, [map, setMapInstance]);
-  return null;
-};
+// Helper component to capture the map instance via useMap hook
+const SetMapInstance = dynamic(
+  () => import('react-leaflet').then((mod) => {
+    const Component = ({ setMapInstance }: { setMapInstance: (map: Map) => void }) => {
+      const map = mod.useMap();
+      
+      React.useEffect(() => {
+        if (map) {
+          setMapInstance(map);
+        }
+      }, [map, setMapInstance]);
+      
+      return null;
+    };
+    
+    return { default: Component };
+  }),
+  { ssr: false }
+);
 
 interface MapConfig {
   defaultZoom: number;
@@ -324,12 +339,19 @@ export default function MapPanel({
   // Callback to fetch nearby weather data.
   const fetchNearbyData = useCallback(
     async (centerLat: number, centerLng: number) => {
-      const locations = await fetchNearbyWeatherData(centerLat, centerLng);
-      setNearbyLocations(
-        locations.filter((loc): loc is NonNullable<typeof loc> => loc !== null)
-      );
+      try {
+        // Pass the current zoom level to help with distribution calculations
+        const currentZoom = mapInstance ? mapInstance.getZoom() : defaultMapConfig.defaultZoom;
+        const locations = await fetchNearbyWeatherData(centerLat, centerLng, currentZoom);
+        setNearbyLocations(
+          locations.filter((loc): loc is NonNullable<typeof loc> => loc !== null)
+        );
+      } catch (error) {
+        console.error('Error fetching nearby weather data:', error);
+        // Keep previous locations on error to prevent empty map
+      }
     },
-    []
+    [mapInstance]
   );
 
   // Effect to animate the map and fetch nearby locations on movement.
@@ -347,8 +369,16 @@ export default function MapPanel({
           clearTimeout(debounceTimeoutRef.current);
         }
         debounceTimeoutRef.current = window.setTimeout(() => {
-          const center = mapInstance.getCenter();
-          fetchNearbyData(center.lat, center.lng);
+          if (mapInstance && mapInstance.getContainer && mapInstance.getContainer()) {
+            try {
+              const center = mapInstance.getCenter();
+              if (center && typeof center.lat === 'number' && typeof center.lng === 'number') {
+                fetchNearbyData(center.lat, center.lng);
+              }
+            } catch (error) {
+              console.warn('Error getting map center:', error);
+            }
+          }
         }, 1000);
       };
 
@@ -681,28 +711,123 @@ export default function MapPanel({
                               iconUrl:
                                 weatherMetrics[0]?.icon ||
                                 '/icons/weathers/not-available.svg',
-                              iconSize: [32, 32],
-                              iconAnchor: [16, 32],
-                              popupAnchor: [0, -32],
+                              iconSize: [40, 40], // Slightly larger for the main location marker
+                              iconAnchor: [20, 40],
+                              popupAnchor: [0, -40],
+                              className: 'main-weather-marker',
                             })}
-                          />
+                          >
+                            {weatherData && (
+                              <Popup>
+                                <div className="weather-popup">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <Image 
+                                      src={weatherData.currentWeather.icon}
+                                      alt={weatherData.currentWeather.condition}
+                                      width={32}
+                                      height={32}
+                                      className="w-8 h-8 opacity-80"
+                                    />
+                                    <div>
+                                      <div className="font-semibold">
+                                        {location.city}, {location.country}
+                                      </div>
+                                      <div className="text-xs opacity-70">
+                                        {weatherData.currentWeather.condition}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold">
+                                      {convertTemp(weatherData.currentWeather.temperature, tempUnit)}°{tempUnit}
+                                    </span>
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <div className="flex items-center gap-1">
+                                        <Image src="/icons/weathers/humidity.svg" alt="Humidity" width={12} height={12} className="opacity-70" />
+                                        <span>{weatherData.currentWeather.humidity}%</span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <Image src="/icons/weathers/compass.svg" alt="Wind" width={12} height={12} className="opacity-70" />
+                                        <span>{weatherData.currentWeather.wind.speed} km/h</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </Popup>
+                            )}
+                          </Marker>
                         )}
                         {leaflet &&
-                          nearbyLocations.map((loc: NearbyLocation) => (
-                            <Marker
-                              key={`${loc.latitude}-${loc.longitude}`}
-                              position={[loc.latitude, loc.longitude]}
-                              icon={new leaflet.Icon({
-                                iconUrl:
-                                  loc.weatherData?.currentWeather.icon ||
-                                  '/icons/weathers/not-available.svg',
-                                iconSize: [32, 32],
-                                iconAnchor: [16, 16],
-                                popupAnchor: [0, -16],
-                                className: 'weather-marker',
-                              })}
-                            />
-                          ))}
+                          nearbyLocations.map((loc: NearbyLocation) => {
+                            // Calculate distance from center to adapt marker size
+                            const centerPoint = mapInstance?.getCenter();
+                            const distance = centerPoint && mapInstance 
+                              ? mapInstance.distance(
+                                  centerPoint, 
+                                  [loc.latitude, loc.longitude]
+                                ) 
+                              : 0;
+                            
+                            // Calculate marker size based on distance from center and zoom level
+                            // Markers farther from center are slightly smaller
+                            const zoom = mapInstance?.getZoom() || defaultMapConfig.defaultZoom;
+                            const baseSize = Math.min(Math.max(24 + (zoom - 10) * 1.5, 24), 36);
+                            const distanceFactor = Math.max(0.8, 1 - (distance / 50000) * 0.3);
+                            const iconSize = Math.round(baseSize * distanceFactor);
+                            
+                            return (
+                              <Marker
+                                key={`${loc.latitude}-${loc.longitude}`}
+                                position={[loc.latitude, loc.longitude]}
+                                icon={new leaflet.Icon({
+                                  iconUrl:
+                                    loc.weatherData?.currentWeather.icon ||
+                                    '/icons/weathers/not-available.svg',
+                                  iconSize: [iconSize, iconSize],
+                                  iconAnchor: [iconSize/2, iconSize/2],
+                                  popupAnchor: [0, -iconSize/2],
+                                  className: 'weather-marker',
+                                })}
+                              >
+                                <Popup>
+                                  <div className="weather-popup">
+                                    <div className="flex items-center gap-3 mb-2">
+                                      <Image 
+                                        src={loc.weatherData?.currentWeather.icon || '/icons/weathers/not-available.svg'}
+                                        alt={loc.weatherData?.currentWeather.condition || 'Weather'}
+                                        width={32}
+                                        height={32}
+                                        className="w-8 h-8 opacity-80"
+                                      />
+                                      <div>
+                                        <div className="font-semibold">
+                                          {loc.city}
+                                        </div>
+                                        <div className="text-xs opacity-70">
+                                          {loc.weatherData?.currentWeather.condition}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-bold">
+                                        {convertTemp(loc.weatherData?.currentWeather.temperature || 0, tempUnit)}°{tempUnit}
+                                      </span>
+                                      <div className="flex items-center gap-2 text-xs">
+                                        <div className="flex items-center gap-1">
+                                          <Image src="/icons/weathers/humidity.svg" alt="Humidity" width={12} height={12} className="opacity-70" />
+                                          <span>{loc.weatherData?.currentWeather.humidity}%</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Image src="/icons/weathers/compass.svg" alt="Wind" width={12} height={12} className="opacity-70" />
+                                          <span>{loc.weatherData?.currentWeather.wind.speed} km/h</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Popup>
+                              </Marker>
+                            );
+                          })}
                       </MapContainer>
                     </Suspense>
                   </div>

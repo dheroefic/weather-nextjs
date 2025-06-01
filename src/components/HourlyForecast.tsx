@@ -36,6 +36,7 @@ const HourlyForecast = memo(function HourlyForecast({
       </div>
     </div>
   ));
+  LoadingHourlyForecast.displayName = 'LoadingHourlyForecast';
 
   // Memoize filtered hourly forecast data for better performance
   const currentDayHourlyForecast = useMemo(() => {

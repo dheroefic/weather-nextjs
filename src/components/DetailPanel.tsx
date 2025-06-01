@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense, memo, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, Suspense, memo } from 'react';
 import Image from 'next/image';
 import type { ForecastDay, TemperatureUnit, WeatherData } from '@/types/weather';
 

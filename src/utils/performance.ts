@@ -81,7 +81,7 @@ export function usePerformanceMonitor(componentName: string) {
 }
 
 // Debounce utility for API calls
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -92,14 +92,14 @@ export function debounce<T extends (...args: any[]) => any>(
   };
 }
 
-// Request queue for managing API calls
-class RequestQueue {
-  private queue: Array<() => Promise<any>> = [];
+// Generic request queue for managing API calls
+class RequestQueue<T = unknown> {
+  private queue: Array<() => Promise<T>> = [];
   private processing = false;
   private concurrent = 0;
   private maxConcurrent = 3;
 
-  async add<T>(request: () => Promise<T>): Promise<T> {
+  async add(request: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
       this.queue.push(async () => {
         try {

@@ -1,6 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, memo } from 'react';
+import Image from 'next/image';
+
+// Only include in development
+const isDev = process.env.NODE_ENV === 'development';
 
 interface PerformanceStats {
   renderTime: number;
@@ -15,7 +19,10 @@ interface PerformanceDashboardProps {
   onToggle: () => void;
 }
 
-const PerformanceDashboard = memo(function PerformanceDashboard({
+// Return empty component in production
+const EmptyComponent = () => null;
+
+const PerformanceDashboard = isDev ? memo(function PerformanceDashboard({
   isVisible,
   onToggle
 }: PerformanceDashboardProps) {
@@ -38,7 +45,7 @@ const PerformanceDashboard = memo(function PerformanceDashboard({
         apiCalls: performanceData.totalApiCalls || 0,
         cacheHits: performanceData.cacheHits || 0,
         cacheMisses: performanceData.cacheMisses || 0,
-        memoryUsage: (performance as any)?.memory?.usedJSHeapSize || 0
+        memoryUsage: (performance as { memory?: { usedJSHeapSize: number } })?.memory?.usedJSHeapSize || 0
       });
     };
 
@@ -52,10 +59,16 @@ const PerformanceDashboard = memo(function PerformanceDashboard({
     return (
       <button
         onClick={onToggle}
-        className="fixed bottom-4 right-4 bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-50"
+        className="fixed bottom-4 right-4 bg-blue-600/20 backdrop-blur-md p-2 rounded-full shadow-lg hover:bg-blue-600/30 transition-all duration-300 z-50"
         title="Show Performance Dashboard"
       >
-        📊
+        <Image
+          src="/icons/weathers/star.svg"
+          alt="Performance"
+          width={24}
+          height={24}
+          className="w-6 h-6 opacity-80"
+        />
       </button>
     );
   }
@@ -127,6 +140,6 @@ const PerformanceDashboard = memo(function PerformanceDashboard({
       </div>
     </div>
   );
-});
+}) : EmptyComponent;
 
 export default PerformanceDashboard;

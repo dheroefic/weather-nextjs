@@ -35,10 +35,10 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
           <div className="text-xs md:text-sm opacity-70">{title}</div>
           <div className={`text-base md:text-lg font-semibold loading-element ${width}`}></div>
         </div>
-        <div className="w-12 md:w-14 h-12 md:h-14 loading-element rounded-lg"></div>
       </div>
     </div>
   ));
+  LoadingMetric.displayName = 'LoadingMetric';
 
   // Memoize computed values
   const beaufortData = useMemo(() => {

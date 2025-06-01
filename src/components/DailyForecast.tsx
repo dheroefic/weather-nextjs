@@ -74,9 +74,10 @@ const DailyForecast = memo(function DailyForecast({
       ))}
     </div>
   ));
+  ForecastButtons.displayName = 'ForecastButtons';
 
   // Memoized day card component
-  const DayCard = memo(({ day, index }: { day: ForecastDay; index: number }) => (
+  const DayCard = memo(({ day }: { day: ForecastDay; index: number }) => (
     <div 
       className="p-2.5 md:p-4 bg-white/5 rounded-xl min-w-[140px] md:min-w-[200px] cursor-pointer hover:bg-white/10 hover:scale-[1.02] hover:shadow-lg transition-all duration-300 active:scale-[0.98]"
       onClick={handleDaySelect(day)}
@@ -100,6 +101,7 @@ const DailyForecast = memo(function DailyForecast({
       </div>
     </div>
   ));
+  DayCard.displayName = 'DayCard';
 
   return (
     <>

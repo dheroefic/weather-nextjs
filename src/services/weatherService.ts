@@ -1,11 +1,34 @@
 import type { ForecastDay } from '@/types/weather';
 import { debug } from '@/utils/debug';
-import { NearbyLocation } from '@/types/nearbyWeather';
 import { getFromCache, setInCache } from './cacheService';
 import { performanceMonitor, requestQueue } from '@/utils/performance';
 
+interface OpenMeteoResponse {
+  latitude: number;
+  longitude: number;
+  hourly: {
+    time: string[];
+    temperature_2m: number[];
+    weathercode: number[];
+    windspeed_10m: number[];
+    winddirection_10m: number[];
+    precipitation_probability: number[];
+    uv_index: number[];
+    relative_humidity_2m: number[];
+    surface_pressure: number[];
+  };
+  daily: {
+    time: string[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    weathercode: number[];
+    precipitation_probability_max: number[];
+    uv_index_max: number[];
+  };
+}
+
 // Request deduplication
-const pendingRequests = new Map<string, Promise<any>>();
+const pendingRequests = new Map<string, Promise<OpenMeteoResponse>>();
 
 interface GeolocationResponse {
   success: boolean;
@@ -18,13 +41,13 @@ interface GeolocationResponse {
   error?: string;
 }
 
-function getWindDirection(degrees: number): string {
+export function getWindDirection(degrees: number): string {
   const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
   const index = Math.round(((degrees % 360) / 22.5));
   return directions[index % 16];
 }
 
-const getUVCategory = (uvIndex: number): string => {
+export const getUVCategory = (uvIndex: number): string => {
   if (uvIndex <= 2) return 'Low';
   if (uvIndex <= 5) return 'Moderate';
   if (uvIndex <= 7) return 'High';
@@ -204,7 +227,7 @@ async function fetchWeatherApi(url: string, params: WeatherApiParams): Promise<O
   debug.api('Fetching weather data from:', requestUrl);
 
   const requestPromise = requestQueue.add(async () => {
-    return performanceMonitor.measureAsync(`weather-api-${requestUrl}`, async () => {
+    return performanceMonitor.measureAsync<OpenMeteoResponse>(`weather-api-${requestUrl}`, async () => {
       try {
         const response = await fetch(requestUrl, {
           next: { revalidate: 600 }, // 10 minutes cache
@@ -215,20 +238,20 @@ async function fetchWeatherApi(url: string, params: WeatherApiParams): Promise<O
           throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
         }
 
-        const data = await response.json();
+        const data: OpenMeteoResponse = await response.json();
         debug.api('Weather API response received');
         return data;
       } finally {
         pendingRequests.delete(requestUrl);
       }
     });
-  });
+  }) as Promise<OpenMeteoResponse>;
 
   pendingRequests.set(requestUrl, requestPromise);
   return requestPromise;
 }
 
-async function fetchWeatherForeacastMultipleLocationApi(
+export async function fetchWeatherForeacastMultipleLocationApi(
   url: string,
   params: WeatherApiParams
 ): Promise<OpenMeteoResponse[]> {
@@ -421,91 +444,7 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
   };
 
   // Cache the result
-  setInCache(cacheKey, weatherData, true);
+  setInCache(cacheKey, weatherData);
   
   return weatherData;
-}
-
-export async function fetchNearbyWeatherData(centerLat: number, centerLng: number): Promise<NearbyLocation[]> {
-  const radiusKm = 10;
-  const latDelta = radiusKm / 111;
-  const lngDelta = radiusKm / (111 * Math.cos(centerLat * Math.PI / 180));
-  const gridSize = 4;
-
-  const points: { latitude: number; longitude: number }[] = [];
-  for (let i = 0; i < gridSize; i++) {
-    for (let j = 0; j < gridSize; j++) {
-      const baseLat = centerLat - latDelta + (2 * latDelta * i) / (gridSize - 1);
-      const baseLng = centerLng - lngDelta + (2 * lngDelta * j) / (gridSize - 1);
-
-      const randomLat = (Math.random() - 0.5) * latDelta * 0.3;
-      const randomLng = (Math.random() - 0.5) * lngDelta * 0.3;
-      points.push({
-        latitude: baseLat + randomLat,
-        longitude: baseLng + randomLng,
-      });
-    }
-  }
-
-  const latitudes = points.map(point => point.latitude.toString()).join(',');
-  const longitudes = points.map(point => point.longitude.toString()).join(',');
-  
-  const responses = await fetchWeatherForeacastMultipleLocationApi('https://api.open-meteo.com/v1/forecast', {
-    latitude: latitudes,
-    longitude: longitudes,
-    hourly: [
-      'temperature_2m',
-      'weathercode',
-      'windspeed_10m',
-      'winddirection_10m',
-      'precipitation_probability',
-      'uv_index',
-      'relative_humidity_2m',
-      'surface_pressure'
-    ],
-    daily: [
-      'temperature_2m_max',
-      'temperature_2m_min',
-      'weathercode',
-      'precipitation_probability_max',
-      'uv_index_max'
-    ],
-    timezone: 'auto'
-  });
-
-  const currentIndex = new Date().getHours();
-  const nearbyLocations: NearbyLocation[] = [];
-
-  responses.forEach((response, i) => {
-    const weatherCode = response.hourly.weathercode[currentIndex];
-    const weatherInfo = WMO_CODES[weatherCode] || WMO_CODES[0];
-
-    const nearbyLocation: NearbyLocation = {
-      latitude: points[i].latitude,
-      longitude: points[i].longitude,
-      city: `Point ${i + 1}`,
-      country: '',
-      weatherData: {
-        currentWeather: {
-          temperature: response.hourly.temperature_2m[currentIndex],
-          humidity: response.hourly.relative_humidity_2m[currentIndex],
-          pressure: response.hourly.surface_pressure[currentIndex],
-          wind: {
-            speed: response.hourly.windspeed_10m[currentIndex],
-            direction: getWindDirection(response.hourly.winddirection_10m[currentIndex]),
-          },
-          icon: weatherInfo.icon,
-          condition: weatherInfo.condition,
-          precipitation: response.hourly.precipitation_probability[currentIndex],
-          uvIndex: {
-            value: response.hourly.uv_index[currentIndex],
-            category: getUVCategory(response.hourly.uv_index[currentIndex]),
-          },
-        },
-      },
-    };
-    nearbyLocations.push(nearbyLocation);
-  });
-
-  return nearbyLocations;
 }
