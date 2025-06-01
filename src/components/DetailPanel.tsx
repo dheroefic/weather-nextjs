@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, memo, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import type { ForecastDay, TemperatureUnit, WeatherData } from '@/types/weather';
 
@@ -33,7 +33,7 @@ interface DetailPanelProps {
   onDaySelect: (day: ForecastDay) => void;
 }
 
-export default function DetailPanel({
+const DetailPanel = memo(function DetailPanel({
   selectedDay,
   weatherData,
   tempUnit,
@@ -315,4 +315,6 @@ export default function DetailPanel({
       </div>
     </>
   );
-}
+});
+
+export default DetailPanel;

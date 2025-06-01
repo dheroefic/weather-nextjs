@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, memo, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import type { TemperatureUnit, WeatherData } from '@/types/weather';

@@ -1,6 +1,11 @@
 import type { ForecastDay } from '@/types/weather';
 import { debug } from '@/utils/debug';
 import { NearbyLocation } from '@/types/nearbyWeather';
+import { getFromCache, setInCache } from './cacheService';
+import { performanceMonitor, requestQueue } from '@/utils/performance';
+
+// Request deduplication
+const pendingRequests = new Map<string, Promise<any>>();
 
 interface GeolocationResponse {
   success: boolean;
@@ -189,17 +194,38 @@ async function fetchWeatherApi(url: string, params: WeatherApiParams): Promise<O
   });
 
   const requestUrl = `${url}?${queryParams.toString()}`;
-  debug.api('Fetching weather data from:', requestUrl);
-
-  const response = await fetch(requestUrl);
-  if (!response.ok) {
-    debug.api('Weather API request failed:', { status: response.status, statusText: response.statusText });
-    throw new Error('Network response was not ok');
+  
+  // Request deduplication
+  if (pendingRequests.has(requestUrl)) {
+    debug.api('Using pending request for:', requestUrl);
+    return pendingRequests.get(requestUrl)!;
   }
 
-  const data = await response.json();
-  debug.api('Weather API response:', data);
-  return data;
+  debug.api('Fetching weather data from:', requestUrl);
+
+  const requestPromise = requestQueue.add(async () => {
+    return performanceMonitor.measureAsync(`weather-api-${requestUrl}`, async () => {
+      try {
+        const response = await fetch(requestUrl, {
+          next: { revalidate: 600 }, // 10 minutes cache
+        });
+        
+        if (!response.ok) {
+          debug.api('Weather API request failed:', { status: response.status, statusText: response.statusText });
+          throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        debug.api('Weather API response received');
+        return data;
+      } finally {
+        pendingRequests.delete(requestUrl);
+      }
+    });
+  });
+
+  pendingRequests.set(requestUrl, requestPromise);
+  return requestPromise;
 }
 
 async function fetchWeatherForeacastMultipleLocationApi(
@@ -262,6 +288,37 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
   }>;
   dailyForecast: ForecastDay[];
 }> {
+  // Create cache key based on coordinates (rounded to reduce cache misses)
+  const cacheKey = `weather_${Math.round(latitude * 100) / 100}_${Math.round(longitude * 100) / 100}`;
+  
+  // Try to get from cache first
+  const cachedData = getFromCache<{
+    currentWeather: {
+      temperature: number;
+      condition: string;
+      icon: WeatherIcon;
+      wind: { speed: number; direction: string; };
+      precipitation: number;
+      uvIndex: { value: number; category: string; };
+      humidity: number;
+      pressure: number;
+    };
+    hourlyForecast: Array<{
+      time: string;
+      temp: number;
+      icon: WeatherIcon;
+      precipitation: number;
+      uvIndex: { value: number; category: string; };
+      humidity: number;
+      pressure: number;
+    }>;
+    dailyForecast: ForecastDay[];
+  }>(cacheKey, true);
+  if (cachedData) {
+    debug.api('Using cached weather data');
+    return cachedData;
+  }
+
   const response = await fetchWeatherApi('https://api.open-meteo.com/v1/forecast', {
     latitude,
     longitude,
@@ -291,15 +348,15 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
 
   const hourlyForecast = response.hourly.time.map((time, index) => ({
     time,
-    temp: response.hourly.temperature_2m[index],
+    temp: Math.round(response.hourly.temperature_2m[index]),
     icon: WMO_CODES[response.hourly.weathercode[index]]?.icon || WMO_CODES[0].icon,
-    precipitation: response.hourly.precipitation_probability[index],
+    precipitation: Math.round(response.hourly.precipitation_probability[index]),
     uvIndex: {
-      value: response.hourly.uv_index[index],
+      value: Math.round(response.hourly.uv_index[index] * 10) / 10,
       category: getUVCategory(response.hourly.uv_index[index])
     },
-    humidity: response.hourly.relative_humidity_2m[index],
-    pressure: response.hourly.surface_pressure[index]
+    humidity: Math.round(response.hourly.relative_humidity_2m[index]),
+    pressure: Math.round(response.hourly.surface_pressure[index])
   }));
 
   const currentDate = new Date().toISOString().split('T')[0];
@@ -311,15 +368,15 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
         const absoluteIndex = dayStartIndex + hourIndex;
         return {
           time: new Date(response.hourly.time[absoluteIndex]).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-          temp: response.hourly.temperature_2m[absoluteIndex],
+          temp: Math.round(response.hourly.temperature_2m[absoluteIndex]),
           icon: WMO_CODES[response.hourly.weathercode[absoluteIndex]]?.icon || WMO_CODES[0].icon,
-          precipitation: response.hourly.precipitation_probability[absoluteIndex],
+          precipitation: Math.round(response.hourly.precipitation_probability[absoluteIndex]),
           uvIndex: {
-            value: response.hourly.uv_index[absoluteIndex],
+            value: Math.round(response.hourly.uv_index[absoluteIndex] * 10) / 10,
             category: getUVCategory(response.hourly.uv_index[absoluteIndex])
           },
-          humidity: response.hourly.relative_humidity_2m[absoluteIndex],
-          pressure: response.hourly.surface_pressure[absoluteIndex]
+          humidity: Math.round(response.hourly.relative_humidity_2m[absoluteIndex]),
+          pressure: Math.round(response.hourly.surface_pressure[absoluteIndex])
         };
       });
 
@@ -328,40 +385,45 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
         condition: WMO_CODES[response.daily.weathercode[index]]?.condition || 'Clear Sky',
         icon: WMO_CODES[response.daily.weathercode[index]]?.icon || WMO_CODES[0].icon,
         temp: {
-          min: response.daily.temperature_2m_min[index],
-          max: response.daily.temperature_2m_max[index]
+          min: Math.round(response.daily.temperature_2m_min[index]),
+          max: Math.round(response.daily.temperature_2m_max[index])
         },
-        precipitation: response.daily.precipitation_probability_max[index],
+        precipitation: Math.round(response.daily.precipitation_probability_max[index]),
         uvIndex: {
-          value: response.daily.uv_index_max[index],
+          value: Math.round(response.daily.uv_index_max[index] * 10) / 10,
           category: getUVCategory(response.daily.uv_index_max[index])
         },
-        humidity: response.hourly.relative_humidity_2m[index * 24],
-        pressure: response.hourly.surface_pressure[index * 24],
+        humidity: Math.round(response.hourly.relative_humidity_2m[index * 24]),
+        pressure: Math.round(response.hourly.surface_pressure[index * 24]),
         hourly: dayHourlyData
       };
     });
 
-  return {
+  const weatherData = {
     currentWeather: {
-      temperature: response.hourly.temperature_2m[currentIndex],
+      temperature: Math.round(response.hourly.temperature_2m[currentIndex]),
       condition: weatherInfo.condition,
       icon: weatherInfo.icon,
       wind: {
-        speed: response.hourly.windspeed_10m[currentIndex],
+        speed: Math.round(response.hourly.windspeed_10m[currentIndex]),
         direction: getWindDirection(response.hourly.winddirection_10m[currentIndex])
       },
-      precipitation: response.hourly.precipitation_probability[currentIndex],
+      precipitation: Math.round(response.hourly.precipitation_probability[currentIndex]),
       uvIndex: {
-        value: response.hourly.uv_index[currentIndex],
+        value: Math.round(response.hourly.uv_index[currentIndex] * 10) / 10,
         category: getUVCategory(response.hourly.uv_index[currentIndex])
       },
-      humidity: response.hourly.relative_humidity_2m[currentIndex],
-      pressure: response.hourly.surface_pressure[currentIndex]
+      humidity: Math.round(response.hourly.relative_humidity_2m[currentIndex]),
+      pressure: Math.round(response.hourly.surface_pressure[currentIndex])
     },
     hourlyForecast,
     dailyForecast
   };
+
+  // Cache the result
+  setInCache(cacheKey, weatherData, true);
+  
+  return weatherData;
 }
 
 export async function fetchNearbyWeatherData(centerLat: number, centerLng: number): Promise<NearbyLocation[]> {

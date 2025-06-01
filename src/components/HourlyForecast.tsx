@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import Image from 'next/image';
 import type { WeatherData, TemperatureUnit } from '@/types/weather';
 import { getUVIndexIcon } from '@/services/weatherService';
@@ -12,14 +12,15 @@ interface HourlyForecastProps {
   convertTemp: (temp: number, unit: TemperatureUnit) => number;
 }
 
-export default function HourlyForecast({
+const HourlyForecast = memo(function HourlyForecast({
   weatherData,
   loading,
   tempUnit,
   convertTemp
 }: HourlyForecastProps) {
   const [selectedHour, setSelectedHour] = useState<number | null>(null);
-  const LoadingHourlyForecast = () => (
+  
+  const LoadingHourlyForecast = memo(() => (
     <div className="overflow-x-auto pb-4">
       <div className="inline-flex gap-3">
         {Array.from({ length: 24 }).map((_, index) => (
@@ -34,16 +35,26 @@ export default function HourlyForecast({
         ))}
       </div>
     </div>
-  );
+  ));
 
-  // Filter hourly forecast data for the current day
-  const currentDayHourlyForecast = weatherData?.hourlyForecast?.filter(hour => {
-    const hourDate = new Date(hour.time);
-    const today = new Date();
-    return hourDate.getDate() === today.getDate() &&
-           hourDate.getMonth() === today.getMonth() &&
-           hourDate.getFullYear() === today.getFullYear();
-  });
+  // Memoize filtered hourly forecast data for better performance
+  const currentDayHourlyForecast = useMemo(() => {
+    if (!weatherData?.hourlyForecast) return [];
+    
+    return weatherData.hourlyForecast.filter(hour => {
+      const hourDate = new Date(hour.time);
+      const today = new Date();
+      return hourDate.getDate() === today.getDate() &&
+             hourDate.getMonth() === today.getMonth() &&
+             hourDate.getFullYear() === today.getFullYear();
+    });
+  }, [weatherData?.hourlyForecast]);
+
+  // Memoize selected hour data
+  const selectedHourData = useMemo(() => {
+    if (selectedHour === null || !currentDayHourlyForecast[selectedHour]) return null;
+    return currentDayHourlyForecast[selectedHour];
+  }, [selectedHour, currentDayHourlyForecast]);
 
   return (
     <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5">
@@ -76,17 +87,17 @@ export default function HourlyForecast({
             ))}
           </div>
 
-          {selectedHour !== null && currentDayHourlyForecast && (
+          {selectedHourData && (
             <div className="mt-4 p-3 bg-white/5 rounded-lg sticky left-0">
               <div className="flex items-center justify-between gap-4 mb-3">
                 <div>
                   <div className="text-sm opacity-70">Selected Hour</div>
                   <div className="text-lg font-semibold">
-                    {new Date(currentDayHourlyForecast[selectedHour].time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}                  
+                    {new Date(selectedHourData.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}                  
                   </div>
                 </div>
                 <Image
-                  src={currentDayHourlyForecast[selectedHour].icon}
+                  src={selectedHourData.icon}
                   alt="Weather condition"
                   width={48}
                   height={48}
@@ -95,31 +106,31 @@ export default function HourlyForecast({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
-                  <Image src={currentDayHourlyForecast[selectedHour].icon} alt="Temperature" width={24} height={24} className="w-6 h-6 opacity-80" />
+                  <Image src={selectedHourData.icon} alt="Temperature" width={24} height={24} className="w-6 h-6 opacity-80" />
                   <div>
                     <div className="text-xs opacity-70">Temperature</div>
-                    <div className="text-base font-semibold">{convertTemp(currentDayHourlyForecast[selectedHour].temp, tempUnit)}°{tempUnit}</div>
+                    <div className="text-base font-semibold">{convertTemp(selectedHourData.temp, tempUnit)}°{tempUnit}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Image src="/icons/weathers/raindrops.svg" alt="Precipitation" width={24} height={24} className="w-6 h-6 opacity-80" />
                   <div>
                     <div className="text-xs opacity-70">Precipitation</div>
-                    <div className="text-base font-semibold">{currentDayHourlyForecast[selectedHour].precipitation}%</div>
+                    <div className="text-base font-semibold">{selectedHourData.precipitation}%</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Image src={getUVIndexIcon(currentDayHourlyForecast[selectedHour].uvIndex.value)} alt="UV Index" width={24} height={24} className="w-6 h-6 opacity-80" />
+                  <Image src={getUVIndexIcon(selectedHourData.uvIndex.value)} alt="UV Index" width={24} height={24} className="w-6 h-6 opacity-80" />
                   <div>
                     <div className="text-xs opacity-70">UV Index</div>
-                    <div className="text-base font-semibold">{currentDayHourlyForecast[selectedHour].uvIndex.value} - {currentDayHourlyForecast[selectedHour].uvIndex.category}</div>
+                    <div className="text-base font-semibold">{selectedHourData.uvIndex.value} - {selectedHourData.uvIndex.category}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Image src="/icons/weathers/humidity.svg" alt="Humidity" width={24} height={24} className="w-6 h-6 opacity-80" />
                   <div>
                     <div className="text-xs opacity-70">Humidity</div>
-                    <div className="text-base font-semibold">{currentDayHourlyForecast[selectedHour].humidity}%</div>
+                    <div className="text-base font-semibold">{selectedHourData.humidity}%</div>
                   </div>
                 </div>
               </div>
@@ -129,4 +140,6 @@ export default function HourlyForecast({
       )}
     </div>
   );
-}
+});
+
+export default HourlyForecast;

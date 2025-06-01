@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import type { WeatherData } from '@/types/weather';
 import { getWindBeaufortIcon, getUVIndexIcon } from '@/services/weatherService';
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 
 const getBeaufortScale = (windSpeed: number) => {
   if (windSpeed < 1) return { scale: 0, description: 'Calm' };
@@ -27,8 +27,8 @@ interface WeatherMetricsProps {
   loading: boolean;
 }
 
-export default function WeatherMetrics({ weatherData, loading }: WeatherMetricsProps) {
-  const LoadingMetric = ({ title, width }: { title: string, width: string }) => (
+const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: WeatherMetricsProps) {
+  const LoadingMetric = memo(({ title, width }: { title: string, width: string }) => (
     <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
       <div className="flex items-center justify-between gap-2">
         <div>
@@ -38,7 +38,23 @@ export default function WeatherMetrics({ weatherData, loading }: WeatherMetricsP
         <div className="w-12 md:w-14 h-12 md:h-14 loading-element rounded-lg"></div>
       </div>
     </div>
-  );
+  ));
+
+  // Memoize computed values
+  const beaufortData = useMemo(() => {
+    if (!weatherData?.currentWeather?.wind?.speed) return null;
+    return getBeaufortScale(weatherData.currentWeather.wind.speed);
+  }, [weatherData?.currentWeather?.wind?.speed]);
+
+  const windIcon = useMemo(() => {
+    if (!weatherData?.currentWeather?.wind?.speed) return '';
+    return getWindBeaufortIcon(weatherData.currentWeather.wind.speed);
+  }, [weatherData?.currentWeather?.wind?.speed]);
+
+  const uvIcon = useMemo(() => {
+    if (!weatherData?.currentWeather?.uvIndex?.value) return '';
+    return getUVIndexIcon(weatherData.currentWeather.uvIndex.value);
+  }, [weatherData?.currentWeather?.uvIndex?.value]);
 
   if (loading) {
     return (
@@ -102,10 +118,10 @@ export default function WeatherMetrics({ weatherData, loading }: WeatherMetricsP
                 ) : ''}
               </div>
             </div>
-            {weatherData && (
+            {uvIcon && (
               <Image
-                src={getUVIndexIcon(weatherData.currentWeather.uvIndex.value)}
-                alt={`UV Index - ${weatherData.currentWeather.uvIndex.category}`}
+                src={uvIcon}
+                alt={`UV Index - ${weatherData?.currentWeather?.uvIndex?.category}`}
                 width={56}
                 height={56}
                 className="w-12 md:w-14 h-12 md:h-14 opacity-80"
@@ -131,16 +147,16 @@ export default function WeatherMetrics({ weatherData, loading }: WeatherMetricsP
             <div>
               <div className="text-xs md:text-sm opacity-70">Wind (Beaufort)</div>
               <div className="text-base md:text-lg font-semibold">
-                {weatherData ? (
+                {beaufortData ? (
                   <>
-                    {getBeaufortScale(weatherData.currentWeather.wind.speed).scale} - {getBeaufortScale(weatherData.currentWeather.wind.speed).description}
+                    {beaufortData.scale} - {beaufortData.description}
                   </>
                 ) : ''}
               </div>
             </div>
-            {weatherData && (
+            {windIcon && (
               <Image
-                src={getWindBeaufortIcon(weatherData.currentWeather.wind.speed)}
+                src={windIcon}
                 alt="Wind Speed"
                 width={56}
                 height={56}
@@ -164,4 +180,6 @@ export default function WeatherMetrics({ weatherData, loading }: WeatherMetricsP
       </div>
     </div>
   );
-}
+});
+
+export default WeatherMetrics;
