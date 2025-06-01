@@ -26,18 +26,18 @@ A modern weather application that provides detailed weather information and fore
   - CSS Modules
 - **Weather Data**: OpenMeteo API
 - **Build Tool**: Vite
-- **Package Manager**: npm
+- **Package Manager**: pnpm
 
 ## Getting Started
 
 1. Clone the repository
 2. Install dependencies:
    ```bash
-   npm install
+   pnpm install
    ```
 3. Start the development server:
    ```bash
-   npm run dev
+   pnpm run dev
    ```
 4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
