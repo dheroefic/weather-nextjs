@@ -129,7 +129,7 @@ const MapLegend = () => {
           <h4 className="text-sm font-bold text-white">Weather Legend</h4>
           <button
             onClick={() => setIsMinimized(!isMinimized)}
-            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-1 hover:bg-black/20 rounded-lg transition-colors"
             title={isMinimized ? 'Expand' : 'Minimize'}
           >
             <svg
@@ -487,7 +487,7 @@ export default function MapPanel({
                 <div className="flex items-center gap-4">
                   <button
                     onClick={handleClose}
-                    className="flex-none p-2 rounded-lg glass-container backdrop-blur-md bg-black/40 border border-white/10 hover:bg-white/10 transition-all duration-300 shadow-lg text-white"
+                    className="flex-none p-2 rounded-lg glass-container backdrop-blur-md bg-black/40 border border-white/10 hover:bg-black/30 transition-all duration-300 shadow-lg text-white"
                     title="Close panel"
                   >
                     <svg
@@ -511,7 +511,7 @@ export default function MapPanel({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search location..."
-                      className="w-full p-3 rounded-lg glass-container backdrop-blur-md bg-black/40 border border-white/10 hover:bg-white/10 transition-all duration-300 shadow-lg text-white outline-none placeholder-white/50 focus:ring-2 focus:ring-white/20"
+                      className="w-full p-3 rounded-lg glass-container backdrop-blur-md bg-black/40 border border-white/10 hover:bg-black/30 transition-all duration-300 shadow-lg text-white outline-none placeholder-white/50 focus:ring-2 focus:ring-white/20"
                       aria-label="Search locations"
                       disabled={isSearching}
                     />
@@ -549,7 +549,7 @@ export default function MapPanel({
                             {searchResults.map((result, index) => (
                               <button
                                 key={index}
-                                className="w-full p-3 text-left hover:bg-white/10 transition-colors duration-200 focus:outline-none focus:bg-white/20 text-white/90"
+                                className="w-full p-3 text-left hover:bg-black/20 transition-colors duration-200 focus:outline-none focus:bg-black/30 text-white/90"
                                 onClick={() => handleLocationSelect(result)}
                               >
                                 <div className="font-medium truncate">{result.name}</div>
@@ -621,7 +621,7 @@ export default function MapPanel({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleCenterToUserLocation}
-                        className="flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300 backdrop-blur-md text-white/90 hover:text-white border border-white/10 hover:border-white/20 flex items-center justify-center gap-2 group"
+                        className="flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-xl bg-black/20 hover:bg-black/30 transition-all duration-300 backdrop-blur-md text-white/90 hover:text-white border border-white/10 hover:border-white/20 flex items-center justify-center gap-2 group"
                         title="Use your current location"
                       >
                         <svg
@@ -657,7 +657,7 @@ export default function MapPanel({
                             handleClose();
                           }
                         }}
-                        className="flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300 backdrop-blur-md text-white/90 hover:text-white border border-white/10 hover:border-white/20 flex items-center justify-center gap-2 group"
+                        className="flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-xl bg-black/20 hover:bg-black/30 transition-all duration-300 backdrop-blur-md text-white/90 hover:text-white border border-white/10 hover:border-white/20 flex items-center justify-center gap-2 group"
                         title="Use the current map center as location"
                       >
                         <svg

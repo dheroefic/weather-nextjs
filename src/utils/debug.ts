@@ -1,6 +1,6 @@
 // Debug utility for weather application
 
-import { isDebugEnabled } from './featureFlags';
+import { isDebugEnabled, getFeatureFlagStates } from './featureFlags';
 
 const debugPrefix = '[Weather App Debug]';
 
@@ -28,7 +28,6 @@ export const debug = {
 
   featureFlags: () => {
     if (isDebugEnabled()) {
-      const { getFeatureFlagStates } = require('./featureFlags');
       console.log(`${debugPrefix} Feature Flags:`, getFeatureFlagStates());
     }
   }

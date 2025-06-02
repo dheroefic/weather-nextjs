@@ -39,7 +39,6 @@ export default function DesktopLayout({
   formatTime,
   handleRefresh,
   onLocationSelect,
-  selectedDay,
   onDaySelect,
   showSettings,
   setShowSettings,
@@ -76,7 +75,7 @@ export default function DesktopLayout({
                   <div className="flex items-center gap-4">
                     <button
                       onClick={handleRefresh}
-                      className={`p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-300 ${loading ? 'animate-spin' : ''}`}
+                      className={`p-3 rounded-xl bg-black/20 hover:bg-black/30 transition-all duration-300 ${loading ? 'animate-spin' : ''}`}
                       disabled={loading}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -86,7 +85,7 @@ export default function DesktopLayout({
                     <div className="relative">
                       <button
                         onClick={(e) => {setShowSettings(!showSettings); e.stopPropagation();}}
-                        className="p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-300"
+                        className="p-3 rounded-xl bg-black/20 hover:bg-black/30 transition-all duration-300"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -103,7 +102,7 @@ export default function DesktopLayout({
                               <span className="text-sm text-white">Temperature</span>
                               <button
                                 onClick={onTempUnitToggle}
-                                className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition-all text-white text-sm"
+                                className="px-3 py-1 rounded-lg bg-black/20 hover:bg-black/30 transition-all text-white text-sm"
                               >
                                 °{tempUnit === 'C' ? 'C' : 'F'}
                               </button>
@@ -113,7 +112,7 @@ export default function DesktopLayout({
                               <button
                                 onClick={() => setShowMap(!showMap)}
                                 className={`px-3 py-1 rounded-lg transition-all text-sm ${
-                                  showMap ? 'bg-blue-500 text-white' : 'bg-white/10 hover:bg-white/20 text-white'
+                                  showMap ? 'bg-blue-500 text-white' : 'bg-black/20 hover:bg-black/30 text-white'
                                 }`}
                               >
                                 {showMap ? 'Hide' : 'Show'}
@@ -129,7 +128,7 @@ export default function DesktopLayout({
                                     className={`px-2 py-1 rounded text-xs transition-all ${
                                       autoRefreshInterval === minutes
                                         ? 'bg-blue-500 text-white'
-                                        : 'bg-white/10 hover:bg-white/20 text-white'
+                                        : 'bg-black/20 hover:bg-black/30 text-white'
                                     }`}
                                   >
                                     {minutes ? `${minutes}m` : 'Off'}
@@ -164,9 +163,9 @@ export default function DesktopLayout({
                 <div className="flex-1 flex flex-col justify-center items-center mb-8">
                   {loading ? (
                     <div className="text-center">
-                      <div className="h-32 w-32 bg-white/10 rounded-full mb-6 animate-pulse"></div>
-                      <div className="h-16 w-32 bg-white/10 rounded mb-4 animate-pulse"></div>
-                      <div className="h-6 w-24 bg-white/10 rounded animate-pulse"></div>
+                      <div className="h-32 w-32 bg-black/20 rounded-full mb-6 animate-pulse"></div>
+                      <div className="h-16 w-32 bg-black/20 rounded mb-4 animate-pulse"></div>
+                      <div className="h-6 w-24 bg-black/20 rounded animate-pulse"></div>
                     </div>
                   ) : (
                     <div className="text-center">
@@ -196,7 +195,7 @@ export default function DesktopLayout({
 
                 {/* Location Selector at bottom */}
                 <div className="mt-auto">
-                  <Suspense fallback={<div className="h-12 bg-white/10 rounded-2xl animate-pulse"></div>}>
+                  <Suspense fallback={<div className="h-12 bg-black/20 rounded-2xl animate-pulse"></div>}>
                     <LocationSelector
                       currentLocation={location}
                       onLocationSelect={onLocationSelect}
@@ -210,7 +209,7 @@ export default function DesktopLayout({
           {/* Hourly Forecast Panel with Vertical Expansion */}
           <div className="col-span-12 lg:col-span-6">
             <div className="desktop-sidebar-card rounded-3xl p-6">
-              <h3 className="text-xl font-semibold text-white mb-6">Today's Hourly Forecast</h3>
+              <h3 className="text-xl font-semibold text-white mb-6">Today&apos;s Hourly Forecast</h3>
               
               {/* Hourly forecast scroll area */}
               <div className="min-h-[400px]">
@@ -218,9 +217,9 @@ export default function DesktopLayout({
                   <div className="flex gap-4 overflow-x-auto pb-2">
                     {Array.from({ length: 12 }).map((_, i) => (
                       <div key={i} className="text-center flex-shrink-0 min-w-[80px]">
-                        <div className="h-4 w-12 bg-white/10 rounded mb-2 mx-auto animate-pulse"></div>
-                        <div className="h-12 w-12 bg-white/10 rounded-lg mb-2 mx-auto animate-pulse"></div>
-                        <div className="h-4 w-8 bg-white/10 rounded mx-auto animate-pulse"></div>
+                        <div className="h-4 w-12 bg-black/20 rounded mb-2 mx-auto animate-pulse"></div>
+                        <div className="h-12 w-12 bg-black/20 rounded-lg mb-2 mx-auto animate-pulse"></div>
+                        <div className="h-4 w-8 bg-black/20 rounded mx-auto animate-pulse"></div>
                       </div>
                     ))}
                   </div>
@@ -231,8 +230,8 @@ export default function DesktopLayout({
                         key={index} 
                         className={`text-center flex-shrink-0 min-w-[80px] p-3 rounded-xl transition-all duration-300 cursor-pointer transform hover:scale-105 ${
                           selectedHour?.time === hour.time 
-                            ? 'bg-white/20 border-2 border-white/30' 
-                            : 'bg-white/5 hover:bg-white/10'
+                            ? 'bg-black/30 border-2 border-white/30' 
+                            : 'bg-black/10 hover:bg-black/20'
                         }`}
                         onClick={() => setSelectedHour(selectedHour?.time === hour.time ? null : hour)}
                       >
@@ -269,12 +268,12 @@ export default function DesktopLayout({
                 selectedHour ? 'max-h-96 opacity-100 mt-6' : 'max-h-0 opacity-0'
               }`}>
                 {selectedHour && (
-                  <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                  <div className="bg-black/10 rounded-2xl p-6 border border-white/08">
                     <div className="flex justify-between items-start mb-4">
                       <h4 className="text-lg font-semibold text-white">Hour Details</h4>
                       <button
                         onClick={() => setSelectedHour(null)}
-                        className="p-1 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300"
+                        className="p-1 rounded-lg bg-black/20 hover:bg-black/30 transition-all duration-300"
                       >
                         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -305,7 +304,7 @@ export default function DesktopLayout({
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-white/5 rounded-xl p-3 text-center">
+                      <div className="bg-black/10 rounded-xl p-3 text-center">
                         <div className="flex items-center justify-center mb-1">
                           <svg className="w-4 h-4 text-blue-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
@@ -314,7 +313,7 @@ export default function DesktopLayout({
                         </div>
                         <div className="text-lg font-bold text-blue-400">{selectedHour.precipitation}%</div>
                       </div>
-                      <div className="bg-white/5 rounded-xl p-3 text-center">
+                      <div className="bg-black/10 rounded-xl p-3 text-center">
                         <div className="flex items-center justify-center mb-1">
                           <svg className="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
@@ -323,7 +322,7 @@ export default function DesktopLayout({
                         </div>
                         <div className="text-lg font-bold text-yellow-400">{selectedHour.uvIndex.value}</div>
                       </div>
-                      <div className="bg-white/5 rounded-xl p-3 text-center">
+                      <div className="bg-black/10 rounded-xl p-3 text-center">
                         <div className="flex items-center justify-center mb-1">
                           <svg className="w-4 h-4 text-blue-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M5.05 3.636a1 1 0 010 1.414 7 7 0 000 9.9 1 1 0 11-1.414 1.414 9 9 0 010-12.728 1 1 0 011.414 0zm9.9 0a1 1 0 011.414 0 9 9 0 010 12.728 1 1 0 11-1.414-1.414 7 7 0 000-9.9 1 1 0 010-1.414zM7.879 6.464a1 1 0 010 1.414 3 3 0 000 4.243 1 1 0 11-1.415 1.414 5 5 0 010-7.071 1 1 0 011.415 0zm4.242 0a1 1 0 011.415 0 5 5 0 010 7.072 1 1 0 01-1.415-1.415 3 3 0 000-4.242 1 1 0 010-1.415zM10 9a1 1 0 011 1v.01a1 1 0 11-2 0V10a1 1 0 011-1z" clipRule="evenodd" />
@@ -332,7 +331,7 @@ export default function DesktopLayout({
                         </div>
                         <div className="text-lg font-bold text-blue-400">{selectedHour.humidity}%</div>
                       </div>
-                      <div className="bg-white/5 rounded-xl p-3 text-center">
+                      <div className="bg-black/10 rounded-xl p-3 text-center">
                         <div className="flex items-center justify-center mb-1">
                           <svg className="w-4 h-4 text-green-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M3 10a7 7 0 1114 0 7 7 0 01-14 0zm7-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
@@ -360,7 +359,7 @@ export default function DesktopLayout({
                   </svg>
                 </div>
                 <div className="text-2xl font-bold text-white">
-                  {loading ? <div className="h-8 w-12 bg-white/10 rounded animate-pulse"></div> : currentWeather?.uvIndex?.value || '1.2'}
+                  {loading ? <div className="h-8 w-12 bg-black/20 rounded animate-pulse"></div> : currentWeather?.uvIndex?.value || '1.2'}
                 </div>
                 <div className="text-xs text-white/60 mt-1">Low</div>
               </div>
@@ -374,7 +373,7 @@ export default function DesktopLayout({
                   </svg>
                 </div>
                 <div className="text-2xl font-bold text-white">
-                  {loading ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse"></div> : `${currentWeather?.wind?.speed || 2}`}
+                  {loading ? <div className="h-8 w-16 bg-black/20 rounded animate-pulse"></div> : `${currentWeather?.wind?.speed || 2}`}
                 </div>
                 <div className="text-xs text-white/60 mt-1">
                   {currentWeather?.wind?.direction || 'Light breeze'}
@@ -390,7 +389,7 @@ export default function DesktopLayout({
                   </svg>
                 </div>
                 <div className="text-2xl font-bold text-white">
-                  {loading ? <div className="h-8 w-12 bg-white/10 rounded animate-pulse"></div> : `${currentWeather?.humidity || 63}%`}
+                  {loading ? <div className="h-8 w-12 bg-black/20 rounded animate-pulse"></div> : `${currentWeather?.humidity || 63}%`}
                 </div>
                 <div className="text-xs text-white/60 mt-1">Normal</div>
               </div>
@@ -404,7 +403,7 @@ export default function DesktopLayout({
                   </svg>
                 </div>
                 <div className="text-2xl font-bold text-white">
-                  {loading ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse"></div> : `${currentWeather?.pressure || 1013}`}
+                  {loading ? <div className="h-8 w-16 bg-black/20 rounded animate-pulse"></div> : `${currentWeather?.pressure || 1013}`}
                 </div>
                 <div className="text-xs text-white/60 mt-1">hPa</div>
               </div>
@@ -413,16 +412,16 @@ export default function DesktopLayout({
 
           {/* Daily Forecast - Full Width */}
           <div className="col-span-12 mt-6">
-            <div className="glass-container rounded-3xl p-6 backdrop-blur-md bg-white/10 border border-white/20">
+            <div className="glass-container rounded-3xl p-6 backdrop-blur-md bg-black/20 border border-white/10">
               <h3 className="text-xl font-semibold text-white mb-6">14-Day Forecast</h3>
               {loading ? (
                 <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-10 2xl:grid-cols-14 gap-4">
                   {Array.from({ length: 14 }).map((_, i) => (
-                    <div key={i} className="glass-container rounded-2xl p-4 bg-white/5">
-                      <div className="h-4 w-16 bg-white/10 rounded mb-3 animate-pulse"></div>
-                      <div className="h-16 w-16 bg-white/10 rounded-lg mb-3 mx-auto animate-pulse"></div>
-                      <div className="h-4 w-12 bg-white/10 rounded mb-2 mx-auto animate-pulse"></div>
-                      <div className="h-3 w-8 bg-white/10 rounded mx-auto animate-pulse"></div>
+                    <div key={i} className="glass-container rounded-2xl p-4 bg-black/10">
+                      <div className="h-4 w-16 bg-black/20 rounded mb-3 animate-pulse"></div>
+                      <div className="h-16 w-16 bg-black/20 rounded-lg mb-3 mx-auto animate-pulse"></div>
+                      <div className="h-4 w-12 bg-black/20 rounded mb-2 mx-auto animate-pulse"></div>
+                      <div className="h-3 w-8 bg-black/20 rounded mx-auto animate-pulse"></div>
                     </div>
                   ))}
                 </div>
@@ -431,7 +430,7 @@ export default function DesktopLayout({
                   {dailyForecast.map((day, index) => (
                     <div 
                       key={index}
-                      className="glass-container rounded-2xl p-4 bg-white/5 hover:bg-white/10 transition-all duration-300 cursor-pointer transform hover:scale-105"
+                      className="glass-container rounded-2xl p-4 bg-black/10 hover:bg-black/20 transition-all duration-300 cursor-pointer transform hover:scale-105"
                       onClick={() => onDaySelect(day)}
                     >
                       <div className="text-center">

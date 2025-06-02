@@ -12,7 +12,7 @@ interface FooterProps {
 
 export default function Footer({ imageAttribution }: FooterProps) {
   return (
-    <div className="glass-container p-2 text-center text-[10px] text-white/40 rounded-lg backdrop-blur-md bg-white/5 mt-4">
+    <div className="glass-container p-2 text-center text-[10px] text-white/40 rounded-lg backdrop-blur-md bg-black/20 mt-4">
       <p>
         Created with 🩷 by dheroefic • Images: {imageAttribution ? (
           <>

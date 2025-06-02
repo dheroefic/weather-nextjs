@@ -8,8 +8,8 @@ import { getUVIndexIcon } from '@/services/weatherService';
 
 const LoadingFallback = () => (
   <div className="animate-pulse">
-    <div className="h-8 w-48 bg-white/10 rounded mb-4"></div>
-    <div className="h-24 bg-white/10 rounded mb-6"></div>
+    <div className="h-8 w-48 bg-black/20 rounded mb-4"></div>
+    <div className="h-24 bg-black/20 rounded mb-6"></div>
     <div className="grid grid-cols-2 gap-4 mb-6">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="h-20 bg-white/10 rounded"></div>

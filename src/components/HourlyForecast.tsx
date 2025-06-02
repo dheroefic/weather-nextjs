@@ -26,7 +26,7 @@ const HourlyForecast = memo(function HourlyForecast({
         {Array.from({ length: 24 }).map((_, index) => (
           <div
             key={index}
-            className="p-3 bg-white/5 rounded-lg min-w-[100px] flex flex-col items-center"
+            className="p-3 bg-black/10 rounded-lg min-w-[100px] flex flex-col items-center"
           >
             <div className="loading-element w-16 h-4 mb-2"></div>
             <div className="loading-element w-8 h-8 mb-2 rounded-lg"></div>
@@ -58,7 +58,7 @@ const HourlyForecast = memo(function HourlyForecast({
   }, [selectedHour, currentDayHourlyForecast]);
 
   return (
-    <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5">
+    <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-black/20">
       <div className="text-base md:text-xl font-semibold mb-4">Today&apos;s Hourly Forecast</div>
       {loading ? (
         <LoadingHourlyForecast />
@@ -69,9 +69,9 @@ const HourlyForecast = memo(function HourlyForecast({
               <div
                 key={index}
                 onClick={() => setSelectedHour(selectedHour === index ? null : index)}
-                className={`p-2.5 md:p-3 bg-white/5 rounded-lg min-w-[100px] flex flex-col items-center transform hover:scale-[1.002] hover:bg-white/10 hover:shadow-lg transition-all duration-300 relative group overflow-hidden ${selectedHour === index ? 'bg-white/20 shadow-lg scale-[1.002] ring-2 ring-white/20' : ''}`}
+                className={`p-2.5 md:p-3 bg-black/10 rounded-lg min-w-[100px] flex flex-col items-center transform hover:scale-[1.002] hover:bg-black/20 hover:shadow-lg transition-all duration-300 relative group overflow-hidden ${selectedHour === index ? 'bg-black/30 shadow-lg scale-[1.002] ring-2 ring-white/20' : ''}`}
               >
-                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg pointer-events-none"></div>
+                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg pointer-events-none"></div>
                 <div className="text-xs md:text-sm mb-2">{new Date(hour.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
                 <Image
                   src={hour.icon}
@@ -89,7 +89,7 @@ const HourlyForecast = memo(function HourlyForecast({
           </div>
 
           {selectedHourData && (
-            <div className="mt-4 p-3 bg-white/5 rounded-lg sticky left-0">
+            <div className="mt-4 p-3 bg-black/10 rounded-lg sticky left-0">
               <div className="flex items-center justify-between gap-4 mb-3">
                 <div>
                   <div className="text-sm opacity-70">Selected Hour</div>

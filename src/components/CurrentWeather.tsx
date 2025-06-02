@@ -74,7 +74,7 @@ export default function CurrentWeather({
                 />
                 <button
                   onClick={() => setShowMap(!showMap)}
-                  className={`h-[42px] px-3 rounded-lg bg-black/40 hover:bg-white/20 transition-all duration-300 ${showMap ? 'bg-white/20' : ''} ${!location.coordinates ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`h-[42px] px-3 rounded-lg bg-black/40 hover:bg-black/30 transition-all duration-300 ${showMap ? 'bg-black/30' : ''} ${!location.coordinates ? 'opacity-50 cursor-not-allowed' : ''}`}
                   disabled={!location.coordinates}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -85,7 +85,7 @@ export default function CurrentWeather({
               <div className="flex flex-wrap items-center gap-2 bg-black/40 rounded-lg p-1.5 w-fit">
                 <button
                   onClick={handleRefresh}
-                  className={`p-2 rounded-lg hover:bg-white/20 transition-all duration-300 ${loading ? 'animate-spin' : ''}`}
+                  className={`p-2 rounded-lg hover:bg-black/30 transition-all duration-300 ${loading ? 'animate-spin' : ''}`}
                   disabled={loading}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -95,7 +95,7 @@ export default function CurrentWeather({
                 <div className="relative">
                   <button
                     onClick={(e) => {setShowSettings(!showSettings); e.stopPropagation();}}
-                    className="p-2 rounded-lg hover:bg-white/20 transition-all duration-300"
+                    className="p-2 rounded-lg hover:bg-black/30 transition-all duration-300"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -120,7 +120,7 @@ export default function CurrentWeather({
                             <button
                               key={option.label}
                               onClick={() => handleAutoRefreshChange(option.value)}
-                              className={`w-full px-3 py-2 text-left text-sm rounded hover:bg-white/10 transition-colors duration-200 ${autoRefreshInterval === option.value ? 'bg-white/20' : ''}`}
+                              className={`w-full px-3 py-2 text-left text-sm rounded hover:bg-black/20 transition-colors duration-200 ${autoRefreshInterval === option.value ? 'bg-black/30' : ''}`}
                             >
                               {option.label}
                             </button>
@@ -145,7 +145,7 @@ export default function CurrentWeather({
                 </div>
                 <button
                   onClick={onTempUnitToggle}
-                  className="px-3 py-1.5 rounded-lg bg-black/40 hover:bg-white/20 transition-all duration-300 text-base font-medium backdrop-blur-sm self-start mt-2"
+                  className="px-3 py-1.5 rounded-lg bg-black/40 hover:bg-black/30 transition-all duration-300 text-base font-medium backdrop-blur-sm self-start mt-2"
                 >
                   °{tempUnit === 'C' ? 'F' : 'C'}
                 </button>

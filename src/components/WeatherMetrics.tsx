@@ -29,7 +29,7 @@ interface WeatherMetricsProps {
 
 const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: WeatherMetricsProps) {
   const LoadingMetric = memo(({ title, width }: { title: string, width: string }) => (
-    <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
+    <div className="p-2.5 md:p-3 bg-black/10 rounded-lg">
       <div className="flex items-center justify-between gap-2">
         <div>
           <div className="text-xs md:text-sm opacity-70">{title}</div>
@@ -58,7 +58,7 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
 
   if (loading) {
     return (
-      <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5">
+      <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-black/20">
         <div className="grid grid-cols-2 gap-3 md:gap-4">
           <LoadingMetric title="Weather Condition" width="w-32" />
           <LoadingMetric title="Precipitation" width="w-16" />
@@ -72,9 +72,9 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
   }
 
   return (
-    <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5">
+    <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-black/20">
       <div className="grid grid-cols-2 gap-3 md:gap-4">
-        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
+        <div className="p-2.5 md:p-3 bg-black/10 rounded-lg">
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-xs md:text-sm opacity-70">Weather Condition</div>
@@ -94,7 +94,7 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
           </div>
         </div>
 
-        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
+        <div className="p-2.5 md:p-3 bg-black/10 rounded-lg">
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-xs md:text-sm opacity-70">Precipitation</div>
@@ -106,7 +106,7 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
           </div>
         </div>
 
-        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
+        <div className="p-2.5 md:p-3 bg-black/10 rounded-lg">
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-xs md:text-sm opacity-70">UV Index</div>
@@ -130,7 +130,7 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
           </div>
         </div>
 
-        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
+        <div className="p-2.5 md:p-3 bg-black/10 rounded-lg">
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-xs md:text-sm opacity-70">Humidity</div>
@@ -142,7 +142,7 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
           </div>
         </div>
 
-        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
+        <div className="p-2.5 md:p-3 bg-black/10 rounded-lg">
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-xs md:text-sm opacity-70">Wind (Beaufort)</div>
@@ -166,7 +166,7 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
           </div>
         </div>
 
-        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
+        <div className="p-2.5 md:p-3 bg-black/10 rounded-lg">
           <div className="flex items-center justify-between gap-2">
             <div>
               <div className="text-xs md:text-sm opacity-70">Pressure</div>

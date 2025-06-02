@@ -14,9 +14,6 @@ import type { Location, WeatherData, ForecastDay, TemperatureUnit } from '@/type
 import PerformanceDashboard from '@/components/PerformanceDashboard';
 
 // Lazy load heavy components
-const DailyForecast = lazy(() => import('@/components/DailyForecast'));
-const DetailPanel = lazy(() => import('@/components/DetailPanel'));
-const MapPanel = lazy(() => import('@/components/MapPanel'));
 const Footer = lazy(() => import('@/components/Footer'));
 
 import { isDesktopLayoutEnabled } from '@/utils/featureFlags';
