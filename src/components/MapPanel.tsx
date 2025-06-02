@@ -469,10 +469,10 @@ export default function MapPanel({
             onClick={handleClose}
           />
 
-          {/* Map Panel */}
+          {/* Map Panel - positioned relative to main content container */}
           <div
-            className={`fixed top-0 right-0 h-full w-full md:w-[600px] bg-black/85 backdrop-blur-xl transform transition-all duration-500 ease-in-out ${
-              isVisible ? 'translate-x-0' : 'translate-x-full'
+            className={`absolute top-0 right-0 h-full w-full md:w-[600px] bg-black/85 backdrop-blur-xl transform transition-all duration-500 ease-in-out ${
+              isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
             }`}
             style={{
               pointerEvents: isVisible ? 'auto' : 'none',

@@ -1,5 +1,6 @@
 import { createApi } from 'unsplash-js';
 import { debug } from '@/utils/debug';
+import { isUnsplashEnabled } from '@/utils/featureFlags';
 
 type WeatherCondition = 'sunny' | 'cloudy' | 'rain' | 'snow' | 'storm' | 'default';
 
@@ -39,9 +40,9 @@ const staticBackgrounds: Record<WeatherCondition, string> = {
 
 let unsplashApi: ReturnType<typeof createApi> | null = null;
 
-if (process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY) {
+if (isUnsplashEnabled()) {
   unsplashApi = createApi({
-    accessKey: process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY,
+    accessKey: process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY!,
   });
 }
 

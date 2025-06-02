@@ -61,6 +61,7 @@
 .glass-container:hover {
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .glass-container button {
@@ -74,6 +75,65 @@
 
 .temperature-display {
   transition: all 0.3s ease;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Desktop Grid Enhancements */
+.desktop-main-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.desktop-sidebar-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.desktop-metric-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.desktop-metric-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Ultra-wide display optimizations */
+@media (min-width: 1920px) {
+  .desktop-main-card {
+    max-height: 85vh;
+  }
+  
+  .desktop-sidebar-card {
+    min-height: 300px;
+  }
+}
+
+@media (min-width: 2560px) {
+  .desktop-main-card {
+    max-height: 80vh;
+  }
 }
 
 @keyframes float {
@@ -84,4 +144,54 @@
 
 .weather-icon {
   animation: float 3s ease-in-out infinite;
+}
+
+/* Smooth scrollbar for desktop */
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  
+  /* Custom scrollbar for hourly forecast */
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .scrollbar-thumb-white\/20::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  .scrollbar-track-transparent::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Better footer visibility and spacing */
+  @media (min-width: 1024px) {
+    .desktop-layout-container {
+      padding-bottom: 120px; /* Ensure footer is always visible */
+      min-height: calc(100vh - 120px);
+    }
+    
+    .desktop-footer {
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+      position: relative;
+      z-index: 10;
+    }
+  }
 }

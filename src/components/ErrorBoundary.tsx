@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { isProduction, isDebugEnabled } from '@/utils/featureFlags';
 
 interface Props {
   children: ReactNode;
@@ -23,10 +24,12 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    if (isDebugEnabled()) {
+      console.error('Error caught by boundary:', error, errorInfo);
+    }
     
     // Report to monitoring service in production
-    if (process.env.NODE_ENV === 'production') {
+    if (isProduction()) {
       // You can add error reporting service here
       console.error('Production error:', { error, errorInfo });
     }

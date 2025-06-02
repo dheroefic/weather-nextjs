@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import Image from 'next/image';
-import Header from '@/components/Header';
-import WeatherMetrics from '@/components/WeatherMetrics';
-import HourlyForecast from '@/components/HourlyForecast';
+import ResponsiveLayout from '@/components/ResponsiveLayout';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { fetchWeatherData } from '@/services/weatherService';
 import { getBackgroundImage } from '@/services/backgroundService';
@@ -20,6 +18,8 @@ const DailyForecast = lazy(() => import('@/components/DailyForecast'));
 const DetailPanel = lazy(() => import('@/components/DetailPanel'));
 const MapPanel = lazy(() => import('@/components/MapPanel'));
 const Footer = lazy(() => import('@/components/Footer'));
+
+import { isDesktopLayoutEnabled } from '@/utils/featureFlags';
 
 export default function WeatherApp() {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -261,133 +261,141 @@ export default function WeatherApp() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen w-full flex flex-col items-center justify-center p-0 md:p-4 relative">
-      <div className="fixed inset-0 z-0">
-        <Image
-          src={backgroundImage || '/background-weather/a-default.jpg'}
-          alt={`Weather background showing ${currentWeather}`}
-          fill
-          priority
-          quality={75}
-          sizes="100vw"
-          placeholder="blur"
-          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyDzK5shm3SistN6zEE1cZr+mMNIaI/F8jksV/bSKMqW8ByJR8PTEvI/"
-          style={{
-            objectFit: 'cover',
-            filter: 'blur(8px)',
-            transform: 'scale(1.1)'
-          }}
-          onError={() => {
-            setBackgroundImage('/background-weather/a-default.jpg');
-          }}
-        />
-      </div>
-      <div className="w-full h-full min-h-screen md:h-auto md:min-h-0 md:max-w-3xl bg-black/20 backdrop-blur-lg md:rounded-3xl overflow-hidden text-white p-3 md:p-8 relative z-10">
-        <Header
-          weatherData={weatherData}
-          location={location}
-          currentTime={currentTime}
-          tempUnit={tempUnit}
-          loading={loading}
-          onLocationSelect={setLocation}
-          onTempUnitToggle={toggleTempUnit}
-          convertTemp={convertTemp}
-          getWindRotationDegree={getWindRotationDegree}
-          formatDate={formatDate}
-          formatTime={formatTime}
-          handleRefresh={handleRefresh}
-          showSettings={showSettings}
-          setShowSettings={setShowSettings}
-          autoRefreshInterval={autoRefreshInterval}
-          handleAutoRefreshChange={handleAutoRefreshChange}
-          showMap={showMap}
-          setShowMap={setShowMap}
-        />
-
-        <WeatherMetrics weatherData={weatherData} loading={loading} />
-
-        <HourlyForecast
-          weatherData={weatherData}
-          loading={loading}
-          tempUnit={tempUnit}
-          convertTemp={convertTemp}
-        />
-
-        <Suspense fallback={
-          <div className="animate-pulse">
-            <div className="h-8 w-48 bg-white/10 rounded mb-6"></div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-32 bg-white/10 rounded-xl"></div>
-              ))}
-            </div>
-          </div>
-        }>
-          <DailyForecast
-            forecastPeriod={forecastPeriod}
-            loading={loading}
-            dailyForecast={weatherData?.dailyForecast}
-            tempUnit={tempUnit}
-            convertTemp={convertTemp}
-            onForecastPeriodChange={setForecastPeriod}
-            onDaySelect={setSelectedDay}
-          />
-        </Suspense>
-
-        <Suspense fallback={
-          <div className="animate-pulse">
-            <div className="h-8 w-48 bg-white/10 rounded mb-4"></div>
-            <div className="h-24 bg-white/10 rounded mb-6"></div>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-20 bg-white/10 rounded"></div>
-              ))}
-            </div>
-          </div>
-        }>
-          <DetailPanel
-            selectedDay={selectedDay}
-            weatherData={weatherData}
-            tempUnit={tempUnit}
-            convertTemp={convertTemp}
-            onClose={() => setSelectedDay(null)}
-            onDaySelect={setSelectedDay}
-          />
-        </Suspense>
-
-        <Suspense fallback={
-          <div className="animate-pulse">
-            <div className="h-96 bg-white/10 rounded-xl"></div>
-          </div>
-        }>
-          <MapPanel
-            isOpen={showMap}
-            weatherData={weatherData}
-            onClose={() => setShowMap(false)}
-            location={location}
-            tempUnit={tempUnit}
-            convertTemp={convertTemp}
-            onLocationSelect={(coordinates) => {
-              setLocation(prev => ({
-                ...prev,
-                coordinates,
-                city: coordinates.city || prev.city,
-                country: coordinates.country || prev.country
-              }));
+      <div className="min-h-screen w-full flex flex-col items-center justify-center p-0 lg:p-0 relative">
+        <div className="fixed inset-0 z-0">
+          <Image
+            src={backgroundImage || '/background-weather/a-default.jpg'}
+            alt={`Weather background showing ${currentWeather}`}
+            fill
+            priority
+            quality={75}
+            sizes="100vw"
+            placeholder="blur"
+            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyDzK5shm3SistN6zEE1cZr+mMNIaI/F8jksV/bSKMqW8ByJR8PTEvI/"
+            style={{
+              objectFit: 'cover',
+              filter: 'blur(8px)',
+              transform: 'scale(1.1)'
+            }}
+            onError={() => {
+              setBackgroundImage('/background-weather/a-default.jpg');
             }}
           />
-        </Suspense>
+        </div>
+        
+        {/* Mobile wrapper - always shown when desktop layout is disabled, or on smaller screens when enabled */}
+        <div className={
+          isDesktopLayoutEnabled() 
+            ? "w-full h-full min-h-screen lg:hidden bg-black/20 backdrop-blur-lg overflow-hidden text-white py-4 px-3 md:py-6 md:px-8 relative z-10 flex flex-col justify-between"
+            : "w-full h-auto min-h-0 md:max-w-3xl bg-black/20 backdrop-blur-lg md:rounded-3xl overflow-hidden text-white py-4 px-3 md:py-6 md:px-8 my-4 md:my-8 relative z-10 flex flex-col"
+        }>
+          {!isDesktopLayoutEnabled() ? (
+            <>
+              <div className="flex-1">
+                <ResponsiveLayout
+                  weatherData={weatherData}
+                  location={location}
+                  currentTime={currentTime}
+                  tempUnit={tempUnit}
+                  loading={loading}
+                  convertTemp={convertTemp}
+                  onTempUnitToggle={toggleTempUnit}
+                  formatDate={formatDate}
+                  formatTime={formatTime}
+                  getWindRotationDegree={getWindRotationDegree}
+                  handleRefresh={handleRefresh}
+                  onLocationSelect={setLocation}
+                  selectedDay={selectedDay}
+                  onDaySelect={setSelectedDay}
+                  forecastPeriod={forecastPeriod}
+                  onForecastPeriodChange={setForecastPeriod}
+                  showSettings={showSettings}
+                  setShowSettings={setShowSettings}
+                  autoRefreshInterval={autoRefreshInterval}
+                  handleAutoRefreshChange={handleAutoRefreshChange}
+                  showMap={showMap}
+                  setShowMap={setShowMap}
+                />
+              </div>
+              <Suspense fallback={<div className="animate-pulse h-8 bg-white/10 rounded"></div>}>
+                <Footer imageAttribution={imageAttribution} />
+              </Suspense>
+            </>
+          ) : (
+            <>
+              <div className="flex-1">
+                <ResponsiveLayout
+                  weatherData={weatherData}
+                  location={location}
+                  currentTime={currentTime}
+                  tempUnit={tempUnit}
+                  loading={loading}
+                  convertTemp={convertTemp}
+                  onTempUnitToggle={toggleTempUnit}
+                  formatDate={formatDate}
+                  formatTime={formatTime}
+                  getWindRotationDegree={getWindRotationDegree}
+                  handleRefresh={handleRefresh}
+                  onLocationSelect={setLocation}
+                  selectedDay={selectedDay}
+                  onDaySelect={setSelectedDay}
+                  forecastPeriod={forecastPeriod}
+                  onForecastPeriodChange={setForecastPeriod}
+                  showSettings={showSettings}
+                  setShowSettings={setShowSettings}
+                  autoRefreshInterval={autoRefreshInterval}
+                  handleAutoRefreshChange={handleAutoRefreshChange}
+                  showMap={showMap}
+                  setShowMap={setShowMap}
+                />
+              </div>
+              <Suspense fallback={<div className="animate-pulse h-8 bg-white/10 rounded"></div>}>
+                <Footer imageAttribution={imageAttribution} />
+              </Suspense>
+            </>
+          )}
+        </div>
 
-        <Suspense fallback={<div className="animate-pulse h-8 bg-white/10 rounded"></div>}>
-          <Footer imageAttribution={imageAttribution} />
-        </Suspense>
+        {/* Desktop wrapper for larger screens - conditionally rendered based on feature flag */}
+        {isDesktopLayoutEnabled() && (
+          <div className="hidden lg:block w-full h-full min-h-screen bg-transparent text-white relative z-10 flex flex-col justify-between p-4">
+            <div className="flex-1">
+              <ResponsiveLayout
+                weatherData={weatherData}
+                location={location}
+                currentTime={currentTime}
+                tempUnit={tempUnit}
+                loading={loading}
+                convertTemp={convertTemp}
+                onTempUnitToggle={toggleTempUnit}
+                formatDate={formatDate}
+                formatTime={formatTime}
+                getWindRotationDegree={getWindRotationDegree}
+                handleRefresh={handleRefresh}
+                onLocationSelect={setLocation}
+                selectedDay={selectedDay}
+                onDaySelect={setSelectedDay}
+                forecastPeriod={forecastPeriod}
+                onForecastPeriodChange={setForecastPeriod}
+                showSettings={showSettings}
+                setShowSettings={setShowSettings}
+                autoRefreshInterval={autoRefreshInterval}
+                handleAutoRefreshChange={handleAutoRefreshChange}
+                showMap={showMap}
+                setShowMap={setShowMap}
+              />
+            </div>
+            <Suspense fallback={<div className="animate-pulse h-8 bg-white/10 rounded"></div>}>
+              <Footer imageAttribution={imageAttribution} />
+            </Suspense>
+          </div>
+        )}
 
         <PerformanceDashboard
           isVisible={showPerfDashboard}
           onToggle={() => setShowPerfDashboard(!showPerfDashboard)}
         />
       </div>
-    </div>
     </ErrorBoundary>
   );
 }
