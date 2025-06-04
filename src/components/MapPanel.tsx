@@ -205,18 +205,20 @@ export default function MapPanel({
   const searchTimeoutRef = useRef<number | null>(null);
   const debounceTimeoutRef = useRef<number | null>(null);
   
-  // Optional ref for the map container.
-  const mapRef = useRef<HTMLDivElement | null>(null);
 
   // Helper: safely call flyTo if the container is valid.
   const safeFlyTo = useCallback((lat: number, lng: number, zoom: number) => {
-    if (mapInstance) {
+    if (mapInstance && mapInstance.getContainer && mapInstance.getContainer()) {
       const container = mapInstance.getContainer();
       if (container && document.body.contains(container)) {
-        mapInstance.flyTo([lat, lng], zoom, {
-          duration: 1.5,
-          easeLinearity: 0.25,
-        });
+        try {
+          mapInstance.flyTo([lat, lng], zoom, {
+            duration: 1.5,
+            easeLinearity: 0.25,
+          });
+        } catch (error) {
+          console.warn('Error during flyTo:', error);
+        }
       } else {
         console.warn('Map container is destroyed or not available. Skipping flyTo.');
       }
@@ -268,7 +270,6 @@ export default function MapPanel({
   // Effect to handle panel open/close and map rendering.
   useEffect(() => {
     let timer: number;
-    const currentMapRef = mapRef.current;
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
@@ -286,20 +287,97 @@ export default function MapPanel({
       setIsVisible(false);
       timer = window.setTimeout(() => {
         setShouldRenderMap(false);
-        if (currentMapRef && mapInstance) {
-          mapInstance.remove();
-          setMapInstance(null);
-        }
       }, 500);
     }
     return () => {
       clearTimeout(timer);
-      if (currentMapRef && mapInstance) {
-        mapInstance.remove();
+    };
+  }, [isOpen, location.coordinates]);
+
+  // Effect to handle map lifecycle when shouldRenderMap changes
+  useEffect(() => {
+    if (!shouldRenderMap && mapInstance) {
+      // Clear any pending timeouts before cleaning up map
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+      }
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = null;
+      }
+      
+      // Clean up map instance when map container is about to be unmounted
+      try {
+        if (mapInstance.getContainer && mapInstance.getContainer()) {
+          // Remove event listeners first
+          if (mapInstance.off) {
+            mapInstance.off();
+          }
+          mapInstance.remove();
+        }
+      } catch (error) {
+        console.warn('Error removing map instance during panel close:', error);
+      } finally {
         setMapInstance(null);
       }
+    }
+    
+    // Reset other states when map is not rendering
+    if (!shouldRenderMap) {
+      setNearbyLocations([]);
+      setSearchQuery('');
+      setSearchResults([]);
+      setIsSearching(false);
+    }
+  }, [shouldRenderMap, mapInstance]);
+
+  // Effect to handle map invalidation after map becomes visible
+  useEffect(() => {
+    if (shouldRenderMap && mapInstance) {
+      // Invalidate size after map container becomes visible
+      const invalidateTimer = setTimeout(() => {
+        if (mapInstance && mapInstance.getContainer && mapInstance.getContainer()) {
+          try {
+            mapInstance.invalidateSize();
+          } catch (error) {
+            console.warn('Error invalidating map size:', error);
+          }
+        }
+      }, 100);
+      
+      return () => clearTimeout(invalidateTimer);
+    }
+  }, [shouldRenderMap, mapInstance]);
+
+  // Component unmount cleanup - final safety net
+  useEffect(() => {
+    return () => {
+      // Clear all timeouts
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      
+      // Clean up map instance
+      if (mapInstance) {
+        try {
+          if (mapInstance.getContainer && mapInstance.getContainer()) {
+            if (mapInstance.off) {
+              mapInstance.off();
+            }
+            mapInstance.remove();
+          }
+        } catch (error) {
+          console.warn('Error removing map instance during unmount:', error);
+        } finally {
+          setMapInstance(null);
+        }
+      }
     };
-  }, [isOpen, location.coordinates, mapInstance]);
+  }, [mapInstance]);
 
   const handleClose = () => {
     setIsVisible(false);
@@ -341,7 +419,7 @@ export default function MapPanel({
     async (centerLat: number, centerLng: number) => {
       try {
         // Pass the current zoom level to help with distribution calculations
-        const currentZoom = mapInstance ? mapInstance.getZoom() : defaultMapConfig.defaultZoom;
+        const currentZoom = mapInstance && mapInstance.getZoom ? mapInstance.getZoom() : defaultMapConfig.defaultZoom;
         const locations = await fetchNearbyWeatherData(centerLat, centerLng, currentZoom);
         setNearbyLocations(
           locations.filter((loc): loc is NonNullable<typeof loc> => loc !== null)
@@ -356,7 +434,7 @@ export default function MapPanel({
 
   // Effect to animate the map and fetch nearby locations on movement.
   useEffect(() => {
-    if (mapInstance && location.coordinates) {
+    if (mapInstance && mapInstance.getContainer && mapInstance.getContainer() && location.coordinates) {
       // Use safeFlyTo to ensure the container is valid.
       safeFlyTo(
         location.coordinates.latitude,
@@ -382,20 +460,30 @@ export default function MapPanel({
         }, 1000);
       };
 
-      mapInstance.on('moveend', handleMoveEnd);
-      mapInstance.on('zoomend', handleMoveEnd);
+      try {
+        mapInstance.on('moveend', handleMoveEnd);
+        mapInstance.on('zoomend', handleMoveEnd);
 
-      fetchNearbyData(
-        location.coordinates.latitude,
-        location.coordinates.longitude
-      );
+        fetchNearbyData(
+          location.coordinates.latitude,
+          location.coordinates.longitude
+        );
+      } catch (error) {
+        console.warn('Error setting up map event listeners:', error);
+      }
 
       return () => {
         if (debounceTimeoutRef.current) {
           clearTimeout(debounceTimeoutRef.current);
         }
-        mapInstance.off('moveend', handleMoveEnd);
-        mapInstance.off('zoomend', handleMoveEnd);
+        if (mapInstance && mapInstance.off) {
+          try {
+            mapInstance.off('moveend', handleMoveEnd);
+            mapInstance.off('zoomend', handleMoveEnd);
+          } catch (error) {
+            console.warn('Error removing map event listeners:', error);
+          }
+        }
       };
     }
   }, [mapInstance, location.coordinates, fetchNearbyData, safeFlyTo]);
@@ -408,7 +496,7 @@ export default function MapPanel({
     country?: string;
   }) => {
     setMapCenter([result.latitude, result.longitude]);
-    if (mapInstance) {
+    if (mapInstance && mapInstance.getContainer && mapInstance.getContainer()) {
       safeFlyTo(result.latitude, result.longitude, defaultMapConfig.defaultZoom);
     }
     onLocationSelect({
@@ -428,7 +516,7 @@ export default function MapPanel({
       if (geoResponse.success && geoResponse.data) {
         const { latitude, longitude } = geoResponse.data;
         setMapCenter([latitude, longitude]);
-        if (mapInstance) {
+        if (mapInstance && mapInstance.getContainer && mapInstance.getContainer()) {
           safeFlyTo(latitude, longitude, defaultMapConfig.defaultZoom);
         }
 
@@ -648,13 +736,17 @@ export default function MapPanel({
                       </button>
                       <button
                         onClick={() => {
-                          if (mapInstance) {
-                            const center = mapInstance.getCenter();
-                            onLocationSelect({
-                              latitude: center.lat,
-                              longitude: center.lng,
-                            });
-                            handleClose();
+                          if (mapInstance && mapInstance.getCenter && mapInstance.getContainer && mapInstance.getContainer()) {
+                            try {
+                              const center = mapInstance.getCenter();
+                              onLocationSelect({
+                                latitude: center.lat,
+                                longitude: center.lng,
+                              });
+                              handleClose();
+                            } catch (error) {
+                              console.warn('Error getting map center for location selection:', error);
+                            }
                           }
                         }}
                         className="flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-xl bg-black/20 hover:bg-black/30 transition-all duration-300 backdrop-blur-md text-white/90 hover:text-white border border-white/10 hover:border-white/20 flex items-center justify-center gap-2 group"
@@ -761,7 +853,7 @@ export default function MapPanel({
                           nearbyLocations.map((loc: NearbyLocation) => {
                             // Calculate distance from center to adapt marker size
                             const centerPoint = mapInstance?.getCenter();
-                            const distance = centerPoint && mapInstance 
+                            const distance = centerPoint && mapInstance && mapInstance.distance
                               ? mapInstance.distance(
                                   centerPoint, 
                                   [loc.latitude, loc.longitude]
@@ -770,7 +862,7 @@ export default function MapPanel({
                             
                             // Calculate marker size based on distance from center and zoom level
                             // Markers farther from center are slightly smaller
-                            const zoom = mapInstance?.getZoom() || defaultMapConfig.defaultZoom;
+                            const zoom = mapInstance && mapInstance.getZoom ? mapInstance.getZoom() : defaultMapConfig.defaultZoom;
                             const baseSize = Math.min(Math.max(24 + (zoom - 10) * 1.5, 24), 36);
                             const distanceFactor = distance > 0 ? Math.max(0.8, 1 - (distance / 50000) * 0.3) : 1;
                             const iconSize = Math.round(baseSize * distanceFactor);
