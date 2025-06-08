@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createApi } from 'unsplash-js';
 import { AuthMiddleware, AuthContext } from '@/lib/authMiddleware';
 import { AuditLogger } from '@/lib/auditLogger';
+import { debug } from '@/utils/debug';
 
 type WeatherCondition = 'sunny' | 'cloudy' | 'rain' | 'snow' | 'storm' | 'default';
 
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
         const searchTerms = weatherToSearchTerms[condition];
         const randomTerm = searchTerms[Math.floor(Math.random() * searchTerms.length)];
 
-        console.log(`[Background API] Searching Unsplash with term: ${randomTerm}`);
+        debug.background(`Searching Unsplash with term: ${randomTerm}`);
         
         const result = await unsplashApi.search.getPhotos({
           query: randomTerm,
@@ -127,7 +128,7 @@ export async function GET(request: NextRequest) {
             }
           };
 
-          console.log(`[Background API] Found image from Unsplash: ${photo.user.name}`);
+          debug.background(`Found image from Unsplash: ${photo.user.name}`);
           
           const responseTime = Date.now() - startTime;
 
@@ -144,7 +145,7 @@ export async function GET(request: NextRequest) {
           return AuthMiddleware.addSecurityHeaders(response);
         }
 
-        console.log('[Background API] No results from Unsplash');
+        debug.background('No results from Unsplash');
         const responseTime = Date.now() - startTime;
 
         await AuditLogger.logRequest(request, {

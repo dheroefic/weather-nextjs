@@ -80,13 +80,20 @@ export default function RootLayout({
         <Script id="service-worker-registration" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
+              const isDebugEnabled = process.env.NODE_ENV === 'development' || 
+                (typeof window !== 'undefined' && window.location.search.includes('debug=true'));
+              
               window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js')
                   .then(function(registration) {
-                    console.log('SW registered: ', registration);
+                    if (isDebugEnabled) {
+                      console.log('SW registered: ', registration);
+                    }
                   })
                   .catch(function(registrationError) {
-                    console.log('SW registration failed: ', registrationError);
+                    if (isDebugEnabled) {
+                      console.log('SW registration failed: ', registrationError);
+                    }
                   });
               });
             }

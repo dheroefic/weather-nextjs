@@ -1,16 +1,15 @@
-# Authentication & Security Documentation
+# API Documentation
 
-This document describes the comprehensive authentication and security system implemented for the Weather Next.js app.
+This document describes the API endpoints available in the Weather Next.js app.
 
 ## Overview
 
-The weather app now includes:
-- **Supabase Authentication** - User registration and login
+The weather app includes these core APIs:
 - **API Key Management** - Secure API key generation and validation
+- **Background Images** - Weather-themed background images via Unsplash
 - **Rate Limiting** - Configurable rate limits per endpoint and user
 - **Audit Logging** - Complete tracking of API usage and associations
 - **Security Headers** - CORS, CSP, and other security measures
-- **IP/User Associations** - Tracking of client relationships and usage patterns
 
 ## Database Schema
 
@@ -86,32 +85,6 @@ All responses include:
 
 ## API Endpoints
 
-### Authentication
-
-#### POST `/api/auth/register`
-Register a new user account.
-
-```json
-{
-  "email": "user@example.com",
-  "password": "your_secure_password",
-  "name": "Your Name"
-}
-```
-
-#### POST `/api/auth/login`
-Login with email and password.
-
-```json
-{
-  "email": "user@example.com",
-  "password": "your_password"
-}
-```
-
-#### POST `/api/auth/logout`
-Logout and invalidate session.
-
 ### API Key Management
 
 #### GET `/api/api-keys`
@@ -140,26 +113,10 @@ Update an API key.
 #### DELETE `/api/api-keys/{id}`
 Delete an API key.
 
-### Statistics & Monitoring
-
-#### GET `/api/stats/usage`
-Get API usage statistics.
-
-Query parameters:
-- `api_key_id`: Filter by specific API key
-- `days`: Days to look back (1-90, default: 30)
-
-#### GET `/api/stats/associations`
-Get IP/API key associations.
-
-Query parameters:
-- `api_key_id`: Filter by API key
-- `min_hits`: Minimum hit count to include
-
-### Weather Endpoints
+### Background Images
 
 #### GET `/api/background`
-Get weather background images (now secured).
+Get weather background images.
 
 Query parameters:
 - `condition`: Weather condition (sunny, cloudy, rain, snow, storm, default)
@@ -177,6 +134,9 @@ NEXT_PUBLIC_SUPABASE_URL="your_supabase_url"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="your_anon_key"
 SUPABASE_SERVICE_ROLE_KEY="your_service_role_key"
 SUPABASE_JWT_SECRET="your_jwt_secret"
+
+# Unsplash API for background images
+UNSPLASH_ACCESS_KEY="your_unsplash_access_key"
 
 # Database
 POSTGRES_URL="your_postgres_url"
@@ -204,21 +164,7 @@ psql "$POSTGRES_URL" -f database/schema.sql
 
 ### 3. Test the System
 
-1. **Register a user**:
-   ```bash
-   curl -X POST http://localhost:3000/api/auth/register \
-     -H "Content-Type: application/json" \
-     -d '{"email":"test@example.com","password":"testpassword123"}'
-   ```
-
-2. **Login**:
-   ```bash
-   curl -X POST http://localhost:3000/api/auth/login \
-     -H "Content-Type: application/json" \
-     -d '{"email":"test@example.com","password":"testpassword123"}'
-   ```
-
-3. **Create API key** (use the access_token from login):
+1. **Create API key**:
    ```bash
    curl -X POST http://localhost:3000/api/api-keys \
      -H "Content-Type: application/json" \
@@ -226,7 +172,7 @@ psql "$POSTGRES_URL" -f database/schema.sql
      -d '{"name":"Test Key","expiresInDays":30}'
    ```
 
-4. **Test API with key**:
+2. **Test API with key**:
    ```bash
    curl -H "Authorization: Bearer YOUR_API_KEY" \
      http://localhost:3000/api/background?condition=sunny
@@ -238,27 +184,19 @@ psql "$POSTGRES_URL" -f database/schema.sql
 
 All API requests are logged with:
 - Timestamp and response time
-- User/API key identification
+- API key identification
 - Request parameters
 - Response status and size
 - Error messages
 - IP address and user agent
 
-### Association Tracking
+### Rate Limiting & Security
 
-The system tracks:
-- Which IP addresses use which API keys
-- Hit counts per association
-- First and last seen timestamps
-- Geographic information (when available)
-
-### Suspicious Activity Detection
-
-The system can identify:
-- High-volume requests from single IPs
-- High error rates
-- Unusual access patterns
-- Potential abuse attempts
+The system includes:
+- Configurable rate limits per endpoint
+- Security headers on all responses
+- API key validation and management
+- Request/response monitoring
 
 ## Security Considerations
 
@@ -279,15 +217,14 @@ The system can identify:
 ### Data Privacy
 
 - Row Level Security (RLS) enabled
-- Users can only see their own data
-- Audit logs are filtered by ownership
+- API logs are filtered by ownership
 - Automatic cleanup of old data
 
 ### Error Handling
 
 - Detailed error logging for debugging
 - Generic error messages to clients
-- Rate limiting on authentication attempts
+- Rate limiting per endpoint
 - Graceful degradation of services
 
 ## Troubleshooting
@@ -300,15 +237,15 @@ The system can identify:
 
 2. **"Rate limit exceeded" error**
    - Wait for the retry period shown in headers
-   - Consider requesting higher limits
+   - Consider spacing out requests
 
 3. **Database connection errors**
    - Verify environment variables are correct
    - Check Supabase service status
 
-4. **Authentication failures**
-   - Verify user credentials
-   - Check if account is confirmed
+4. **Background image failures**
+   - Verify UNSPLASH_ACCESS_KEY is set
+   - Check Unsplash API status
 
 ### Debugging
 
@@ -316,14 +253,14 @@ Enable detailed logging by checking:
 - Browser developer tools for client errors
 - Server logs for API errors
 - Supabase dashboard for database issues
-- Rate limit statistics in the database
+- Network requests in developer tools
 
 ## Future Enhancements
 
 Potential improvements:
-- Geographic rate limiting
+- Enhanced rate limiting per user
 - API key usage quotas
-- Webhook notifications for suspicious activity
-- Dashboard for usage analytics
-- Integration with external monitoring services
-- Advanced fraud detection algorithms
+- Background image caching improvements
+- Additional weather condition support
+- Integration with more image providers
+- Advanced performance monitoring

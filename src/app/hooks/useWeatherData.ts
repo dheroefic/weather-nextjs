@@ -6,6 +6,7 @@ import { getBackgroundImage } from '@/services/backgroundService';
 import { loadPreferences, savePreferences } from '@/services/preferencesService';
 import { getUserGeolocation, reverseGeocode } from '@/services/geolocationService';
 import type { Location, WeatherData, ForecastDay, TemperatureUnit } from '@/types/weather';
+import { debug } from '@/utils/debug';
 
 export function useWeatherData() {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -80,7 +81,7 @@ export function useWeatherData() {
           setBackgroundImage(backgroundResult.imageUrl);
           setImageAttribution(backgroundResult.attribution || null);
         } catch (bgError) {
-          console.warn('Failed to load background image:', bgError);
+          debug.warn('Failed to load background image:', bgError);
           setBackgroundImage('/background-weather/a-default.jpg');
           setImageAttribution(null);
         }
@@ -187,11 +188,11 @@ export function useWeatherData() {
           if (locationResponse.success && locationResponse.data) {
             setLocation(locationResponse.data);
           } else {
-            console.warn('Reverse geocoding failed:', locationResponse.error);
+            debug.warn('Reverse geocoding failed:', locationResponse.error);
             setLocation(defaultLocation);
           }
         } else {
-          console.warn('Geolocation failed:', geoResponse.error);
+          debug.warn('Geolocation failed:', geoResponse.error);
           setLocation(defaultLocation);
         }
       } catch (error) {
