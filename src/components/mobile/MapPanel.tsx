@@ -349,65 +349,89 @@ export default function MobileMapPanel({
 
   return (
     <div className="fixed inset-0 z-[100] bg-black">
-      {/* Mobile Header */}
-      <div className="absolute top-0 left-0 right-0 z-[1020] bg-black/90 backdrop-blur-md border-b border-white/10">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-              title="Close map"
-            >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <h2 className="text-lg font-bold text-white">Weather Map</h2>
-          </div>
-          
-          <div className="text-white text-sm">
-            {location.city}, {location.country}
-          </div>
+      {/* Header Interface - Matching attachment layout */}
+      <div className="absolute top-4 left-4 right-4 z-[1020] space-y-3">
+        {/* Close Button */}
+        <div className="flex justify-start">
+          <button
+            onClick={onClose}
+            className="w-10 h-10 bg-gray-800/90 backdrop-blur-md border border-gray-600/50 rounded-lg hover:bg-gray-700/90 transition-colors flex items-center justify-center"
+            title="Close map"
+          >
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
         
-        {/* Mobile Search */}
-        <div className="px-4 pb-4">
-          <div className="relative mb-4">
-            <input
-              type="text"
-              placeholder="Search locations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-            />
-            {isSearching && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+        {/* Search Input Row */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search location..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-3 bg-gray-800/90 backdrop-blur-md border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 text-base"
+          />
+          {isSearching && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            </div>
+          )}
+        </div>
+        
+        {/* Search Results */}
+        {searchQuery && (
+          <div className="bg-gray-800/90 backdrop-blur-md border border-gray-600/50 rounded-lg overflow-hidden">
+            {isSearching ? (
+              <div className="px-4 py-3 text-center text-gray-400">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Searching...
+                </div>
               </div>
-            )}
-            
-            {/* Search Results */}
-            {searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-black/95 backdrop-blur-md border border-white/20 rounded-lg shadow-lg max-h-60 overflow-y-auto z-[1030]">
-                {searchResults.map((result, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSearchResultSelect(result)}
-                    className="w-full px-4 py-3 text-left hover:bg-white/10 transition-colors border-b border-white/10 last:border-b-0"
-                  >
-                    <div className="text-white font-medium">{result.name}</div>
-                    <div className="text-white/70 text-sm">{result.country}</div>
-                  </button>
-                ))}
+            ) : searchResults.length === 0 ? (
+              <div className="px-4 py-3 text-center text-gray-400">
+                No results found
               </div>
+            ) : (
+              searchResults.map((result, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSearchResultSelect(result)}
+                  className="w-full px-4 py-3 text-left hover:bg-gray-700/50 transition-colors border-b border-gray-600/30 last:border-b-0"
+                >
+                  <div className="text-white font-medium">{result.name}</div>
+                  <div className="text-gray-400 text-sm">{result.country}</div>
+                </button>
+              ))
             )}
           </div>
+        )}
 
-          {/* Mobile Action Buttons */}
+        {/* Location Display */}
+        <div className="bg-gray-800/90 backdrop-blur-md border border-gray-600/50 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-white text-lg font-semibold">
+              {location.city}, {location.country}
+            </div>
+            <div className="flex items-center gap-2 text-white/80">
+              <div className="flex items-center gap-1">
+                <span className="text-blue-400 text-lg">💧</span>
+                <span className="text-sm">%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-gray-400">•</span>
+                <span className="text-sm">⊙</span>
+                <span className="text-sm">hPa</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Action Buttons */}
           <div className="flex gap-3">
             <button
               onClick={() => {
-                // Handle current location
                 if (navigator.geolocation) {
                   navigator.geolocation.getCurrentPosition(
                     (position) => {
@@ -425,12 +449,12 @@ export default function MobileMapPanel({
                   );
                 }
               }}
-              className="flex-1 py-3 px-4 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-300 backdrop-blur-md text-white border border-white/20 hover:border-white/30 flex items-center justify-center gap-2 group"
+              className="flex-1 py-3 px-4 rounded-lg bg-gray-700/80 hover:bg-gray-700 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500 flex items-center justify-center gap-2"
               title="Use your current location"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-white/70 group-hover:text-white transition-colors"
+                className="h-4 w-4 text-white/80"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -467,12 +491,12 @@ export default function MobileMapPanel({
                   }
                 }
               }}
-              className="flex-1 py-3 px-4 rounded-lg bg-blue-600/80 hover:bg-blue-600 transition-all duration-300 backdrop-blur-md text-white border border-blue-500/50 hover:border-blue-400 flex items-center justify-center gap-2 group"
-              title="Use the current map center as location"
+              className="flex-1 py-3 px-4 rounded-lg bg-gray-700/80 hover:bg-gray-700 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500 flex items-center justify-center gap-2"
+              title="Set this location"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-white/90 group-hover:text-white transition-colors"
+                className="h-4 w-4 text-white/80"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -491,7 +515,7 @@ export default function MobileMapPanel({
       </div>
 
       {/* Mobile Map Container */}
-      <div className="absolute inset-0 top-44">
+      <div className="absolute inset-0">
         {leaflet ? (
           <div id={mapContainerId} className="h-full w-full relative">
             <Suspense fallback={<MobileLoadingFallback />}>

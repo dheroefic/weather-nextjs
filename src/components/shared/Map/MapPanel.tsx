@@ -118,7 +118,9 @@ const SearchInterface = ({
   isSearching,
   onSearchQueryChange,
   onSearchResultSelect,
-  onClose
+  onClose,
+  location,
+  onLocationSelect
 }: {
   variant?: 'desktop' | 'mobile';
   searchQuery: string;
@@ -127,103 +129,166 @@ const SearchInterface = ({
   onSearchQueryChange: (query: string) => void;
   onSearchResultSelect: (result: any) => void;
   onClose?: () => void;
+  location?: { city: string; country: string };
+  onLocationSelect?: (coordinates: { latitude: number; longitude: number; city?: string; country?: string }) => void;
 }) => {
-  if (variant === 'mobile') {
-    return (
-      <div className="absolute top-0 left-0 right-0 z-[1020] bg-black/90 backdrop-blur-md border-b border-white/10">
-        <div className="flex items-center gap-3 p-4">
-          <button
-            onClick={onClose}
-            className="text-white/70 hover:text-white transition-colors"
-            aria-label="Close map"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder="Search locations..."
-              value={searchQuery}
-              onChange={(e) => onSearchQueryChange(e.target.value)}
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:border-white/40"
-            />
-            {isSearching && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {searchResults.length > 0 && (
-          <div className="max-h-[200px] overflow-y-auto bg-black/95 border-t border-white/10">
-            {searchResults.map((result, index) => (
-              <button
-                key={index}
-                onClick={() => onSearchResultSelect(result)}
-                className="w-full text-left px-4 py-3 hover:bg-white/10 transition-colors border-b border-white/5 last:border-b-0"
-              >
-                <div className="text-white text-sm font-medium">{result.name}</div>
-                <div className="text-white/60 text-xs">{result.country}</div>
-              </button>
-            ))}
+  return (
+    <div className="absolute top-4 left-4 right-4 z-[1020] space-y-4">
+      {/* Close Button */}
+      <div className="flex justify-start">
+        <button
+          onClick={onClose}
+          className="w-10 h-10 bg-gray-800/90 backdrop-blur-md border border-gray-600/50 rounded-lg hover:bg-gray-700/90 transition-colors flex items-center justify-center"
+          title="Close map"
+        >
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Search Input */}
+      <div className="relative max-w-2xl">
+        <input
+          type="text"
+          placeholder="Search location..."
+          value={searchQuery}
+          onChange={(e) => onSearchQueryChange(e.target.value)}
+          className="w-full px-4 py-3 bg-gray-800/90 backdrop-blur-md border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 text-base"
+        />
+        {isSearching && (
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
           </div>
         )}
       </div>
-    );
-  }
-
-  // Desktop search interface
-  return (
-    <div className="absolute top-4 left-4 right-4 z-[1020]">
-      <div className="max-w-md">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search locations..."
-            value={searchQuery}
-            onChange={(e) => onSearchQueryChange(e.target.value)}
-            className="w-full bg-black/80 backdrop-blur-md border border-white/20 rounded-lg px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-white/40"
-          />
-          {isSearching && (
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+      
+      {/* Search Results */}
+      {searchQuery && (
+        <div className="bg-gray-800/90 backdrop-blur-md border border-gray-600/50 rounded-lg shadow-lg max-h-60 overflow-y-auto max-w-2xl">
+          {isSearching ? (
+            <div className="px-4 py-3 text-center text-gray-400">
+              <div className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Searching...
+              </div>
             </div>
+          ) : searchResults.length === 0 ? (
+            <div className="px-4 py-3 text-center text-gray-400">
+              No results found
+            </div>
+          ) : (
+            searchResults.map((result, index) => (
+              <button
+                key={index}
+                onClick={() => onSearchResultSelect(result)}
+                className="w-full px-4 py-3 text-left hover:bg-gray-700/50 transition-colors border-b border-gray-600/30 last:border-b-0"
+              >
+                <div className="text-white font-medium">{result.name}</div>
+                <div className="text-gray-400 text-sm">{result.country}</div>
+              </button>
+            ))
           )}
         </div>
-        
-        {searchResults.length > 0 && (
-          <div className="mt-2 max-h-[300px] overflow-y-auto bg-black/90 backdrop-blur-md border border-white/20 rounded-lg">
-            {searchResults.map((result, index) => (
-              <button
-                key={index}
-                onClick={() => onSearchResultSelect(result)}
-                className="w-full text-left px-4 py-3 hover:bg-white/10 transition-colors border-b border-white/5 last:border-b-0"
-              >
-                <div className="text-white text-sm font-medium">{result.name}</div>
-                <div className="text-white/60 text-xs">{result.country}</div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
 
-      <button
-        onClick={onClose}
-        className="absolute top-3 right-4 text-white/70 hover:text-white transition-colors bg-black/60 backdrop-blur-sm rounded-full p-2"
-        aria-label="Close map"
-      >
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+      {/* Location Display */}
+      {location && (
+        <div className="bg-gray-800/90 backdrop-blur-md border border-gray-600/50 rounded-lg p-4 max-w-2xl">
+          <div className="flex items-center justify-between">
+            <div className="text-white text-lg font-semibold">
+              {location.city}, {location.country}
+            </div>
+            <div className="flex items-center gap-2 text-white/80">
+              <div className="flex items-center gap-1">
+                <span className="text-blue-400 text-lg">💧</span>
+                <span className="text-sm">%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-gray-400">•</span>
+                <span className="text-sm">⊙</span>
+                <span className="text-sm">hPa</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex gap-3 mt-4">
+            <button
+              onClick={() => {
+                if (navigator.geolocation && onLocationSelect) {
+                  navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                      const { latitude, longitude } = position.coords;
+                      onLocationSelect({
+                        latitude,
+                        longitude,
+                        city: 'Current Location',
+                        country: ''
+                      });
+                    },
+                    (error) => {
+                      console.error('Error getting current location:', error);
+                    }
+                  );
+                }
+              }}
+              className="flex-1 py-3 px-4 rounded-lg bg-gray-700/80 hover:bg-gray-700 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500 flex items-center justify-center gap-2"
+              title="Use your current location"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 text-white/80"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              <span className="text-sm font-medium">Current Location</span>
+            </button>
+            <button
+              onClick={() => {
+                // Set location functionality
+                if (onClose) onClose();
+              }}
+              className="flex-1 py-3 px-4 rounded-lg bg-gray-700/80 hover:bg-gray-700 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500 flex items-center justify-center gap-2"
+              title="Set location"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 text-white/80"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              <span className="text-sm font-medium">Set Location</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-export default function UnifiedMapPanel({
+      export default function UnifiedMapPanel({
   isOpen,
   weatherData,
   onClose,
@@ -275,10 +340,6 @@ export default function UnifiedMapPanel({
     ? "fixed inset-0 z-[100] bg-black"
     : "fixed inset-0 z-50 bg-black/95 backdrop-blur-sm";
 
-  const mapContainerClasses = variant === 'mobile'
-    ? "absolute inset-0 top-44"
-    : "absolute inset-0 top-16";
-
   return (
     <div className={containerClasses}>
       <SearchInterface
@@ -289,9 +350,11 @@ export default function UnifiedMapPanel({
         onSearchQueryChange={search.setSearchQuery}
         onSearchResultSelect={search.handleSearchResultSelect}
         onClose={onClose}
+        location={location}
+        onLocationSelect={onLocationSelect}
       />
 
-      <div className={mapContainerClasses}>
+      <div className="absolute inset-0">
         {mapState.leaflet ? (
           <div id={mapContainerId} className="h-full w-full relative">
             <Suspense fallback={<LoadingFallback variant={variant} />}>

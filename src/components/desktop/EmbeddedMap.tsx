@@ -127,6 +127,39 @@ export default function EmbeddedMap({
     onLocationSelectRef.current = onLocationSelect;
   }, [selectLocationFromCoordinates, onLocationSelect]);
 
+  // Create custom map marker icon
+  const createCustomIcon = useCallback(() => {
+    if (!leaflet) return undefined;
+    
+    try {
+      // Use weather icon if available, otherwise use dedicated map marker
+      const iconUrl = weatherData?.currentWeather?.icon || '/icons/weathers/map-marker.svg';
+      
+      return leaflet.icon({
+        iconUrl: iconUrl,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32],
+        className: 'desktop-weather-marker',
+      });
+    } catch (error) {
+      console.warn('Error creating custom icon for desktop embedded map:', error);
+      // Return fallback icon on error
+      try {
+        return leaflet.icon({
+          iconUrl: '/icons/weathers/not-available.svg',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32],
+          className: 'desktop-weather-marker fallback',
+        });
+      } catch (fallbackError) {
+        console.error('Error creating fallback icon for desktop embedded map:', fallbackError);
+        return undefined;
+      }
+    }
+  }, [leaflet, weatherData]);
+
   // Stable callback functions to prevent infinite re-renders
   const setMapInstanceStable = useCallback((map: Map) => {
     console.log('setMapInstanceStable called with map:', map);
@@ -252,7 +285,10 @@ export default function EmbeddedMap({
             />
             
             {/* Current location marker */}
-            <Marker position={[safeCoordinates.latitude, safeCoordinates.longitude]}>
+            <Marker 
+              position={[safeCoordinates.latitude, safeCoordinates.longitude]}
+              icon={createCustomIcon()}
+            >
               <Popup>
                 <div className="text-center">
                   <strong>{location.city}</strong>
@@ -313,20 +349,20 @@ export default function EmbeddedMap({
       <div className="absolute top-2 right-2 z-[1000]">
         <button
           onClick={() => {
-            if (mapManager.isMapReady && mapManager.mapInstance) {
+            if (isLocalMapReady && mapManager.mapInstance) {
               // Cleanup current map before transitioning
               console.log('Cleaning up embedded map before expanding to fullscreen');
               mapManager.cleanupMap();
               onExpandToFullscreen();
             }
           }}
-          disabled={!mapManager.isMapReady}
+          disabled={!isLocalMapReady}
           className={`p-2 rounded-lg transition-all duration-200 backdrop-blur-md text-white border ${
-            mapManager.isMapReady 
+            isLocalMapReady 
               ? 'bg-black/40 hover:bg-black/60 border-white/10 hover:border-white/20 cursor-pointer'
               : 'bg-black/20 border-white/5 cursor-not-allowed opacity-50'
           }`}
-          title={mapManager.isMapReady ? "Expand to fullscreen" : "Map loading..."}
+          title={isLocalMapReady ? "Expand to fullscreen" : "Map loading..."}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
