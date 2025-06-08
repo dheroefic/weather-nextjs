@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import type { WeatherData, TemperatureUnit } from '@/types/weather';
 import { getUVIndexIcon } from '@/services/weatherService';
@@ -19,6 +19,9 @@ const HourlyForecast = memo(function HourlyForecast({
   convertTemp
 }: HourlyForecastProps) {
   const [selectedHour, setSelectedHour] = useState<number | null>(null);
+  const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const hourElementsRef = useRef<(HTMLDivElement | null)[]>([]);
   
   const LoadingHourlyForecast = memo(() => (
     <div className="overflow-x-auto pb-4">
@@ -51,6 +54,59 @@ const HourlyForecast = memo(function HourlyForecast({
     });
   }, [weatherData?.hourlyForecast]);
 
+  // Auto-expand the next hour when component first loads
+  useEffect(() => {
+    if (!loading && !hasAutoExpanded && currentDayHourlyForecast.length > 0) {
+      const now = new Date();
+      const nextHour = new Date(now);
+      nextHour.setHours(now.getHours() + 1, 0, 0, 0); // Set to next hour exactly
+      
+      // Find the index of the hour that matches next hour
+      const nextHourIndex = currentDayHourlyForecast.findIndex(hour => {
+        const hourTime = new Date(hour.time);
+        return hourTime.getHours() === nextHour.getHours();
+      });
+      
+      // If we found the next hour, auto-select it
+      if (nextHourIndex !== -1) {
+        setSelectedHour(nextHourIndex);
+      } else if (currentDayHourlyForecast.length > 0) {
+        // Fallback: select the first available hour if next hour not found
+        setSelectedHour(0);
+      }
+      
+      setHasAutoExpanded(true);
+    }
+  }, [loading, hasAutoExpanded, currentDayHourlyForecast]);
+
+  // Center the selected hour in the view
+  useEffect(() => {
+    if (selectedHour !== null && scrollContainerRef.current && hourElementsRef.current[selectedHour]) {
+      const scrollContainer = scrollContainerRef.current;
+      const selectedElement = hourElementsRef.current[selectedHour];
+      
+      if (selectedElement) {
+        const containerWidth = scrollContainer.clientWidth;
+        const elementLeft = selectedElement.offsetLeft;
+        const elementWidth = selectedElement.offsetWidth;
+        
+        // Calculate the scroll position to center the element
+        const scrollLeft = elementLeft - (containerWidth / 2) + (elementWidth / 2);
+        
+        // Smooth scroll to center the selected hour
+        scrollContainer.scrollTo({
+          left: scrollLeft,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [selectedHour]);
+
+  // Function to handle hour selection and centering
+  const handleHourSelect = (index: number) => {
+    setSelectedHour(selectedHour === index ? null : index);
+  };
+
   // Memoize selected hour data
   const selectedHourData = useMemo(() => {
     if (selectedHour === null || !currentDayHourlyForecast[selectedHour]) return null;
@@ -58,18 +114,24 @@ const HourlyForecast = memo(function HourlyForecast({
   }, [selectedHour, currentDayHourlyForecast]);
 
   return (
-    <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-black/20">
-      <div className="text-base md:text-xl font-semibold mb-4">Today&apos;s Hourly Forecast</div>
+    <div className="mb-4">
+      <div className="text-base md:text-xl font-semibold mb-4 text-primary">Today&apos;s Hourly Forecast</div>
       {loading ? (
         <LoadingHourlyForecast />
       ) : (
-        <div className="overflow-x-auto pb-4 relative">
+        <div 
+          ref={scrollContainerRef}
+          className="overflow-x-auto pb-4 relative"
+        >
           <div className="inline-flex gap-3">
             {currentDayHourlyForecast?.map((hour, index) => (
               <div
                 key={index}
-                onClick={() => setSelectedHour(selectedHour === index ? null : index)}
-                className={`p-2.5 md:p-3 bg-black/10 rounded-lg min-w-[100px] flex flex-col items-center transform hover:scale-[1.002] hover:bg-black/20 hover:shadow-lg transition-all duration-300 relative group overflow-hidden ${selectedHour === index ? 'bg-black/30 shadow-lg scale-[1.002] ring-2 ring-white/20' : ''}`}
+                ref={(el) => {
+                  hourElementsRef.current[index] = el;
+                }}
+                onClick={() => handleHourSelect(index)}
+                className={`p-2.5 md:p-3 bg-black/10 rounded-lg min-w-[100px] flex flex-col items-center transform hover:scale-[1.002] hover:bg-black/20 hover:shadow-lg transition-all duration-300 relative group overflow-hidden cursor-pointer ${selectedHour === index ? 'bg-black/30 shadow-lg scale-[1.002] ring-2 ring-white/20' : ''}`}
               >
                 <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg pointer-events-none"></div>
                 <div className="text-xs md:text-sm mb-2">{new Date(hour.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}</div>

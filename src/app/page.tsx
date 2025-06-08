@@ -21,7 +21,7 @@ import { isDesktopLayoutEnabled } from '@/utils/featureFlags';
 export default function WeatherApp() {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [location, setLocation] = useState<Location>({ city: '', country: '' });
-  const [forecastPeriod, setForecastPeriod] = useState<'4 days' | '8 days' | '14 days'>('4 days');
+  const [forecastPeriod, setForecastPeriod] = useState<'4 days' | '8 days' | '14 days'>('14 days');
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [tempUnit, setTempUnit] = useState<TemperatureUnit>('C');
   const [loading, setLoading] = useState(true);
@@ -63,7 +63,6 @@ export default function WeatherApp() {
     try {
       fetchingRef.current = true;
       setSelectedDay(null);
-      setForecastPeriod('4 days');
       
       if (!location.coordinates) {
         setLoading(false);
@@ -258,7 +257,8 @@ export default function WeatherApp() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen w-full flex flex-col items-center justify-center p-0 lg:p-0 relative">
+      <div className="min-h-screen w-full relative">
+        {/* Background Image */}
         <div className="fixed inset-0 z-0">
           <Image
             src={backgroundImage || '/background-weather/a-default.jpg'}
@@ -280,14 +280,11 @@ export default function WeatherApp() {
           />
         </div>
         
-        {/* Mobile wrapper - always shown when desktop layout is disabled, or on smaller screens when enabled */}
-        <div className={
-          isDesktopLayoutEnabled() 
-            ? "w-full h-full min-h-screen lg:hidden bg-black/20 backdrop-blur-lg overflow-hidden text-white py-4 px-3 md:py-6 md:px-8 relative z-10 flex flex-col justify-between"
-            : "w-full h-auto min-h-0 md:max-w-3xl bg-black/20 backdrop-blur-lg md:rounded-3xl overflow-hidden text-white py-4 px-3 md:py-6 md:px-8 my-4 md:my-8 relative z-10 flex flex-col"
-        }>
-          {!isDesktopLayoutEnabled() ? (
-            <>
+        {/* Unified Content Container */}
+        <div className="relative z-10 min-h-screen w-full flex flex-col text-white">
+          {/* Desktop Layout - Full screen blended */}
+          {isDesktopLayoutEnabled() ? (
+            <div className="hidden lg:flex flex-col min-h-screen w-full p-6">
               <div className="flex-1">
                 <ResponsiveLayout
                   weatherData={weatherData}
@@ -312,81 +309,62 @@ export default function WeatherApp() {
                   handleAutoRefreshChange={handleAutoRefreshChange}
                   showMap={showMap}
                   setShowMap={setShowMap}
+                  imageAttribution={imageAttribution}
                 />
               </div>
-              <Suspense fallback={<div className="animate-pulse h-8 bg-white/10 rounded"></div>}>
-                <Footer imageAttribution={imageAttribution} />
-              </Suspense>
-            </>
-          ) : (
-            <>
-              <div className="flex-1">
-                <ResponsiveLayout
-                  weatherData={weatherData}
-                  location={location}
-                  currentTime={currentTime}
-                  tempUnit={tempUnit}
-                  loading={loading}
-                  convertTemp={convertTemp}
-                  onTempUnitToggle={toggleTempUnit}
-                  formatDate={formatDate}
-                  formatTime={formatTime}
-                  getWindRotationDegree={getWindRotationDegree}
-                  handleRefresh={handleRefresh}
-                  onLocationSelect={setLocation}
-                  selectedDay={selectedDay}
-                  onDaySelect={setSelectedDay}
-                  forecastPeriod={forecastPeriod}
-                  onForecastPeriodChange={setForecastPeriod}
-                  showSettings={showSettings}
-                  setShowSettings={setShowSettings}
-                  autoRefreshInterval={autoRefreshInterval}
-                  handleAutoRefreshChange={handleAutoRefreshChange}
-                  showMap={showMap}
-                  setShowMap={setShowMap}
-                />
-              </div>
-              <Suspense fallback={<div className="animate-pulse h-8 bg-white/10 rounded"></div>}>
-                <Footer imageAttribution={imageAttribution} />
-              </Suspense>
-            </>
-          )}
-        </div>
+              
 
-        {/* Desktop wrapper for larger screens - conditionally rendered based on feature flag */}
-        {isDesktopLayoutEnabled() && (
-          <div className="hidden lg:block w-full h-full min-h-screen bg-transparent text-white relative z-10 flex flex-col justify-between p-4">
-            <div className="flex-1">
-              <ResponsiveLayout
-                weatherData={weatherData}
-                location={location}
-                currentTime={currentTime}
-                tempUnit={tempUnit}
-                loading={loading}
-                convertTemp={convertTemp}
-                onTempUnitToggle={toggleTempUnit}
-                formatDate={formatDate}
-                formatTime={formatTime}
-                getWindRotationDegree={getWindRotationDegree}
-                handleRefresh={handleRefresh}
-                onLocationSelect={setLocation}
-                selectedDay={selectedDay}
-                onDaySelect={setSelectedDay}
-                forecastPeriod={forecastPeriod}
-                onForecastPeriodChange={setForecastPeriod}
-                showSettings={showSettings}
-                setShowSettings={setShowSettings}
-                autoRefreshInterval={autoRefreshInterval}
-                handleAutoRefreshChange={handleAutoRefreshChange}
-                showMap={showMap}
-                setShowMap={setShowMap}
-              />
             </div>
-            <Suspense fallback={<div className="animate-pulse h-8 bg-white/10 rounded"></div>}>
-              <Footer imageAttribution={imageAttribution} />
-            </Suspense>
+          ) : null}
+
+          {/* Mobile/Tablet Layout - Container with backdrop */}
+          <div className={`
+            ${isDesktopLayoutEnabled() ? 'lg:hidden' : 'flex'}
+            flex-col min-h-screen w-full
+            ${!isDesktopLayoutEnabled() ? 'justify-center items-center p-4' : 'p-4'}
+          `}>
+            <div className={`
+              ${!isDesktopLayoutEnabled() 
+                ? 'w-full max-w-3xl bg-black/20 backdrop-blur-lg rounded-3xl overflow-hidden my-8 flex flex-col' 
+                : 'w-full bg-black/20 backdrop-blur-lg overflow-hidden flex flex-col min-h-screen'
+              }
+              text-white p-4 md:p-6
+            `}>
+              <div className="flex-1">
+                <ResponsiveLayout
+                  weatherData={weatherData}
+                  location={location}
+                  currentTime={currentTime}
+                  tempUnit={tempUnit}
+                  loading={loading}
+                  convertTemp={convertTemp}
+                  onTempUnitToggle={toggleTempUnit}
+                  formatDate={formatDate}
+                  formatTime={formatTime}
+                  getWindRotationDegree={getWindRotationDegree}
+                  handleRefresh={handleRefresh}
+                  onLocationSelect={setLocation}
+                  selectedDay={selectedDay}
+                  onDaySelect={setSelectedDay}
+                  forecastPeriod={forecastPeriod}
+                  onForecastPeriodChange={setForecastPeriod}
+                  showSettings={showSettings}
+                  setShowSettings={setShowSettings}
+                  autoRefreshInterval={autoRefreshInterval}
+                  handleAutoRefreshChange={handleAutoRefreshChange}
+                  showMap={showMap}
+                  setShowMap={setShowMap}
+                  imageAttribution={imageAttribution}
+                />
+              </div>
+              
+              {/* Mobile/Tablet Footer */}
+              <Suspense fallback={<div className="animate-pulse h-8 bg-white/10 rounded mt-4"></div>}>
+                <Footer imageAttribution={imageAttribution} />
+              </Suspense>
+            </div>
           </div>
-        )}
+        </div>
 
         <PerformanceDashboard
           isVisible={showPerfDashboard}

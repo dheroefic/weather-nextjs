@@ -70,6 +70,7 @@ export default function DesktopLayout({
   const [embeddedMapKey, setEmbeddedMapKey] = useState(0);
   const [fullscreenMapKey, setFullscreenMapKey] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [embeddedMapDestroyed, setEmbeddedMapDestroyed] = useState(false);
   
   const currentWeather = weatherData?.currentWeather;
   const hourlyForecast = weatherData?.hourlyForecast?.slice(0, 12) || []; // Show 12 hours
@@ -78,29 +79,38 @@ export default function DesktopLayout({
   // Handle fullscreen map opening with proper cleanup sequence
   const handleExpandToFullscreen = () => {
     setIsTransitioning(true);
-    // First, increment embedded map key to force cleanup
+    
+    // First, force embedded map unmount by incrementing key
     setEmbeddedMapKey(prev => prev + 1);
     
-    // Small delay to allow embedded map cleanup
+    // Wait for embedded map to fully cleanup
     setTimeout(() => {
-      setShowFullscreenMap(true);
-      setFullscreenMapKey(prev => prev + 1);
-      setIsTransitioning(false);
-    }, 150);
+      setEmbeddedMapDestroyed(true);
+      // Additional delay to ensure DOM cleanup
+      setTimeout(() => {
+        setShowFullscreenMap(true);
+        setFullscreenMapKey(prev => prev + 1);
+        setIsTransitioning(false);
+      }, 200);
+    }, 200);
   };
 
   // Handle fullscreen map closing with proper cleanup sequence  
   const handleCloseFullscreen = () => {
     setIsTransitioning(true);
     setShowFullscreenMap(false);
-    // Increment fullscreen map key to force cleanup
+    
+    // Force fullscreen map cleanup
     setFullscreenMapKey(prev => prev + 1);
     
-    // Delay before allowing embedded map to render again
+    // Wait for fullscreen map to cleanup before re-enabling embedded map
     setTimeout(() => {
-      setEmbeddedMapKey(prev => prev + 1);
-      setIsTransitioning(false);
-    }, 150);
+      setEmbeddedMapDestroyed(false);
+      setTimeout(() => {
+        setEmbeddedMapKey(prev => prev + 1);
+        setIsTransitioning(false);
+      }, 200);
+    }, 200);
   };
 
   return (
@@ -114,7 +124,7 @@ export default function DesktopLayout({
             <div className="desktop-main-card h-full">
               <div className="flex flex-col h-full">
                 {/* Header Controls */}
-                <div className="flex justify-between items-start mb-6">
+                <div className="flex justify-start items-start mb-6">
                   <div className="flex items-center space-x-4">
                     <button
                       onClick={handleRefresh}
@@ -137,38 +147,29 @@ export default function DesktopLayout({
                       </button>
                       {showSettings && (
                         <div
-                          className="absolute top-full right-0 mt-3 desktop-forecast-card min-w-[280px] z-50"
+                          className="absolute top-full left-0 mt-3 desktop-forecast-card min-w-[280px] z-50"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-secondary">Temperature</span>
+                              <span className="text-sm font-medium text-secondary">Temperature Unit</span>
                               <button
                                 onClick={onTempUnitToggle}
-                                className="desktop-control-button px-3 py-1 text-sm text-primary"
+                                className={`desktop-control-button px-3 py-2 text-sm font-semibold ${
+                                  tempUnit === 'C' ? 'bg-blue-500/20 border-blue-400/40 text-blue-300' : 'text-primary'
+                                }`}
                               >
                                 °{tempUnit === 'C' ? 'C' : 'F'}
                               </button>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-secondary">Map</span>
-                              <button
-                                onClick={() => setShowMap(!showMap)}
-                                className={`desktop-control-button px-3 py-1 text-sm ${
-                                  showMap ? 'bg-blue-500/20 border-blue-400/40 text-blue-300' : 'text-primary'
-                                }`}
-                              >
-                                {showMap ? 'Hide' : 'Show'}
-                              </button>
-                            </div>
                             <div className="space-y-3">
-                              <span className="text-sm text-secondary">Auto-refresh</span>
+                              <span className="text-sm font-medium text-secondary">Auto-refresh Interval</span>
                               <div className="grid grid-cols-2 gap-2">
                                 {[1, 5, 15, null].map((minutes) => (
                                   <button
                                     key={minutes || 'off'}
                                     onClick={() => handleAutoRefreshChange(minutes)}
-                                    className={`desktop-control-button px-2 py-1 text-xs ${
+                                    className={`desktop-control-button px-2 py-2 text-xs font-semibold ${
                                       autoRefreshInterval === minutes
                                         ? 'bg-blue-500/20 border-blue-400/40 text-blue-300'
                                         : 'text-primary'
@@ -184,51 +185,53 @@ export default function DesktopLayout({
                       )}
                     </div>
                   </div>
-                  <button
-                    onClick={onTempUnitToggle}
-                    className="text-3xl lg:text-4xl font-light text-secondary hover:text-primary transition-colors"
-                  >
-                    °{tempUnit === 'C' ? 'C' : 'F'}
-                  </button>
                 </div>
 
                 {/* Current Time and Date */}
-                <div className="text-center mb-6">
-                  <div className="text-4xl lg:text-5xl xl:text-6xl font-light text-primary mb-2">
+                <div className="text-center mb-8">
+                  <div className="text-5xl lg:text-6xl xl:text-7xl font-light text-primary mb-3 tracking-tight">
                     {formatTime(currentTime)}
                   </div>
-                  <div className="text-lg text-secondary">
+                  <div className="text-lg lg:text-xl font-medium text-secondary mb-2">
                     {formatDate(currentTime)}
+                  </div>
+                  {/* Current Location */}
+                  <div className="flex items-center justify-center space-x-2 text-sm font-medium text-tertiary">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>{location.city}, {location.country}</span>
                   </div>
                 </div>
 
                 {/* Current Weather Display */}
-                <div className="flex-1 flex flex-col justify-center items-center">
+                <div className="flex-1 flex flex-col justify-center items-center text-center">
                   {loading ? (
                     <div className="text-center">
-                      <div className="h-24 w-24 bg-black/20 rounded-full mb-4 animate-pulse"></div>
-                      <div className="h-12 w-24 bg-black/20 rounded mb-3 animate-pulse"></div>
-                      <div className="h-6 w-20 bg-black/20 rounded animate-pulse"></div>
+                      <div className="h-24 w-24 bg-black/20 rounded-full mb-6 animate-pulse mx-auto"></div>
+                      <div className="h-16 w-32 bg-black/20 rounded mb-4 animate-pulse mx-auto"></div>
+                      <div className="h-6 w-24 bg-black/20 rounded animate-pulse mx-auto"></div>
                     </div>
                   ) : (
-                    <div className="text-center">
-                      <div className="text-6xl lg:text-7xl xl:text-8xl font-light text-primary mb-3">
+                    <div className="flex flex-col items-center">
+                      <div className="text-7xl lg:text-8xl xl:text-9xl font-extralight text-primary mb-4 tracking-tighter">
                         {convertTemp(currentWeather?.temperature || 22, tempUnit)}°
                       </div>
-                      <div className="text-xl lg:text-2xl text-secondary mb-2">
+                      <div className="text-xl lg:text-2xl xl:text-3xl font-semibold text-secondary mb-3">
                         {currentWeather?.condition || 'Clear'}
                       </div>
-                      <div className="text-lg text-tertiary mb-4">
+                      <div className="text-lg lg:text-xl font-medium text-tertiary mb-6">
                         Feels like {convertTemp(currentWeather?.temperature || 24, tempUnit)}°
                       </div>
                       {currentWeather?.icon && (
-                        <div>
+                        <div className="flex justify-center">
                           <Image
                             src={currentWeather.icon}
                             alt={currentWeather.condition || 'Weather condition'}
-                            width={80}
-                            height={80}
-                            className="w-16 h-16 lg:w-20 lg:h-20"
+                            width={96}
+                            height={96}
+                            className="w-20 h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28"
                           />
                         </div>
                       )}
@@ -239,33 +242,37 @@ export default function DesktopLayout({
             </div>
           </div>
 
-          {/* Section 2: Top Right - Today's Hourly Forecast */}
+          {/* Section 2: Top Right - Combined Weather Metrics & Hourly Forecast */}
           <div className="col-span-12 lg:col-span-6 xl:col-span-6">
             <div className="desktop-sidebar-card h-full">
-              <HourlyForecast
-                weatherData={weatherData}
-                tempUnit={tempUnit}
-                convertTemp={convertTemp}
-                loading={loading}
-              />
+              <div className="flex flex-col h-full">
+
+                {/* Weather Metrics - Top Section */}
+                <div className="mb-6">
+                  <WeatherMetrics
+                    weatherData={weatherData}
+                    loading={loading}
+                  />
+                </div>
+
+                {/* Hourly Forecast - Bottom Section */}
+                <div className="flex-1">
+                  <HourlyForecast
+                    weatherData={weatherData}
+                    tempUnit={tempUnit}
+                    convertTemp={convertTemp}
+                    loading={loading}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Section 3: Bottom Left - Weather Metrics */}
-          <div className="col-span-12 lg:col-span-6 xl:col-span-6">
-            <div className="desktop-forecast-card h-full">
-              <WeatherMetrics
-                weatherData={weatherData}
-                loading={loading}
-              />
-            </div>
-          </div>
-
-          {/* Section 4: Bottom Right - Map */}
-          <div className="col-span-12 lg:col-span-6 xl:col-span-6">
-            <div className="desktop-forecast-card h-full overflow-hidden">
+          {/* Section 3: Bottom - Full Width Map */}
+          <div className="col-span-12">
+            <div className="desktop-forecast-card h-[400px] overflow-hidden">
               <div className="h-full">
-                {!showFullscreenMap && !isTransitioning && (
+                {!showFullscreenMap && !isTransitioning && !embeddedMapDestroyed && (
                   <EmbeddedMap
                     key={`embedded-map-${embeddedMapKey}`}
                     weatherData={weatherData}
@@ -286,7 +293,7 @@ export default function DesktopLayout({
                     className="h-full"
                   />
                 )}
-                {(showFullscreenMap || isTransitioning) && (
+                {(showFullscreenMap || isTransitioning || embeddedMapDestroyed) && (
                   <div className="h-full flex items-center justify-center bg-black/10 rounded-lg">
                     <div className="text-center text-white/60">
                       <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="currentColor" viewBox="0 0 20 20">
@@ -302,7 +309,7 @@ export default function DesktopLayout({
             </div>
           </div>
 
-          {/* Section 5: Bottom Section 1 - 14-Day Forecast */}
+          {/* Section 4: Bottom Section - 14-Day Forecast */}
           <div className="col-span-12">
             <div className="desktop-forecast-card">
               <DailyForecast
@@ -317,7 +324,7 @@ export default function DesktopLayout({
             </div>
           </div>
 
-          {/* Section 6: Bottom Section 2 - Footer */}
+          {/* Section 5: Footer */}
           <div className="col-span-12">
             <Footer imageAttribution={imageAttribution} />
           </div>

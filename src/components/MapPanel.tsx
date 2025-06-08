@@ -37,14 +37,33 @@ const Popup = dynamic(
 // Helper component to capture the map instance via useMap hook
 const SetMapInstance = dynamic(
   () => import('react-leaflet').then((mod) => {
-    const Component = ({ setMapInstance }: { setMapInstance: (map: Map) => void }) => {
+    const Component = ({ 
+      setMapInstance, 
+      setIsMapReady 
+    }: { 
+      setMapInstance: (map: Map) => void;
+      setIsMapReady?: (ready: boolean) => void;
+    }) => {
       const map = mod.useMap();
       
       React.useEffect(() => {
         if (map) {
+          console.log('Map instance captured in MapPanel', map);
           setMapInstance(map);
+          
+          // Set ready state after a short delay to ensure map is fully initialized
+          if (setIsMapReady) {
+            const timer = setTimeout(() => {
+              console.log('Setting map ready state to true in MapPanel');
+              setIsMapReady(true);
+            }, 500); // Increased delay to ensure proper initialization
+            
+            return () => clearTimeout(timer);
+          }
+        } else {
+          console.log('Map instance is null in MapPanel');
         }
-      }, [map, setMapInstance]);
+      }, [map, setMapInstance, setIsMapReady]);
       
       return null;
     };
@@ -183,14 +202,43 @@ export default function MapPanel({
   // Dynamically import Leaflet on the client.
   const [leaflet, setLeaflet] = useState<typeof import('leaflet') | null>(null);
   const [mapContainerId] = useState(() => `fullscreen-map-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const [isDestroying, setIsDestroying] = useState(false);
+  const [isMapReady, setIsMapReady] = useState(false);
   
   useEffect(() => {
-    import('leaflet').then((L) => setLeaflet(L));
+    if (typeof window !== 'undefined') {
+      import('leaflet').then((L) => {
+        setLeaflet(L);
+        console.log('Leaflet loaded successfully in MapPanel');
+      }).catch((error) => {
+        console.error('Error loading Leaflet in MapPanel:', error);
+      });
+    }
   }, []);
 
-  // Determine if coordinates are available.
-  const hasCoordinates = Boolean(location.coordinates);
-  const initialCoordinates = location.coordinates || { latitude: 0, longitude: 0 };
+  // Determine if coordinates are available and valid.
+  const hasValidCoordinates = Boolean(
+    location.coordinates && 
+    typeof location.coordinates.latitude === 'number' && 
+    typeof location.coordinates.longitude === 'number' &&
+    !isNaN(location.coordinates.latitude) && 
+    !isNaN(location.coordinates.longitude)
+  );
+  
+  // Safe coordinates with fallback to NYC
+  const safeCoordinates = hasValidCoordinates 
+    ? location.coordinates! 
+    : { latitude: 40.7128, longitude: -74.0060 };
+
+  // Debug logging to track coordinate handling
+  useEffect(() => {
+    console.log('MapPanel coordinate check:', {
+      hasValidCoordinates,
+      rawCoordinates: location.coordinates,
+      safeCoordinates,
+      locationCity: location.city
+    });
+  }, [hasValidCoordinates, location.coordinates, safeCoordinates, location.city]);
 
   // State hooks.
   const [isVisible, setIsVisible] = useState(false);
@@ -198,20 +246,57 @@ export default function MapPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [mapCenter, setMapCenter] = useState<LatLngExpression>([
-    initialCoordinates.latitude,
-    initialCoordinates.longitude,
-  ]);
+  const [mapCenter, setMapCenter] = useState<LatLngExpression>(() => {
+    // Ensure initial coordinates are always valid
+    if (safeCoordinates.latitude >= -90 && safeCoordinates.latitude <= 90 &&
+        safeCoordinates.longitude >= -180 && safeCoordinates.longitude <= 180) {
+      return [safeCoordinates.latitude, safeCoordinates.longitude];
+    } else {
+      console.warn('Invalid initial coordinates in MapPanel:', safeCoordinates);
+      return [40.7128, -74.0060]; // NYC fallback
+    }
+  });
   const [mapInstance, setMapInstance] = useState<Map | null>(null);
   const [nearbyLocations, setNearbyLocations] = useState<NearbyLocation[]>([]);
 
   // Timeout refs.
   const searchTimeoutRef = useRef<number | null>(null);
   const debounceTimeoutRef = useRef<number | null>(null);
+  const loadingTimeoutRef = useRef<number | null>(null);
+
+  // Backup mechanism to hide loading overlay if map doesn't report ready
+  useEffect(() => {
+    if (shouldRenderMap && leaflet && !isMapReady) {
+      // Clear any existing timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+      
+      // Set a backup timeout to hide loading after 3 seconds
+      loadingTimeoutRef.current = window.setTimeout(() => {
+        console.log('Backup timeout: forcing map ready state to true');
+        setIsMapReady(true);
+      }, 3000);
+    }
+    
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [shouldRenderMap, leaflet, isMapReady]);
   
 
   // Helper: safely call flyTo if the container is valid.
   const safeFlyTo = useCallback((lat: number, lng: number, zoom: number) => {
+    // Validate coordinates before attempting to fly
+    if (typeof lat !== 'number' || typeof lng !== 'number' || 
+        isNaN(lat) || isNaN(lng) ||
+        lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      console.warn('Invalid coordinates provided to safeFlyTo in MapPanel:', { lat, lng });
+      return;
+    }
+
     if (mapInstance && mapInstance.getContainer && mapInstance.getContainer()) {
       const container = mapInstance.getContainer();
       if (container && document.body.contains(container)) {
@@ -278,29 +363,55 @@ export default function MapPanel({
       top: 0,
       behavior: 'smooth'
     });
-    if (isOpen && location.coordinates) {
+    if (isOpen && hasValidCoordinates) {
       setIsVisible(true);
-      setMapCenter([
-        location.coordinates.latitude,
-        location.coordinates.longitude,
-      ]);
+      setIsMapReady(false); // Reset map ready state when opening
+      // Validate coordinates before setting map center
+      if (safeCoordinates.latitude >= -90 && safeCoordinates.latitude <= 90 &&
+          safeCoordinates.longitude >= -180 && safeCoordinates.longitude <= 180) {
+        setMapCenter([
+          safeCoordinates.latitude,
+          safeCoordinates.longitude,
+        ]);
+      } else {
+        console.warn('Invalid coordinates when opening MapPanel:', safeCoordinates);
+        // Use fallback coordinates
+        setMapCenter([40.7128, -74.0060]);
+      }
       timer = window.setTimeout(() => {
         setShouldRenderMap(true);
+        console.log('Map should render set to true');
       }, 300);
     } else {
       setIsVisible(false);
+      setIsMapReady(false); // Reset map ready state when closing
       timer = window.setTimeout(() => {
         setShouldRenderMap(false);
+        console.log('Map should render set to false');
       }, 500);
     }
     return () => {
       clearTimeout(timer);
     };
-  }, [isOpen, location.coordinates]);
+  }, [isOpen, hasValidCoordinates]);
+
+  // Update map center when location coordinates change
+  useEffect(() => {
+    if (hasValidCoordinates && 
+        safeCoordinates.latitude >= -90 && safeCoordinates.latitude <= 90 &&
+        safeCoordinates.longitude >= -180 && safeCoordinates.longitude <= 180) {
+      setMapCenter([safeCoordinates.latitude, safeCoordinates.longitude]);
+    } else {
+      console.warn('Invalid coordinates detected in MapPanel center update:', safeCoordinates);
+    }
+  }, [hasValidCoordinates, safeCoordinates.latitude, safeCoordinates.longitude]);
 
   // Effect to handle map lifecycle when shouldRenderMap changes
   useEffect(() => {
     if (!shouldRenderMap && mapInstance) {
+      setIsDestroying(true);
+      setIsMapReady(false); // Reset map ready state when destroying
+      
       // Clear any pending timeouts before cleaning up map
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
@@ -311,19 +422,49 @@ export default function MapPanel({
         searchTimeoutRef.current = null;
       }
       
-      // Clean up map instance when map container is about to be unmounted
+      // Enhanced cleanup for map instance when map container is about to be unmounted
       try {
-        if (mapInstance.getContainer && mapInstance.getContainer()) {
+        const container = mapInstance.getContainer && mapInstance.getContainer();
+        if (container) {
           // Remove event listeners first
           if (mapInstance.off) {
             mapInstance.off();
           }
+          
+          // Force remove all layers
+          if (mapInstance.eachLayer) {
+            mapInstance.eachLayer((layer: any) => {
+              try {
+                if (layer.remove) {
+                  layer.remove();
+                }
+              } catch (layerError) {
+                console.warn('Error removing layer in MapPanel:', layerError);
+              }
+            });
+          }
+          
+          // Remove the map instance
           mapInstance.remove();
+          
+          // Clear container content
+          if (container.parentNode) {
+            container.innerHTML = '';
+          }
         }
       } catch (error) {
         console.warn('Error removing map instance during panel close:', error);
       } finally {
         setMapInstance(null);
+        
+        // Force garbage collection hint
+        if (typeof window !== 'undefined' && (window as any).gc) {
+          try {
+            (window as any).gc();
+          } catch (e) {
+            // gc is not available in production
+          }
+        }
       }
     }
     
@@ -333,6 +474,8 @@ export default function MapPanel({
       setSearchQuery('');
       setSearchResults([]);
       setIsSearching(false);
+      setIsDestroying(false);
+      setIsMapReady(false); // Reset map ready state
     }
   }, [shouldRenderMap, mapInstance]);
 
@@ -357,6 +500,8 @@ export default function MapPanel({
   // Component unmount cleanup - final safety net
   useEffect(() => {
     return () => {
+      setIsDestroying(true);
+      
       // Clear all timeouts
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
@@ -365,19 +510,51 @@ export default function MapPanel({
         clearTimeout(searchTimeoutRef.current);
       }
       
-      // Clean up map instance
+      // Enhanced cleanup for map instance
       if (mapInstance) {
         try {
-          if (mapInstance.getContainer && mapInstance.getContainer()) {
+          const container = mapInstance.getContainer && mapInstance.getContainer();
+          if (container) {
+            // Remove event listeners
             if (mapInstance.off) {
               mapInstance.off();
             }
+            
+            // Force remove all layers
+            if (mapInstance.eachLayer) {
+              mapInstance.eachLayer((layer: any) => {
+                try {
+                  if (layer.remove) {
+                    layer.remove();
+                  }
+                } catch (layerError) {
+                  console.warn('Error removing layer during unmount:', layerError);
+                }
+              });
+            }
+            
+            // Remove the map instance
             mapInstance.remove();
+            
+            // Clear container content
+            if (container.parentNode) {
+              container.innerHTML = '';
+            }
           }
         } catch (error) {
           console.warn('Error removing map instance during unmount:', error);
         } finally {
           setMapInstance(null);
+          setIsMapReady(false); // Reset map ready state
+          
+          // Force garbage collection hint
+          if (typeof window !== 'undefined' && (window as any).gc) {
+            try {
+              (window as any).gc();
+            } catch (e) {
+              // gc is not available in production
+            }
+          }
         }
       }
     };
@@ -438,11 +615,11 @@ export default function MapPanel({
 
   // Effect to animate the map and fetch nearby locations on movement.
   useEffect(() => {
-    if (mapInstance && mapInstance.getContainer && mapInstance.getContainer() && location.coordinates) {
+    if (mapInstance && mapInstance.getContainer && mapInstance.getContainer() && hasValidCoordinates) {
       // Use safeFlyTo to ensure the container is valid.
       safeFlyTo(
-        location.coordinates.latitude,
-        location.coordinates.longitude,
+        safeCoordinates.latitude,
+        safeCoordinates.longitude,
         defaultMapConfig.defaultZoom
       );
 
@@ -469,8 +646,8 @@ export default function MapPanel({
         mapInstance.on('zoomend', handleMoveEnd);
 
         fetchNearbyData(
-          location.coordinates.latitude,
-          location.coordinates.longitude
+          safeCoordinates.latitude,
+          safeCoordinates.longitude
         );
       } catch (error) {
         console.warn('Error setting up map event listeners:', error);
@@ -490,7 +667,7 @@ export default function MapPanel({
         }
       };
     }
-  }, [mapInstance, location.coordinates, fetchNearbyData, safeFlyTo]);
+  }, [mapInstance, hasValidCoordinates, safeCoordinates, fetchNearbyData, safeFlyTo]);
 
   // Handle location selection from search results.
   const handleLocationSelect = (result: {
@@ -499,9 +676,18 @@ export default function MapPanel({
     name?: string;
     country?: string;
   }) => {
-    setMapCenter([result.latitude, result.longitude]);
-    if (mapInstance && mapInstance.getContainer && mapInstance.getContainer()) {
-      safeFlyTo(result.latitude, result.longitude, defaultMapConfig.defaultZoom);
+    // Validate coordinates before setting map center
+    if (typeof result.latitude === 'number' && typeof result.longitude === 'number' &&
+        !isNaN(result.latitude) && !isNaN(result.longitude) &&
+        result.latitude >= -90 && result.latitude <= 90 &&
+        result.longitude >= -180 && result.longitude <= 180) {
+      setMapCenter([result.latitude, result.longitude]);
+      if (mapInstance && mapInstance.getContainer && mapInstance.getContainer()) {
+        safeFlyTo(result.latitude, result.longitude, defaultMapConfig.defaultZoom);
+      }
+    } else {
+      console.warn('Invalid coordinates from search result:', result);
+      return;
     }
     onLocationSelect({
       latitude: result.latitude,
@@ -519,9 +705,17 @@ export default function MapPanel({
       const geoResponse = await getUserGeolocation();
       if (geoResponse.success && geoResponse.data) {
         const { latitude, longitude } = geoResponse.data;
-        setMapCenter([latitude, longitude]);
-        if (mapInstance && mapInstance.getContainer && mapInstance.getContainer()) {
-          safeFlyTo(latitude, longitude, defaultMapConfig.defaultZoom);
+        // Validate coordinates before setting map center
+        if (typeof latitude === 'number' && typeof longitude === 'number' &&
+            !isNaN(latitude) && !isNaN(longitude) &&
+            latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
+          setMapCenter([latitude, longitude]);
+          if (mapInstance && mapInstance.getContainer && mapInstance.getContainer()) {
+            safeFlyTo(latitude, longitude, defaultMapConfig.defaultZoom);
+          }
+        } else {
+          console.warn('Invalid coordinates from user geolocation:', { latitude, longitude });
+          return;
         }
 
         const locationResponse = await reverseGeocode({ latitude, longitude });
@@ -550,7 +744,7 @@ export default function MapPanel({
 
   return (
     <>
-      {hasCoordinates && (
+      {hasValidCoordinates && (
         <>
           {/* Overlay */}
           <div
@@ -792,155 +986,180 @@ export default function MapPanel({
 
               {/* Map Container */}
               <div className="relative h-full w-full">
-                {shouldRenderMap && (
-                  <div className="h-full w-full leaflet-container-custom">
-                    <Suspense fallback={<LoadingFallback />}>
-                      <MapContainer
-                        key={mapContainerId}
-                        center={mapCenter}
-                        zoom={defaultMapConfig.defaultZoom}
-                        minZoom={defaultMapConfig.minZoom}
-                        maxZoom={defaultMapConfig.maxZoom}
-                        style={{ height: '100%', width: '100%' }}
-                        zoomControl={defaultMapConfig.controls.zoomControl}
-                        attributionControl={defaultMapConfig.controls.attributionControl}
+                {shouldRenderMap && !isDestroying ? (
+                  <>
+                    {/* Loading overlay - show while leaflet is loading OR map is not ready */}
+                    {(!leaflet || !isMapReady) && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-md z-[1000]">
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                          <div className="text-white/70 text-sm">
+                            {!leaflet ? 'Loading Leaflet...' : 'Loading map...'}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Map container - render when leaflet is loaded */}
+                    {leaflet && (
+                      <div 
+                        className="h-full w-full leaflet-container-custom" 
+                        data-map-container-id={mapContainerId}
                       >
-                        <SetMapInstance setMapInstance={setMapInstance} />
-                        <TileLayer
-                          url={defaultMapConfig.tileLayer.url}
-                          attribution={defaultMapConfig.tileLayer.attribution}
-                          maxZoom={defaultMapConfig.tileLayer.maxZoom}
-                        />
-                        {leaflet && (
-                          <Marker
-                            position={[
-                              location.coordinates!.latitude,
-                              location.coordinates!.longitude,
-                            ]}
-                            icon={leaflet.icon({
-                              iconUrl:
-                                weatherMetrics[0]?.icon ||
-                                '/icons/weathers/not-available.svg',
-                              iconSize: [40, 40], // Slightly larger for the main location marker
-                              iconAnchor: [20, 40],
-                              popupAnchor: [0, -40],
-                              className: 'main-weather-marker',
-                            })}
+                        <Suspense fallback={<LoadingFallback />}>
+                          <MapContainer
+                            key={mapContainerId}
+                            center={mapCenter}
+                            zoom={defaultMapConfig.defaultZoom}
+                            minZoom={defaultMapConfig.minZoom}
+                            maxZoom={defaultMapConfig.maxZoom}
+                            style={{ height: '100%', width: '100%' }}
+                            zoomControl={defaultMapConfig.controls.zoomControl}
+                            attributionControl={defaultMapConfig.controls.attributionControl}
+                            whenReady={() => {
+                              console.log('MapContainer whenReady callback fired');
+                            }}
                           >
-                            {weatherData && (
-                              <Popup>
-                                <div className="weather-popup">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <Image 
-                                      src={weatherData.currentWeather.icon}
-                                      alt={weatherData.currentWeather.condition}
-                                      width={32}
-                                      height={32}
-                                      className="w-8 h-8 opacity-80"
-                                    />
-                                    <div>
-                                      <div className="font-semibold">
-                                        {location.city}, {location.country}
-                                      </div>
-                                      <div className="text-xs opacity-70">
-                                        {weatherData.currentWeather.condition}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-bold">
-                                      {convertTemp(weatherData.currentWeather.temperature, tempUnit)}°{tempUnit}
-                                    </span>
-                                    <div className="flex items-center gap-2 text-xs">
-                                      <div className="flex items-center gap-1">
-                                        <Image src="/icons/weathers/humidity.svg" alt="Humidity" width={12} height={12} className="opacity-70" />
-                                        <span>{weatherData.currentWeather.humidity}%</span>
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <Image src="/icons/weathers/compass.svg" alt="Wind" width={12} height={12} className="opacity-70" />
-                                        <span>{weatherData.currentWeather.wind.speed} km/h</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </Popup>
-                            )}
-                          </Marker>
-                        )}
-                        {leaflet &&
-                          nearbyLocations.map((loc: NearbyLocation) => {
-                            // Calculate distance from center to adapt marker size
-                            const centerPoint = mapInstance?.getCenter();
-                            const distance = centerPoint && mapInstance && mapInstance.distance
-                              ? mapInstance.distance(
-                                  centerPoint, 
-                                  [loc.latitude, loc.longitude]
-                                ) 
-                              : 0;
-                            
-                            // Calculate marker size based on distance from center and zoom level
-                            // Markers farther from center are slightly smaller
-                            const zoom = mapInstance && mapInstance.getZoom ? mapInstance.getZoom() : defaultMapConfig.defaultZoom;
-                            const baseSize = Math.min(Math.max(24 + (zoom - 10) * 1.5, 24), 36);
-                            const distanceFactor = distance > 0 ? Math.max(0.8, 1 - (distance / 50000) * 0.3) : 1;
-                            const iconSize = Math.round(baseSize * distanceFactor);
-                            
-                            return (
+                            <SetMapInstance setMapInstance={setMapInstance} setIsMapReady={setIsMapReady} />
+                            <TileLayer
+                              url={defaultMapConfig.tileLayer.url}
+                              attribution={defaultMapConfig.tileLayer.attribution}
+                              maxZoom={defaultMapConfig.tileLayer.maxZoom}
+                            />
+                            {leaflet && (
                               <Marker
-                                key={`${loc.latitude}-${loc.longitude}`}
-                                position={[loc.latitude, loc.longitude]}
-                                icon={new leaflet.Icon({
+                                position={[
+                                  safeCoordinates.latitude,
+                                  safeCoordinates.longitude,
+                                ]}
+                                icon={leaflet.icon({
                                   iconUrl:
-                                    loc.weatherData?.currentWeather.icon ||
+                                    weatherMetrics[0]?.icon ||
                                     '/icons/weathers/not-available.svg',
-                                  iconSize: [iconSize, iconSize],
-                                  iconAnchor: [iconSize/2, iconSize/2],
-                                  popupAnchor: [0, -iconSize/2],
-                                  className: 'weather-marker',
+                                  iconSize: [40, 40], // Slightly larger for the main location marker
+                                  iconAnchor: [20, 20],
+                                  popupAnchor: [0, -40],
+                                  className: 'main-weather-marker',
                                 })}
                               >
-                                <Popup>
-                                  <div className="weather-popup">
-                                    <div className="flex items-center gap-3 mb-2">
-                                      <Image 
-                                        src={loc.weatherData?.currentWeather.icon || '/icons/weathers/not-available.svg'}
-                                        alt={loc.weatherData?.currentWeather.condition || 'Weather'}
-                                        width={32}
-                                        height={32}
-                                        className="w-8 h-8 opacity-80"
-                                      />
-                                      <div>
-                                        <div className="font-semibold">
-                                          {loc.city}
+                                {weatherData && (
+                                  <Popup>
+                                    <div className="weather-popup">
+                                      <div className="flex items-center gap-3 mb-2">
+                                        <Image 
+                                          src={weatherData.currentWeather.icon}
+                                          alt={weatherData.currentWeather.condition}
+                                          width={32}
+                                          height={32}
+                                          className="w-8 h-8 opacity-80"
+                                        />
+                                        <div>
+                                          <div className="font-semibold">
+                                            {location.city}, {location.country}
+                                          </div>
+                                          <div className="text-xs opacity-70">
+                                            {weatherData.currentWeather.condition}
+                                          </div>
                                         </div>
-                                        <div className="text-xs opacity-70">
-                                          {loc.weatherData?.currentWeather.condition}
+                                      </div>
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-bold">
+                                          {convertTemp(weatherData.currentWeather.temperature, tempUnit)}°{tempUnit}
+                                        </span>
+                                        <div className="flex items-center gap-2 text-xs">
+                                          <div className="flex items-center gap-1">
+                                            <Image src="/icons/weathers/humidity.svg" alt="Humidity" width={12} height={12} className="opacity-70" />
+                                            <span>{weatherData.currentWeather.humidity}%</span>
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                            <Image src="/icons/weathers/compass.svg" alt="Wind" width={12} height={12} className="opacity-70" />
+                                            <span>{weatherData.currentWeather.wind.speed} km/h</span>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-bold">
-                                        {convertTemp(loc.weatherData?.currentWeather.temperature || 0, tempUnit)}°{tempUnit}
-                                      </span>
-                                      <div className="flex items-center gap-2 text-xs">
-                                        <div className="flex items-center gap-1">
-                                          <Image src="/icons/weathers/humidity.svg" alt="Humidity" width={12} height={12} className="opacity-70" />
-                                          <span>{loc.weatherData?.currentWeather.humidity}%</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                          <Image src="/icons/weathers/compass.svg" alt="Wind" width={12} height={12} className="opacity-70" />
-                                          <span>{loc.weatherData?.currentWeather.wind.speed} km/h</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </Popup>
+                                  </Popup>
+                                )}
                               </Marker>
-                            );
-                          })}
-                      </MapContainer>
-                    </Suspense>
-                  </div>
+                            )}
+                            {leaflet &&
+                              nearbyLocations.map((loc: NearbyLocation) => {
+                                // Calculate distance from center to adapt marker size
+                                const centerPoint = mapInstance?.getCenter();
+                                const distance = centerPoint && mapInstance && mapInstance.distance
+                                  ? mapInstance.distance(
+                                      centerPoint, 
+                                      [loc.latitude, loc.longitude]
+                                    ) 
+                                  : 0;
+                                
+                                // Calculate marker size based on distance from center and zoom level
+                                // Markers farther from center are slightly smaller
+                                const zoom = mapInstance && mapInstance.getZoom ? mapInstance.getZoom() : defaultMapConfig.defaultZoom;
+                                const baseSize = Math.min(Math.max(24 + (zoom - 10) * 1.5, 24), 36);
+                                const distanceFactor = distance > 0 ? Math.max(0.8, 1 - (distance / 50000) * 0.3) : 1;
+                                const iconSize = Math.round(baseSize * distanceFactor);
+                                
+                                return (
+                                  <Marker
+                                    key={`${loc.latitude}-${loc.longitude}`}
+                                    position={[loc.latitude, loc.longitude]}
+                                    icon={new leaflet.Icon({
+                                      iconUrl:
+                                        loc.weatherData?.currentWeather.icon ||
+                                        '/icons/weathers/not-available.svg',
+                                      iconSize: [iconSize, iconSize],
+                                      iconAnchor: [iconSize/2, iconSize/2],
+                                      popupAnchor: [0, -iconSize/2],
+                                      className: 'weather-marker',
+                                    })}
+                                  >
+                                    <Popup>
+                                      <div className="weather-popup">
+                                        <div className="flex items-center gap-3 mb-2">
+                                          <Image 
+                                            src={loc.weatherData?.currentWeather.icon || '/icons/weathers/not-available.svg'}
+                                            alt={loc.weatherData?.currentWeather.condition || 'Weather'}
+                                            width={32}
+                                            height={32}
+                                            className="w-8 h-8 opacity-80"
+                                          />
+                                          <div>
+                                            <div className="font-semibold">
+                                              {loc.city}
+                                            </div>
+                                            <div className="text-xs opacity-70">
+                                              {loc.weatherData?.currentWeather.condition}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-bold">
+                                            {convertTemp(loc.weatherData?.currentWeather.temperature || 0, tempUnit)}°{tempUnit}
+                                          </span>
+                                          <div className="flex items-center gap-2 text-xs">
+                                            <div className="flex items-center gap-1">
+                                              <Image src="/icons/weathers/humidity.svg" alt="Humidity" width={12} height={12} className="opacity-70" />
+                                              <span>{loc.weatherData?.currentWeather.humidity}%</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                              <Image src="/icons/weathers/compass.svg" alt="Wind" width={12} height={12} className="opacity-70" />
+                                              <span>{loc.weatherData?.currentWeather.wind.speed} km/h</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </Popup>
+                                  </Marker>
+                                );
+                              })}
+                          </MapContainer>
+                        </Suspense>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <LoadingFallback />
                 )}
 
                 {/* Render the Map Legend */}
