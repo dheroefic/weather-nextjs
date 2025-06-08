@@ -7,6 +7,7 @@ import type { NearbyLocation } from '@/types/nearbyWeather';
 import { fetchNearbyWeatherData } from '@/services/weatherDistribution';
 import { getUserGeolocation, reverseGeocode } from '@/services/geolocationService';
 import type { SearchResult } from '@/services/geolocationService';
+import { debug } from '@/utils/debug';
 
 // Types for the map utility
 export interface MapConfig {
@@ -189,7 +190,7 @@ export class UserLocationManager {
           }
         }
       } catch (error) {
-        console.warn('Error getting device location:', error);
+        debug.warn('Error getting device location:', error);
       }
 
       // Fallback to stored location if available
@@ -277,7 +278,7 @@ export class UserLocationManager {
         }
       }
     } catch (error) {
-      console.warn('Error loading location from storage:', error);
+      debug.warn('Error loading location from storage:', error);
       this.clearStorage();
     }
 
@@ -294,7 +295,7 @@ export class UserLocationManager {
       };
       localStorage.setItem(USER_LOCATION_STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
-      console.warn('Error saving location to storage:', error);
+      debug.warn('Error saving location to storage:', error);
     }
   }
 
@@ -304,7 +305,7 @@ export class UserLocationManager {
     try {
       localStorage.removeItem(USER_LOCATION_STORAGE_KEY);
     } catch (error) {
-      console.warn('Error clearing location storage:', error);
+      debug.warn('Error clearing location storage:', error);
     }
   }
 
@@ -390,7 +391,7 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
       // Clean up previous instance if it exists
       if (prevInstance && prevInstance !== newMapInstance) {
         try {
-          console.log('Cleaning up previous map instance before setting new one');
+          debug.map('Cleaning up previous map instance before setting new one');
           if (prevInstance.getContainer && prevInstance.getContainer()) {
             if (prevInstance.off) {
               prevInstance.off();
@@ -398,7 +399,7 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
             prevInstance.remove();
           }
         } catch (error) {
-          console.warn('Error cleaning up previous map instance:', error);
+          debug.warn('Error cleaning up previous map instance:', error);
         }
       }
       
@@ -418,7 +419,7 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
     setMapInstance(prevInstance => {
       if (prevInstance) {
         try {
-          console.log('Manual cleanup of map instance');
+          debug.map('Manual cleanup of map instance');
           if (prevInstance.getContainer && prevInstance.getContainer()) {
             if (prevInstance.off) {
               prevInstance.off();
@@ -426,7 +427,7 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
             prevInstance.remove();
           }
         } catch (error) {
-          console.warn('Error during manual map cleanup:', error);
+          debug.warn('Error during manual map cleanup:', error);
         }
       }
       return null;
@@ -438,12 +439,12 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
   // Safe flyTo function with validation
   const safeFlyTo = useCallback((lat: number, lng: number, zoom: number) => {
     if (!isValidCoordinate(lat, lng)) {
-      console.warn('Invalid coordinates provided to safeFlyTo:', { lat, lng });
+      console.error('Invalid coordinates provided to safeFlyTo:', { lat, lng });
       return;
     }
 
     if (!mapInstance || !mapInstance.getContainer || !mapInstance.getContainer()) {
-      console.warn('Map instance not ready for flyTo operation');
+      console.error('Map instance not ready for flyTo operation');
       return;
     }
 
@@ -455,11 +456,11 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
           easeLinearity: 0.25,
         });
       } else {
-        console.warn('Map container is not in DOM, using setView fallback');
+        debug.warn('Map container is not in DOM, using setView fallback');
         mapInstance.setView([lat, lng], zoom);
       }
     } catch (error) {
-      console.warn('FlyTo failed, attempting setView fallback:', error);
+      debug.warn('FlyTo failed, attempting setView fallback:', error);
       try {
         mapInstance.setView([lat, lng], zoom);
       } catch (fallbackError) {
@@ -471,7 +472,7 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
   // Fetch nearby weather data with debouncing
   const fetchNearbyData = useCallback(async (lat: number, lng: number) => {
     if (!isValidCoordinate(lat, lng)) {
-      console.warn('Invalid coordinates provided to fetchNearbyData:', { lat, lng });
+      console.error('Invalid coordinates provided to fetchNearbyData:', { lat, lng });
       return;
     }
 
@@ -498,7 +499,7 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
             fetchNearbyData(center.lat, center.lng);
           }
         } catch (error) {
-          console.warn('Error getting map center:', error);
+          debug.warn('Error getting map center:', error);
         }
       }
     }, 1000);
@@ -507,7 +508,7 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
   // Update map center
   const updateMapCenter = useCallback((lat: number, lng: number, shouldFly = true) => {
     if (!isValidCoordinate(lat, lng)) {
-      console.warn('Invalid coordinates provided to updateMapCenter:', { lat, lng });
+      console.error('Invalid coordinates provided to updateMapCenter:', { lat, lng });
       return;
     }
 
@@ -527,7 +528,7 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
       mapInstance.on('moveend', handleMapMove);
       mapInstance.on('zoomend', handleMapMove);
     } catch (error) {
-      console.warn('Error setting up map event listeners:', error);
+      console.error('Error setting up map event listeners:', error);
     }
 
     return () => {
@@ -539,7 +540,7 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
           mapInstance.off('moveend', handleMapMove);
           mapInstance.off('zoomend', handleMapMove);
         } catch (error) {
-          console.warn('Error removing map event listeners:', error);
+          console.error('Error removing map event listeners:', error);
         }
       }
     };
@@ -556,7 +557,7 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
       setMapInstance(prevInstance => {
         if (prevInstance) {
           try {
-            console.log('Cleaning up map instance from useMapManager');
+            debug.map('Cleaning up map instance from useMapManager');
             if (prevInstance.getContainer && prevInstance.getContainer()) {
               // Remove all event listeners
               if (prevInstance.off) {
@@ -566,7 +567,7 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
               prevInstance.remove();
             }
           } catch (error) {
-            console.warn('Error cleaning up map instance in useMapManager:', error);
+            console.error('Error cleaning up map instance in useMapManager:', error);
           }
         }
         return null;
@@ -623,7 +624,7 @@ export const useLocationSelection = () => {
             });
           }
         } catch (error) {
-          console.warn('Error in reverse geocoding:', error);
+          debug.warn('Error in reverse geocoding:', error);
           onLocationSelect({
             city: latitude.toString(),
             country: longitude.toString(),

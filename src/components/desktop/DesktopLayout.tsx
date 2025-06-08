@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import Image from 'next/image';
 import HourlyForecast from '../shared/HourlyForecast';
 import DailyForecast from '../shared/DailyForecast';
@@ -8,7 +8,9 @@ import WeatherMetrics from '../shared/WeatherMetrics';
 import Footer from '../shared/Footer';
 import EmbeddedMap from './EmbeddedMap';
 import dynamic from 'next/dynamic';
+import MapPanelComponent from '../shared/Map/MapPanel';
 import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/types/weather';
+import { debug } from '@/utils/debug';
 
 // Dynamically import MapPanel to avoid SSR issues - for fullscreen map
 const MapPanel = dynamic(() => import('../shared/Map/MapPanel'), { ssr: false });
@@ -72,9 +74,24 @@ export default function DesktopLayout({
   const currentWeather = weatherData?.currentWeather;
   const dailyForecast = weatherData?.dailyForecast?.slice(0, 14) || []; // Show 14 days
 
+  // Debug effect to track showFullscreenMap state changes
+  useEffect(() => {
+    console.log('showFullscreenMap state changed:', showFullscreenMap);
+  }, [showFullscreenMap]);
+
+  // Debug effect to track weatherData state
+  useEffect(() => {
+    console.log('weatherData state:', {
+      hasWeatherData: !!weatherData,
+      loading,
+      currentWeather: !!weatherData?.currentWeather,
+      weatherDataType: typeof weatherData
+    });
+  }, [weatherData, loading]);
+
   // Handle fullscreen map opening with proper cleanup sequence
   const handleExpandToFullscreen = () => {
-    console.log('handleExpandToFullscreen called');
+    debug.layout('handleExpandToFullscreen called');
     setIsTransitioning(true);
     
     // First, force embedded map unmount by incrementing key
@@ -85,8 +102,10 @@ export default function DesktopLayout({
       setEmbeddedMapDestroyed(true);
       // Additional delay to ensure DOM cleanup
       setTimeout(() => {
-        console.log('Setting showFullscreenMap to true');
+        debug.layout('Setting showFullscreenMap to true');
+        console.log('About to set showFullscreenMap to true');
         setShowFullscreenMap(true);
+        console.log('showFullscreenMap state has been set to true');
         setFullscreenMapKey(prev => prev + 1);
         setIsTransitioning(false);
       }, 200);
@@ -320,18 +339,24 @@ export default function DesktopLayout({
       </div>
 
       {/* Fullscreen Map Panel */}
-      {showFullscreenMap && weatherData && location.coordinates && (
-        <Suspense fallback={
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center">
-            <div className="text-center text-white">
-              <div className="flex flex-col items-center gap-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white/60"></div>
-                <div className="text-white/80 text-lg">Loading fullscreen map...</div>
-              </div>
-            </div>
-          </div>
-        }>
-          <MapPanel
+      {(() => {
+        const shouldRender = showFullscreenMap && location.coordinates;
+        console.log('Fullscreen map render check:', {
+          showFullscreenMap,
+          weatherData: !!weatherData,
+          locationCoordinates: !!location.coordinates,
+          locationCoordinatesValue: location.coordinates,
+          shouldRender
+        });
+        
+        if (!shouldRender) {
+          console.log('Not rendering fullscreen map - conditions not met');
+          return null;
+        }
+        
+        console.log('Rendering fullscreen map with MapPanel component');
+        return (
+          <MapPanelComponent
             key={`fullscreen-map-${fullscreenMapKey}`}
             isOpen={showFullscreenMap}
             weatherData={weatherData}
@@ -356,8 +381,8 @@ export default function DesktopLayout({
               });
             }}
           />
-        </Suspense>
-      )}
+        );
+      })()}
     </>
   );
 }

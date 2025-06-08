@@ -5,6 +5,8 @@
  * and helps with debugging API configuration issues.
  */
 
+import { debug } from '@/utils/debug';
+
 export interface OpenMeteoConfig {
   baseUrl: string;
   geocodingUrl: string;
@@ -33,19 +35,13 @@ export function getOpenMeteoConfig(): OpenMeteoConfig {
  * Only logs in development mode when debug is enabled
  */
 export function debugOpenMeteoConfig(): void {
-  if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEBUG === 'true') {
-    const config = getOpenMeteoConfig();
-    console.group('🌤️ OpenMeteo API Configuration');
-    console.log('Base URL:', config.baseUrl);
-    console.log('Geocoding URL:', config.geocodingUrl);
-    console.log('Has API Key:', config.hasApiKey);
-    if (config.hasApiKey) {
-      console.log('API Key:', `${config.apiKey?.substring(0, 8)}...`);
-    } else {
-      console.log('ℹ️ Using free OpenMeteo API (no API key required)');
-    }
-    console.groupEnd();
-  }
+  const config = getOpenMeteoConfig();
+  debug.config('OpenMeteo API Configuration', {
+    baseUrl: config.baseUrl,
+    geocodingUrl: config.geocodingUrl,
+    hasApiKey: config.hasApiKey,
+    apiKey: config.hasApiKey ? `${config.apiKey?.substring(0, 8)}...` : 'Using free OpenMeteo API (no API key required)'
+  });
 }
 
 /**

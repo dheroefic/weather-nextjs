@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Map } from 'leaflet';
 import type { WeatherData } from '@/types/weather';
+import { debug } from '@/utils/debug';
 
 export interface UseMapStateResult {
   mapInstance: Map | null;

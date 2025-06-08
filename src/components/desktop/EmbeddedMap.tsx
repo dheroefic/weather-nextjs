@@ -350,11 +350,16 @@ export default function EmbeddedMap({
       <div className="absolute top-2 right-2 z-[1000]">
         <button
           onClick={() => {
+            console.log('Fullscreen button clicked!', { isLocalMapReady, hasMapInstance: !!mapManager.mapInstance });
             if (isLocalMapReady && mapManager.mapInstance) {
               // Cleanup current map before transitioning
               console.log('Cleaning up embedded map before expanding to fullscreen');
               mapManager.cleanupMap();
+              console.log('Calling onExpandToFullscreen...');
               onExpandToFullscreen();
+              console.log('onExpandToFullscreen called successfully');
+            } else {
+              console.log('Cannot expand - map not ready or no map instance');
             }
           }}
           disabled={!isLocalMapReady}

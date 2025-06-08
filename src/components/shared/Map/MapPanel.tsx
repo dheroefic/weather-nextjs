@@ -9,6 +9,8 @@ import { MapCore, WeatherMarker, type MarkerData } from './MapCore';
 import { useMapState, useCustomIcon, useMapInvalidation } from './useMapHooks';
 import { useSearch } from './useSearch';
 
+console.log('MapPanel component loaded');
+
 export interface MapPanelProps {
   isOpen: boolean;
   weatherData: WeatherData | null;
@@ -296,7 +298,7 @@ const SearchInterface = ({
     </div>
   );
 };
-      export default function UnifiedMapPanel({
+export default function MapPanel({
   isOpen,
   weatherData,
   onClose,
@@ -307,6 +309,8 @@ const SearchInterface = ({
   variant = 'desktop',
   nearbyLocations = [],
 }: MapPanelProps) {
+  console.log('MapPanel function called with props:', { isOpen, variant, hasWeatherData: !!weatherData, hasLocation: !!location });
+  
   const safeCoordinates = useSafeCoordinates(location);
   const mapState = useMapState();
   const { createCustomIcon } = useCustomIcon(mapState.leaflet, weatherData, variant === 'mobile');
