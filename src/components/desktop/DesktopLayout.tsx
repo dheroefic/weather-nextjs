@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Image from 'next/image';
 import HourlyForecast from '../shared/HourlyForecast';
 import DailyForecast from '../shared/DailyForecast';
@@ -12,6 +12,18 @@ import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/type
 
 // Dynamically import MapPanel to avoid SSR issues - for fullscreen map
 const MapPanel = dynamic(() => import('../shared/Map/MapPanel'), { ssr: false });
+
+// Map loading fallback component
+const MapLoadingFallback = () => (
+  <div className="h-full flex items-center justify-center bg-black/5 rounded-lg">
+    <div className="text-center text-white/60">
+      <div className="flex flex-col items-center gap-3">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white/40"></div>
+        <div className="text-white/70 text-sm">Loading map...</div>
+      </div>
+    </div>
+  </div>
+);
 
 interface DesktopLayoutProps {
   weatherData: WeatherData | null;
@@ -321,31 +333,42 @@ export default function DesktopLayout({
 
       {/* Fullscreen Map Panel */}
       {showFullscreenMap && weatherData && location.coordinates && (
-        <MapPanel
-          key={`fullscreen-map-${fullscreenMapKey}`}
-          isOpen={showFullscreenMap}
-          weatherData={weatherData}
-          onClose={handleCloseFullscreen}
-          location={location}
-          tempUnit={tempUnit}
-          convertTemp={convertTemp}
-          variant="desktop"
-          onLocationSelect={(coordinates: {
-            latitude: number;
-            longitude: number;
-            city?: string;
-            country?: string;
-          }) => {
-            onLocationSelect({
-              city: coordinates.city || location.city,
-              country: coordinates.country || location.country,
-              coordinates: {
-                latitude: coordinates.latitude,
-                longitude: coordinates.longitude,
-              },
-            });
-          }}
-        />
+        <Suspense fallback={
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center">
+            <div className="text-center text-white">
+              <div className="flex flex-col items-center gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white/60"></div>
+                <div className="text-white/80 text-lg">Loading fullscreen map...</div>
+              </div>
+            </div>
+          </div>
+        }>
+          <MapPanel
+            key={`fullscreen-map-${fullscreenMapKey}`}
+            isOpen={showFullscreenMap}
+            weatherData={weatherData}
+            onClose={handleCloseFullscreen}
+            location={location}
+            tempUnit={tempUnit}
+            convertTemp={convertTemp}
+            variant="desktop"
+            onLocationSelect={(coordinates: {
+              latitude: number;
+              longitude: number;
+              city?: string;
+              country?: string;
+            }) => {
+              onLocationSelect({
+                city: coordinates.city || location.city,
+                country: coordinates.country || location.country,
+                coordinates: {
+                  latitude: coordinates.latitude,
+                  longitude: coordinates.longitude,
+                },
+              });
+            }}
+          />
+        </Suspense>
       )}
     </>
   );

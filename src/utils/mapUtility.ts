@@ -384,6 +384,57 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
   
   const debounceTimeoutRef = useRef<number | null>(null);
 
+  // Enhanced setMapInstance with cleanup of previous instance
+  const setMapInstanceSafe = useCallback((newMapInstance: LeafletMap | null) => {
+    setMapInstance(prevInstance => {
+      // Clean up previous instance if it exists
+      if (prevInstance && prevInstance !== newMapInstance) {
+        try {
+          console.log('Cleaning up previous map instance before setting new one');
+          if (prevInstance.getContainer && prevInstance.getContainer()) {
+            if (prevInstance.off) {
+              prevInstance.off();
+            }
+            prevInstance.remove();
+          }
+        } catch (error) {
+          console.warn('Error cleaning up previous map instance:', error);
+        }
+      }
+      
+      return newMapInstance;
+    });
+    
+    if (!newMapInstance) {
+      setIsMapReady(false);
+    }
+  }, []); // Remove mapInstance dependency to break circular dependency
+
+  // Cleanup method
+  const cleanupMap = useCallback(() => {
+    setIsDestroying(true);
+    setIsMapReady(false);
+    
+    setMapInstance(prevInstance => {
+      if (prevInstance) {
+        try {
+          console.log('Manual cleanup of map instance');
+          if (prevInstance.getContainer && prevInstance.getContainer()) {
+            if (prevInstance.off) {
+              prevInstance.off();
+            }
+            prevInstance.remove();
+          }
+        } catch (error) {
+          console.warn('Error during manual map cleanup:', error);
+        }
+      }
+      return null;
+    });
+    
+    setIsDestroying(false);
+  }, []); // Remove mapInstance dependency
+
   // Safe flyTo function with validation
   const safeFlyTo = useCallback((lat: number, lng: number, zoom: number) => {
     if (!isValidCoordinate(lat, lng)) {
@@ -500,12 +551,32 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
+      
+      // Cleanup map instance on unmount using functional state update
+      setMapInstance(prevInstance => {
+        if (prevInstance) {
+          try {
+            console.log('Cleaning up map instance from useMapManager');
+            if (prevInstance.getContainer && prevInstance.getContainer()) {
+              // Remove all event listeners
+              if (prevInstance.off) {
+                prevInstance.off();
+              }
+              // Remove the map instance
+              prevInstance.remove();
+            }
+          } catch (error) {
+            console.warn('Error cleaning up map instance in useMapManager:', error);
+          }
+        }
+        return null;
+      });
     };
-  }, []);
+  }, []); // Remove mapInstance dependency to prevent cleanup loop
 
   return {
     mapInstance,
-    setMapInstance,
+    setMapInstance: setMapInstanceSafe,
     isMapReady,
     setIsMapReady,
     isDestroying,
@@ -517,6 +588,7 @@ export const useMapManager = (config: MapConfig = DEFAULT_MAP_CONFIG) => {
     fetchNearbyData,
     updateMapCenter,
     handleMapMove,
+    cleanupMap,
   };
 };
 
