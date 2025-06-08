@@ -7,10 +7,11 @@ import { AuditLogger } from '@/lib/auditLogger';
 // PUT /api/api-keys/[id] - Update API key
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const startTime = Date.now();
-  const endpoint = `/api/api-keys/${params.id}`;
+  const endpoint = `/api/api-keys/${id}`;
 
   return AuthMiddleware.withAuth(
     request,
@@ -27,7 +28,7 @@ export async function PUT(
         const { name, is_active } = body;
 
         // Validate the API key belongs to the user
-        const existingKey = await ApiKeyManager.getApiKeyById(params.id);
+        const existingKey = await ApiKeyManager.getApiKeyById(id);
         if (!existingKey || existingKey.user_id !== context.user.id) {
           const responseTime = Date.now() - startTime;
 
@@ -38,7 +39,7 @@ export async function PUT(
             userId: context.user.id,
             apiKeyId: context.apiKey?.id,
             errorMessage: 'API key not found',
-            requestParams: { keyId: params.id },
+            requestParams: { keyId: id },
           });
 
           return NextResponse.json(
@@ -76,7 +77,7 @@ export async function PUT(
           );
         }
 
-        const result = await ApiKeyManager.updateApiKey(params.id, updateData);
+        const result = await ApiKeyManager.updateApiKey(id, updateData);
 
         if (!result) {
           const responseTime = Date.now() - startTime;
@@ -88,7 +89,7 @@ export async function PUT(
             userId: context.user.id,
             apiKeyId: context.apiKey?.id,
             errorMessage: 'Failed to update API key',
-            requestParams: { keyId: params.id, ...updateData },
+            requestParams: { keyId: id, ...updateData },
           });
 
           return NextResponse.json(
@@ -98,7 +99,7 @@ export async function PUT(
         }
 
         // Get the updated API key data
-        const updatedApiKey = await ApiKeyManager.getApiKeyById(params.id);
+        const updatedApiKey = await ApiKeyManager.getApiKeyById(id);
         if (!updatedApiKey) {
           const responseTime = Date.now() - startTime;
 
@@ -109,7 +110,7 @@ export async function PUT(
             userId: context.user.id,
             apiKeyId: context.apiKey?.id,
             errorMessage: 'Failed to retrieve updated API key',
-            requestParams: { keyId: params.id, ...updateData },
+            requestParams: { keyId: id, ...updateData },
           });
 
           return NextResponse.json(
@@ -126,7 +127,7 @@ export async function PUT(
           responseTimeMs: responseTime,
           userId: context.user.id,
           apiKeyId: context.apiKey?.id,
-          requestParams: { keyId: params.id, ...updateData },
+          requestParams: { keyId: id, ...updateData },
         });
 
         const response = NextResponse.json({
@@ -173,10 +174,11 @@ export async function PUT(
 // DELETE /api/api-keys/[id] - Delete API key
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const startTime = Date.now();
-  const endpoint = `/api/api-keys/${params.id}`;
+  const endpoint = `/api/api-keys/${id}`;
 
   return AuthMiddleware.withAuth(
     request,
@@ -190,7 +192,7 @@ export async function DELETE(
         }
 
         // Validate the API key belongs to the user
-        const existingKey = await ApiKeyManager.getApiKeyById(params.id);
+        const existingKey = await ApiKeyManager.getApiKeyById(id);
         if (!existingKey || existingKey.user_id !== context.user.id) {
           const responseTime = Date.now() - startTime;
 
@@ -201,7 +203,7 @@ export async function DELETE(
             userId: context.user.id,
             apiKeyId: context.apiKey?.id,
             errorMessage: 'API key not found',
-            requestParams: { keyId: params.id },
+            requestParams: { keyId: id },
           });
 
           return NextResponse.json(
@@ -210,7 +212,7 @@ export async function DELETE(
           );
         }
 
-        const result = await ApiKeyManager.deleteApiKey(params.id);
+        const result = await ApiKeyManager.deleteApiKey(id);
 
         if (!result) {
           const responseTime = Date.now() - startTime;
@@ -222,7 +224,7 @@ export async function DELETE(
             userId: context.user.id,
             apiKeyId: context.apiKey?.id,
             errorMessage: 'Failed to delete API key',
-            requestParams: { keyId: params.id },
+            requestParams: { keyId: id },
           });
 
           return NextResponse.json(
@@ -239,7 +241,7 @@ export async function DELETE(
           responseTimeMs: responseTime,
           userId: context.user.id,
           apiKeyId: context.apiKey?.id,
-          requestParams: { keyId: params.id },
+          requestParams: { keyId: id },
         });
 
         const response = NextResponse.json({

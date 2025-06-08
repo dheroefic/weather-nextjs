@@ -1,10 +1,10 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import type { TemperatureUnit, WeatherData, Location } from '@/types/weather';
-import type { Map } from 'leaflet';
+import type { TemperatureUnit, WeatherData } from '@/types/weather';
+import type { Map, Icon, DivIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Dynamically import Map components with SSR disabled
@@ -76,7 +76,7 @@ export interface MapCoreProps {
 
 export interface MarkerData {
   position: [number, number];
-  icon?: any;
+  icon?: Icon | DivIcon;
   weatherData?: WeatherData | null;
   location?: {
     city?: string;

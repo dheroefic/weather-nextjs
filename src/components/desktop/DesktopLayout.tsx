@@ -13,18 +13,6 @@ import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/type
 // Dynamically import MapPanel to avoid SSR issues - for fullscreen map
 const MapPanel = dynamic(() => import('../shared/Map/MapPanel'), { ssr: false });
 
-// Map loading fallback component
-const MapLoadingFallback = () => (
-  <div className="h-full flex items-center justify-center bg-black/5 rounded-lg">
-    <div className="text-center text-white/60">
-      <div className="flex flex-col items-center gap-3">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white/40"></div>
-        <div className="text-white/70 text-sm">Loading map...</div>
-      </div>
-    </div>
-  </div>
-);
-
 interface DesktopLayoutProps {
   weatherData: WeatherData | null;
   location: Location;

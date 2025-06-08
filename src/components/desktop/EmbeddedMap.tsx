@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import type { WeatherData, Location } from '@/types/weather';
 import {
   useMapManager,
@@ -58,7 +59,7 @@ const SetMapInstance = dynamic(
             return () => clearTimeout(timer);
           }
         }
-      }, [map]); // Remove function dependencies to prevent infinite re-renders
+      }, [map, setMapInstance, setIsMapReady]);
       
       return null;
     };
@@ -164,13 +165,13 @@ export default function EmbeddedMap({
   const setMapInstanceStable = useCallback((map: Map) => {
     console.log('setMapInstanceStable called with map:', map);
     mapManager.setMapInstance(map);
-  }, [mapManager.setMapInstance]);
+  }, [mapManager]);
 
   const setIsMapReadyStable = useCallback((ready: boolean) => {
     console.log('setIsMapReadyStable called with ready:', ready);
     setIsLocalMapReady(ready);
     mapManager.setIsMapReady(ready);
-  }, [mapManager.setIsMapReady]);
+  }, [mapManager]);
 
   useEffect(() => {
     if (!mapManager.mapInstance || !leaflet || !isLocalMapReady) return;
@@ -374,9 +375,11 @@ export default function EmbeddedMap({
       {weatherData && weatherData.currentWeather && (
         <div className="absolute bottom-4 left-4 z-[1000] p-2 rounded-lg bg-black/40 backdrop-blur-md border border-white/10">
           <div className="flex items-center gap-2 text-white text-xs">
-            <img 
+            <Image 
               src={weatherData.currentWeather.icon}
               alt={weatherData.currentWeather.condition}
+              width={16}
+              height={16}
               className="w-4 h-4"
             />
             <span>{Math.round(weatherData.currentWeather.temperature)}°</span>

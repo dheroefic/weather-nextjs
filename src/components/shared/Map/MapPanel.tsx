@@ -112,7 +112,6 @@ const WeatherLegend = ({
 
 // Search interface component
 const SearchInterface = ({
-  variant = 'desktop',
   searchQuery,
   searchResults,
   isSearching,
@@ -122,12 +121,21 @@ const SearchInterface = ({
   location,
   onLocationSelect
 }: {
-  variant?: 'desktop' | 'mobile';
   searchQuery: string;
-  searchResults: any[];
+  searchResults: Array<{
+    name: string;
+    country: string;
+    latitude: number;
+    longitude: number;
+  }>;
   isSearching: boolean;
   onSearchQueryChange: (query: string) => void;
-  onSearchResultSelect: (result: any) => void;
+  onSearchResultSelect: (result: {
+    name: string;
+    country: string;
+    latitude: number;
+    longitude: number;
+  }) => void;
   onClose?: () => void;
   location?: { city: string; country: string };
   onLocationSelect?: (coordinates: { latitude: number; longitude: number; city?: string; country?: string }) => void;
@@ -328,7 +336,7 @@ const SearchInterface = ({
       onClick: () => console.log('Current location marker clicked'),
     },
     // Nearby location markers
-    ...nearbyLocations.map((loc, index) => ({
+    ...nearbyLocations.map((loc) => ({
       position: [loc.latitude, loc.longitude] as [number, number],
       icon: createCustomIcon(loc.weatherData?.currentWeather?.icon),
       weatherData: loc.weatherData,
@@ -343,7 +351,6 @@ const SearchInterface = ({
   return (
     <div className={containerClasses}>
       <SearchInterface
-        variant={variant}
         searchQuery={search.searchQuery}
         searchResults={search.searchResults}
         isSearching={search.isSearching}

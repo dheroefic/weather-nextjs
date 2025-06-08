@@ -54,7 +54,7 @@ export const useMapState = (): UseMapStateResult => {
 };
 
 export interface UseCustomIconResult {
-  createCustomIcon: (weatherIcon?: string) => any;
+  createCustomIcon: (weatherIcon?: string) => ReturnType<typeof import('leaflet').icon> | undefined;
 }
 
 export const useCustomIcon = (
