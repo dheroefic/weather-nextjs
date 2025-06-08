@@ -11,7 +11,7 @@ import dynamic from 'next/dynamic';
 import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/types/weather';
 
 // Dynamically import MapPanel to avoid SSR issues - for fullscreen map
-const MapPanel = dynamic(() => import('./MapPanel'), { ssr: false });
+const MapPanel = dynamic(() => import('../shared/Map/MapPanel'), { ssr: false });
 
 interface DesktopLayoutProps {
   weatherData: WeatherData | null;
@@ -329,7 +329,7 @@ export default function DesktopLayout({
           location={location}
           tempUnit={tempUnit}
           convertTemp={convertTemp}
-          isFullscreen={true}
+          variant="desktop"
           onLocationSelect={(coordinates: {
             latitude: number;
             longitude: number;
@@ -347,8 +347,6 @@ export default function DesktopLayout({
           }}
         />
       )}
-      {/* Debug info */}
-      {console.log('DesktopLayout render - showFullscreenMap:', showFullscreenMap, 'location.coordinates:', location.coordinates)}
     </>
   );
 }

@@ -89,3 +89,22 @@
 .weather-marker {
   filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.4));
 }
+
+.mobile-weather-marker {
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.4));
+  transition: transform 0.2s ease;
+}
+
+.mobile-weather-marker:hover {
+  transform: scale(1.1);
+}
+
+.mobile-weather-marker.fallback {
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+  opacity: 0.8;
+}
+
+.weather-marker.fallback {
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+  opacity: 0.8;
+}

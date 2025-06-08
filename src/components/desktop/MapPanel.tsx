@@ -127,7 +127,7 @@ interface MapPanelProps {
 
 // MapLegend component to display the weather icon legend
 const MapLegend = () => {
-  const [isMinimized, setIsMinimized] = useState(true);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   return (
     <div
@@ -198,16 +198,66 @@ export default function MapPanel({
   const [leaflet, setLeaflet] = useState<typeof import('leaflet') | null>(null);
   const [mapContainerId] = useState(() => `fullscreen-map-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   
+  // Dynamic leaflet import for desktop
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      import('leaflet').then((L) => {
-        setLeaflet(L);
-        console.log('Leaflet loaded successfully in MapPanel');
-      }).catch((error) => {
-        console.error('Error loading Leaflet in MapPanel:', error);
-      });
+    const loadLeaflet = async () => {
+      try {
+        const L = await import('leaflet');
+        if (mountedRef.current) {
+          setLeaflet(L);
+          console.log('Leaflet loaded successfully in MapPanel');
+        }
+      } catch (error) {
+        console.error('Error loading leaflet for desktop:', error);
+      }
+    };
+    
+    if (typeof window !== 'undefined' && !leaflet) {
+      loadLeaflet();
     }
-  }, []);
+  }, [leaflet]);
+
+  // Create custom map marker icon
+  const createCustomIcon = useCallback((weatherIcon?: string) => {
+    console.log('createCustomIcon called:', { leaflet: !!leaflet, weatherIcon, weatherData: !!weatherData });
+    
+    if (!leaflet) {
+      console.log('Leaflet not loaded yet, returning undefined');
+      return undefined;
+    }
+    
+    try {
+      // Use provided weather icon, or weather data icon, or dedicated map marker
+      const iconUrl = weatherIcon || weatherData?.currentWeather?.icon || '/icons/weathers/map-marker.svg';
+      console.log('Creating icon with URL:', iconUrl);
+      
+      const customIcon = leaflet.icon({
+        iconUrl: iconUrl,
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40],
+        className: 'weather-marker',
+      });
+      
+      console.log('Custom icon created successfully:', customIcon);
+      return customIcon;
+    } catch (error) {
+      console.warn('Error creating custom icon for desktop map:', error);
+      // Return fallback icon on error
+      try {
+        return leaflet.icon({
+          iconUrl: '/icons/weathers/not-available.svg',
+          iconSize: [40, 40],
+          iconAnchor: [20, 40],
+          popupAnchor: [0, -40],
+          className: 'weather-marker fallback',
+        });
+      } catch (fallbackError) {
+        console.error('Error creating fallback icon for desktop map:', fallbackError);
+        return undefined;
+      }
+    }
+  }, [leaflet, weatherData]);
 
   // State hooks
   const [isVisible, setIsVisible] = useState(false);
@@ -218,6 +268,18 @@ export default function MapPanel({
 
   // Timeout refs
   const searchTimeoutRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Debug logging to track map panel state
   useEffect(() => {
@@ -320,17 +382,17 @@ export default function MapPanel({
     }
   }, [safeCoordinates, shouldRenderMap, mapManager]);
 
-  // Handle map click for location selection
-  const handleMapClick = useCallback((e: { latlng: { lat: number; lng: number } }) => {
-    const { lat, lng } = e.latlng;
-    onLocationSelect({
-      latitude: lat,
-      longitude: lng,
-      city: `${lat.toFixed(4)}`,
-      country: `${lng.toFixed(4)}`
-    });
-    selectLocationFromCoordinates(lat, lng).catch(console.error);
-  }, [selectLocationFromCoordinates, onLocationSelect]);
+  // Map click handler disabled - no longer placing markers on click
+  // const handleMapClick = useCallback((e: { latlng: { lat: number; lng: number } }) => {
+  //   const { lat, lng } = e.latlng;
+  //   onLocationSelect({
+  //     latitude: lat,
+  //     longitude: lng,
+  //     city: `${lat.toFixed(4)}`,
+  //     country: `${lng.toFixed(4)}`
+  //   });
+  //   selectLocationFromCoordinates(lat, lng).catch(console.error);
+  // }, [selectLocationFromCoordinates, onLocationSelect]);
 
   // Handle search result selection
   const handleSearchResultSelect = useCallback(async (result: SearchResult) => {
@@ -366,24 +428,7 @@ export default function MapPanel({
       return () => clearTimeout(timer);
     }
   }, [shouldRenderMap, mapManager.mapInstance, mapManager.isMapReady, mapManager]);
-
-  // Set up map click handler
-  useEffect(() => {
-    if (mapManager.mapInstance && mapManager.isMapReady) {
-      const handleClick = (e: { latlng: { lat: number; lng: number } }) => {
-        handleMapClick(e);
-      };
-      
-      mapManager.mapInstance.on('click', handleClick);
-      
-      return () => {
-        if (mapManager.mapInstance) {
-          mapManager.mapInstance.off('click', handleClick);
-        }
-      };
-    }
-  }, [mapManager.mapInstance, mapManager.isMapReady, handleMapClick]);
-
+  
   // Loading fallback component
   const LoadingFallback = () => (
     <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg">
@@ -489,6 +534,7 @@ export default function MapPanel({
                 {/* Current Location Marker */}
                 <Marker
                   position={[safeCoordinates.latitude, safeCoordinates.longitude]}
+                  icon={createCustomIcon()}
                   eventHandlers={{
                     click: () => {
                       console.log('Current location marker clicked');
@@ -524,6 +570,7 @@ export default function MapPanel({
                   <Marker
                     key={`${loc.latitude}-${loc.longitude}-${index}`}
                     position={[loc.latitude, loc.longitude]}
+                    icon={createCustomIcon(loc.weatherData?.currentWeather?.icon)}
                   >
                     <Popup>
                       <div className="text-center">

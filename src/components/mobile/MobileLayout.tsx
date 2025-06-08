@@ -5,7 +5,7 @@ import WeatherMetrics from '../shared/WeatherMetrics';
 import HourlyForecast from '../shared/HourlyForecast';
 import DailyForecast from '../shared/DailyForecast';
 import DetailPanel from '../shared/DetailPanel';
-import MapPanel from '../desktop/MapPanel';
+import MapPanel from '../shared/Map/MapPanel';
 import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/types/weather';
 
 interface MobileLayoutProps {
@@ -121,6 +121,7 @@ export default function MobileLayout({
         location={location}
         tempUnit={tempUnit}
         convertTemp={convertTemp}
+        variant="mobile"
         onLocationSelect={(coordinates: {
           latitude: number;
           longitude: number;

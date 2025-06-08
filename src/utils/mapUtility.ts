@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useEffect, useState, useMemo } from 'react';
 import type { LatLngExpression, Map as LeafletMap } from 'leaflet';
-import type { Location, TemperatureUnit } from '@/types/weather';
+import type { Location } from '@/types/weather';
 import type { NearbyLocation } from '@/types/nearbyWeather';
 import { fetchNearbyWeatherData } from '@/services/weatherDistribution';
 import { getUserGeolocation, reverseGeocode } from '@/services/geolocationService';
@@ -51,7 +51,7 @@ export const DEFAULT_MAP_CONFIG: MapConfig = {
   },
   controls: {
     zoomControl: false,
-    attributionControl: false,
+    attributionControl: true,
   },
 };
 
@@ -60,7 +60,7 @@ export const DEFAULT_EMBEDDED_MAP_CONFIG: MapConfig = {
   defaultZoom: 10,
   controls: {
     zoomControl: false,
-    attributionControl: false,
+    attributionControl: true,
   },
 };
 
@@ -124,7 +124,7 @@ export class UserLocationManager {
   private cachedLocation: { latitude: number; longitude: number } | null = null;
   private cacheTimestamp: number = 0;
   private listeners: Set<(location: { latitude: number; longitude: number } | null) => void> = new Set();
-  private pendingRequests = new Map<string, Promise<any>>();
+  private pendingRequests = new Map<string, Promise<{ latitude: number; longitude: number } | null>>();
 
   static getInstance(): UserLocationManager {
     if (!UserLocationManager.instance) {
@@ -139,7 +139,7 @@ export class UserLocationManager {
     
     // If there's already a pending request for the same operation, return it
     if (this.pendingRequests.has(requestId)) {
-      return this.pendingRequests.get(requestId);
+      return this.pendingRequests.get(requestId) || null;
     }
 
     const promise = this._getUserLocationInternal(forceRefresh);
