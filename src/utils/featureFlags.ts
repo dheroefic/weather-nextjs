@@ -23,10 +23,13 @@ export const isDebugEnabled = (): boolean => {
 
 /**
  * Check if Unsplash background service is configured
- * Controlled by NEXT_PUBLIC_UNSPLASH_ACCESS_KEY environment variable
+ * Note: This flag indicates if the feature should be enabled on the client,
+ * but the actual API key is securely stored on the server
  */
 export const isUnsplashEnabled = (): boolean => {
-  return !!process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY;
+  // We can use a public flag to enable/disable the feature
+  // while keeping the actual API key secure on the server
+  return process.env.NEXT_PUBLIC_ENABLE_UNSPLASH === 'true';
 };
 
 /**

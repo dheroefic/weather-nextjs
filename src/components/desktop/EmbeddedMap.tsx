@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import type { TemperatureUnit, WeatherData } from '@/types/weather';
@@ -137,9 +137,11 @@ export default function EmbeddedMap({
   );
   
   // Safe coordinates with fallback to NYC
-  const safeCoordinates = hasValidCoordinates 
-    ? location.coordinates! 
-    : { latitude: 40.7128, longitude: -74.0060 };
+  const safeCoordinates = useMemo(() => {
+    return hasValidCoordinates 
+      ? location.coordinates! 
+      : { latitude: 40.7128, longitude: -74.0060 };
+  }, [hasValidCoordinates, location.coordinates]);
 
   // Debug logging to track coordinate handling
   useEffect(() => {
@@ -151,7 +153,7 @@ export default function EmbeddedMap({
     });
   }, [hasValidCoordinates, location.coordinates, safeCoordinates, location.city]);
 
-  const [leaflet, setLeaflet] = useState<any>(null);
+  const [leaflet, setLeaflet] = useState<typeof import('leaflet') | null>(null);
   const [mapInstance, setMapInstance] = useState<Map | null>(null);
   const [nearbyLocations, setNearbyLocations] = useState<NearbyLocation[]>([]);
   const [mapCenter, setMapCenter] = useState<LatLngExpression>(() => {
@@ -232,9 +234,9 @@ export default function EmbeddedMap({
             
             // Force remove all layers
             if (mapInstance.eachLayer) {
-              mapInstance.eachLayer((layer: any) => {
+              mapInstance.eachLayer((layer: import('leaflet').Layer) => {
                 try {
-                  if (layer.remove) {
+                  if ('remove' in layer && typeof layer.remove === 'function') {
                     layer.remove();
                   }
                 } catch (layerError) {
@@ -260,10 +262,10 @@ export default function EmbeddedMap({
           setNearbyLocations([]);
           
           // Force garbage collection hint
-          if (typeof window !== 'undefined' && (window as any).gc) {
+          if (typeof window !== 'undefined' && 'gc' in window) {
             try {
-              (window as any).gc();
-            } catch (e) {
+              (window as unknown as { gc(): void }).gc();
+            } catch {
               // gc is not available in production
             }
           }
@@ -334,7 +336,7 @@ export default function EmbeddedMap({
         console.warn('Invalid coordinates detected in EmbeddedMap center update:', { latitude, longitude });
       }
     }
-  }, [location.coordinates, mapInstance, safeFlyTo, fetchNearbyData, hasValidCoordinates]);
+  }, [location.coordinates, mapInstance, safeFlyTo, fetchNearbyData, hasValidCoordinates, safeCoordinates]);
 
   // Handle map events
   useEffect(() => {

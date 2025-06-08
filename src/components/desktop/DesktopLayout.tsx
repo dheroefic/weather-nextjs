@@ -1,8 +1,7 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
-import LocationSelector from '../shared/LocationSelector';
 import HourlyForecast from '../shared/HourlyForecast';
 import DailyForecast from '../shared/DailyForecast';
 import WeatherMetrics from '../shared/WeatherMetrics';
@@ -60,8 +59,6 @@ export default function DesktopLayout({
   setShowSettings,
   autoRefreshInterval,
   handleAutoRefreshChange,
-  showMap,
-  setShowMap,
   forecastPeriod,
   onForecastPeriodChange,
   imageAttribution
@@ -73,7 +70,6 @@ export default function DesktopLayout({
   const [embeddedMapDestroyed, setEmbeddedMapDestroyed] = useState(false);
   
   const currentWeather = weatherData?.currentWeather;
-  const hourlyForecast = weatherData?.hourlyForecast?.slice(0, 12) || []; // Show 12 hours
   const dailyForecast = weatherData?.dailyForecast?.slice(0, 14) || []; // Show 14 days
 
   // Handle fullscreen map opening with proper cleanup sequence

@@ -60,8 +60,7 @@ export default function MobileLayout({
   autoRefreshInterval,
   handleAutoRefreshChange,
   showMap,
-  setShowMap,
-  imageAttribution
+  setShowMap
 }: MobileLayoutProps) {
   return (
     <div className="flex flex-col gap-6 md:gap-12 w-full">

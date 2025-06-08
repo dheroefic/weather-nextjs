@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import type { TemperatureUnit, WeatherData } from '@/types/weather';
@@ -226,9 +226,11 @@ export default function MapPanel({
   );
   
   // Safe coordinates with fallback to NYC
-  const safeCoordinates = hasValidCoordinates 
-    ? location.coordinates! 
-    : { latitude: 40.7128, longitude: -74.0060 };
+  const safeCoordinates = useMemo(() => {
+    return hasValidCoordinates 
+      ? location.coordinates! 
+      : { latitude: 40.7128, longitude: -74.0060 };
+  }, [hasValidCoordinates, location.coordinates]);
 
   // Debug logging to track coordinate handling
   useEffect(() => {
@@ -393,7 +395,7 @@ export default function MapPanel({
     return () => {
       clearTimeout(timer);
     };
-  }, [isOpen, hasValidCoordinates]);
+  }, [isOpen, hasValidCoordinates, safeCoordinates]);
 
   // Update map center when location coordinates change
   useEffect(() => {
@@ -404,7 +406,7 @@ export default function MapPanel({
     } else {
       console.warn('Invalid coordinates detected in MapPanel center update:', safeCoordinates);
     }
-  }, [hasValidCoordinates, safeCoordinates.latitude, safeCoordinates.longitude]);
+  }, [hasValidCoordinates, safeCoordinates]);
 
   // Effect to handle map lifecycle when shouldRenderMap changes
   useEffect(() => {
@@ -429,20 +431,18 @@ export default function MapPanel({
           // Remove event listeners first
           if (mapInstance.off) {
             mapInstance.off();
-          }
-          
-          // Force remove all layers
-          if (mapInstance.eachLayer) {
-            mapInstance.eachLayer((layer: any) => {
-              try {
-                if (layer.remove) {
-                  layer.remove();
+          }            // Force remove all layers
+            if (mapInstance.eachLayer) {
+              mapInstance.eachLayer((layer: import('leaflet').Layer) => {
+                try {
+                  if ('remove' in layer && typeof layer.remove === 'function') {
+                    layer.remove();
+                  }
+                } catch (layerError) {
+                  console.warn('Error removing layer in MapPanel:', layerError);
                 }
-              } catch (layerError) {
-                console.warn('Error removing layer in MapPanel:', layerError);
-              }
-            });
-          }
+              });
+            }
           
           // Remove the map instance
           mapInstance.remove();
@@ -458,10 +458,10 @@ export default function MapPanel({
         setMapInstance(null);
         
         // Force garbage collection hint
-        if (typeof window !== 'undefined' && (window as any).gc) {
+        if (typeof window !== 'undefined' && 'gc' in window) {
           try {
-            (window as any).gc();
-          } catch (e) {
+            (window as unknown as { gc(): void }).gc();
+          } catch {
             // gc is not available in production
           }
         }
@@ -522,9 +522,9 @@ export default function MapPanel({
             
             // Force remove all layers
             if (mapInstance.eachLayer) {
-              mapInstance.eachLayer((layer: any) => {
+              mapInstance.eachLayer((layer: import('leaflet').Layer) => {
                 try {
-                  if (layer.remove) {
+                  if ('remove' in layer && typeof layer.remove === 'function') {
                     layer.remove();
                   }
                 } catch (layerError) {
@@ -548,10 +548,10 @@ export default function MapPanel({
           setIsMapReady(false); // Reset map ready state
           
           // Force garbage collection hint
-          if (typeof window !== 'undefined' && (window as any).gc) {
+          if (typeof window !== 'undefined' && 'gc' in window) {
             try {
-              (window as any).gc();
-            } catch (e) {
+              (window as unknown as { gc(): void }).gc();
+            } catch {
               // gc is not available in production
             }
           }

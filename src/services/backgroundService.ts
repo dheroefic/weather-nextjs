@@ -1,33 +1,18 @@
-import { createApi } from 'unsplash-js';
 import { debug } from '@/utils/debug';
 import { isUnsplashEnabled } from '@/utils/featureFlags';
 
+/**
+ * Background Image Service - Secure Implementation
+ * 
+ * SECURITY UPDATE: This service now uses a server-side API route to fetch Unsplash images,
+ * keeping the API key secure on the server instead of exposing it to the client.
+ * 
+ * Migration from client-side:
+ * - Old: NEXT_PUBLIC_UNSPLASH_ACCESS_KEY (exposed to client)
+ * - New: UNSPLASH_ACCESS_KEY (server-side only) + NEXT_PUBLIC_ENABLE_UNSPLASH (feature flag)
+ */
+
 type WeatherCondition = 'sunny' | 'cloudy' | 'rain' | 'snow' | 'storm' | 'default';
-
-interface UnsplashPhoto {
-  urls: {
-    regular: string;
-  };
-  links: {
-    download_location: string;
-  };
-  user: {
-    name: string;
-    username: string;
-    links: {
-      html: string;
-    };
-  };
-}
-
-const weatherToSearchTerms: Record<WeatherCondition, string[]> = {
-  sunny: ['sunny weather', 'clear sky', 'sunshine'],
-  cloudy: ['cloudy weather', 'overcast sky', 'clouds'],
-  rain: ['rainy weather', 'rain', 'rainfall'],
-  snow: ['snow weather', 'snowy landscape', 'winter snow'],
-  storm: ['storm weather', 'thunderstorm', 'lightning'],
-  default: ['nature landscape', 'sky', 'weather'],
-};
 
 const staticBackgrounds: Record<WeatherCondition, string> = {
   sunny: '/background-weather/a-sunny.jpg',
@@ -37,14 +22,6 @@ const staticBackgrounds: Record<WeatherCondition, string> = {
   storm: '/background-weather/a-storm.jpg',
   default: '/background-weather/a-default.jpg',
 };
-
-let unsplashApi: ReturnType<typeof createApi> | null = null;
-
-if (isUnsplashEnabled()) {
-  unsplashApi = createApi({
-    accessKey: process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY!,
-  });
-}
 
 export interface BackgroundImageResult {
   imageUrl: string;
@@ -78,68 +55,40 @@ export async function getBackgroundImage(condition: WeatherCondition): Promise<B
     return cachedImage;
   }
 
-  if (!unsplashApi) {
+  // If Unsplash is not enabled via feature flag, use static background
+  if (!isUnsplashEnabled()) {
     debug.background('Using static background image:', { condition });
     return {
       imageUrl: staticBackgrounds[condition] || staticBackgrounds.default
     };
   }
 
-  debug.background('Fetching background image from Unsplash:', { condition });
+  debug.background('Fetching background image from API:', { condition });
 
   try {
-    const searchTerms = weatherToSearchTerms[condition];
-    const randomTerm = searchTerms[Math.floor(Math.random() * searchTerms.length)];
-
-    debug.background('Searching Unsplash with term:', { randomTerm });
-    const result = await unsplashApi.search.getPhotos({
-      query: randomTerm,
-      orientation: 'landscape',
-      perPage: 1,
-      page: Math.floor(Math.random() * 20) + 1,
-    });
-
-    if (result.status === 200 && result.response && result.response.results && result.response.results.length > 0) {
-      const photo = result.response.results[0] as UnsplashPhoto;
-
-      // Track download when image is selected
-      await unsplashApi.photos.trackDownload({
-        downloadLocation: photo.links.download_location
-      });
-
-      // Use Unsplash's URL parameters for optimal image loading
-      const imageUrl = new URL(photo.urls.regular);
-      imageUrl.searchParams.set('w', '1920');
-      imageUrl.searchParams.set('q', '80');
-      imageUrl.searchParams.set('fit', 'max');
-      imageUrl.searchParams.set('auto', 'format');
-      imageUrl.searchParams.set('utm_source', 'weather_app');
-      imageUrl.searchParams.set('utm_medium', 'referral');
-
-      const backgroundResult: BackgroundImageResult = {
-        imageUrl: imageUrl.toString(),
-        attribution: {
-          photographerName: photo.user.name,
-          photographerUsername: photo.user.username,
-          photographerUrl: photo.user.links.html
-        }
-      };
-
-      // Cache the result
-      imageCache[condition] = {
-        ...backgroundResult,
-        timestamp: Date.now()
-      };
-
-      return backgroundResult;
+    // Call our API route instead of Unsplash directly
+    const response = await fetch(`/api/background?condition=${condition}`);
+    
+    if (!response.ok) {
+      throw new Error(`API responded with status: ${response.status}`);
     }
 
-    debug.background('No results from Unsplash, using static background');
-    return {
-      imageUrl: staticBackgrounds[condition] || staticBackgrounds.default
+    const backgroundResult: BackgroundImageResult = await response.json();
+
+    debug.background('Received background image from API:', { 
+      condition, 
+      photographer: backgroundResult.attribution?.photographerName 
+    });
+
+    // Cache the result
+    imageCache[condition] = {
+      ...backgroundResult,
+      timestamp: Date.now()
     };
+
+    return backgroundResult;
   } catch (error) {
-    debug.background('Error fetching from Unsplash:', { error });
+    debug.background('Error fetching from background API:', { error });
     return {
       imageUrl: staticBackgrounds[condition] || staticBackgrounds.default
     };
