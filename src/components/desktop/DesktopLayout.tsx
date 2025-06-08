@@ -2,11 +2,11 @@
 
 import { Suspense, useState } from 'react';
 import Image from 'next/image';
-import LocationSelector from './LocationSelector';
-import HourlyForecast from './HourlyForecast';
-import DailyForecast from './DailyForecast';
-import WeatherMetrics from './WeatherMetrics';
-import Footer from './Footer';
+import LocationSelector from '../shared/LocationSelector';
+import HourlyForecast from '../shared/HourlyForecast';
+import DailyForecast from '../shared/DailyForecast';
+import WeatherMetrics from '../shared/WeatherMetrics';
+import Footer from '../shared/Footer';
 import EmbeddedMap from './EmbeddedMap';
 import dynamic from 'next/dynamic';
 import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/types/weather';
@@ -115,9 +115,9 @@ export default function DesktopLayout({
 
   return (
     <>
-      <div className="max-w-[2000px] mx-auto px-8 py-8">
+      <div className="max-w-[2000px] mx-auto px-10 py-10">
         {/* 6-Section Grid Layout */}
-        <div className="grid grid-cols-12 gap-6 min-h-screen">
+        <div className="grid grid-cols-12 gap-8 min-h-screen">
           
           {/* Section 1: Top Left - Time and Current Weather Info */}
           <div className="col-span-12 lg:col-span-6 xl:col-span-6">

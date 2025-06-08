@@ -1,0 +1,4 @@
+/* Main styles index - consolidates all app styles */
+@import './globals.css';
+@import './weather-backgrounds.css';
+@import './leaflet-custom.css';

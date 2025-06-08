@@ -1,7 +1,7 @@
 'use client';
 
-import { WindIcon } from '@/components/icons';
-import LocationSelector from '@/components/LocationSelector';
+import { WindIcon } from './icons';
+import LocationSelector from './LocationSelector';
 import type { Location } from '@/types/weather';
 import type { WeatherData } from '@/types/weather';
 import type { TemperatureUnit } from '@/types/weather';

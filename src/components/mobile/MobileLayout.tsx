@@ -1,28 +1,14 @@
 'use client';
 
-/**
- * ResponsiveLayout - Adaptive layout component
- * 
- * This component automatically switches between mobile and desktop layouts based on:
- * 1. Screen size (>= 1024px for desktop)
- * 2. Environment variable NEXT_PUBLIC_ENABLE_DESKTOP_LAYOUT
- * 
- * To disable desktop layout entirely, set NEXT_PUBLIC_ENABLE_DESKTOP_LAYOUT=false
- * in your .env.local file
- */
-
-import { useState, useEffect } from 'react';
-import { isDesktopLayoutEnabled } from '@/utils/featureFlags';
-import DesktopLayout from './DesktopLayout';
-import Header from './Header';
-import WeatherMetrics from './WeatherMetrics';
-import HourlyForecast from './HourlyForecast';
-import DailyForecast from './DailyForecast';
-import DetailPanel from './DetailPanel';
-import MapPanel from './MapPanel';
+import Header from '../shared/Header';
+import WeatherMetrics from '../shared/WeatherMetrics';
+import HourlyForecast from '../shared/HourlyForecast';
+import DailyForecast from '../shared/DailyForecast';
+import DetailPanel from '../shared/DetailPanel';
+import MapPanel from '../desktop/MapPanel';
 import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/types/weather';
 
-interface ResponsiveLayoutProps {
+interface MobileLayoutProps {
   weatherData: WeatherData | null;
   location: Location;
   currentTime: Date;
@@ -52,7 +38,7 @@ interface ResponsiveLayoutProps {
   } | null;
 }
 
-export default function ResponsiveLayout({
+export default function MobileLayout({
   weatherData,
   location,
   currentTime,
@@ -76,68 +62,9 @@ export default function ResponsiveLayout({
   showMap,
   setShowMap,
   imageAttribution
-}: ResponsiveLayoutProps) {
-  const [isDesktop, setIsDesktop] = useState(false);
-  
-  // Check if desktop layout is enabled via environment variable
-  const desktopLayoutEnabled = isDesktopLayoutEnabled();
-
-  useEffect(() => {
-    const checkScreenSize = () => {
-      // Only set desktop if both screen size is large enough AND desktop layout is enabled
-      setIsDesktop(window.innerWidth >= 1024 && desktopLayoutEnabled);
-    };
-
-    // Check initial size
-    checkScreenSize();
-
-    // Add resize listener with debounce for better performance
-    let timeoutId: number;
-    const debouncedCheckScreenSize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = window.setTimeout(checkScreenSize, 100);
-    };
-
-    window.addEventListener('resize', debouncedCheckScreenSize);
-    return () => {
-      window.removeEventListener('resize', debouncedCheckScreenSize);
-      clearTimeout(timeoutId);
-    };
-  }, [desktopLayoutEnabled]);
-
-  // Desktop Layout - only if feature flag is enabled
-  if (isDesktop && desktopLayoutEnabled) {
-    return (
-      <DesktopLayout
-        weatherData={weatherData}
-        location={location}
-        currentTime={currentTime}
-        tempUnit={tempUnit}
-        loading={loading}
-        convertTemp={convertTemp}
-        onTempUnitToggle={onTempUnitToggle}
-        formatDate={formatDate}
-        formatTime={formatTime}
-        handleRefresh={handleRefresh}
-        onLocationSelect={onLocationSelect}
-        selectedDay={selectedDay}
-        onDaySelect={onDaySelect}
-        forecastPeriod={forecastPeriod}
-        onForecastPeriodChange={onForecastPeriodChange}
-        showSettings={showSettings}
-        setShowSettings={setShowSettings}
-        autoRefreshInterval={autoRefreshInterval}
-        handleAutoRefreshChange={handleAutoRefreshChange}
-        showMap={showMap}
-        setShowMap={setShowMap}
-        imageAttribution={imageAttribution}
-      />
-    );
-  }
-
-  // Mobile Layout (existing layout)
+}: MobileLayoutProps) {
   return (
-    <div className="flex flex-col gap-4 md:gap-8 w-full">
+    <div className="flex flex-col gap-6 md:gap-12 w-full">
       <Header
         weatherData={weatherData}
         location={location}
