@@ -104,6 +104,7 @@ interface MapPanelProps {
     city?: string;
     country?: string;
   }) => void;
+  isFullscreen?: boolean;
 }
 
 interface WeatherMetric {
@@ -177,9 +178,12 @@ export default function MapPanel({
   tempUnit,
   convertTemp,
   onLocationSelect,
+  isFullscreen = false,
 }: MapPanelProps) {
   // Dynamically import Leaflet on the client.
   const [leaflet, setLeaflet] = useState<typeof import('leaflet') | null>(null);
+  const [mapContainerId] = useState(() => `fullscreen-map-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  
   useEffect(() => {
     import('leaflet').then((L) => setLeaflet(L));
   }, []);
@@ -553,25 +557,32 @@ export default function MapPanel({
             className={`fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-500 ${
               isVisible ? 'opacity-100' : 'opacity-0'
             }`}
-            style={{ pointerEvents: isVisible ? 'auto' : 'none', zIndex: 99 }}
+            style={{ 
+              pointerEvents: isVisible ? 'auto' : 'none', 
+              zIndex: isFullscreen ? 9998 : 99 
+            }}
             onClick={handleClose}
           />
 
           {/* Map Panel - positioned relative to main content container */}
           <div
-            className={`absolute top-0 right-0 h-full w-full md:w-[600px] bg-black/85 backdrop-blur-xl transform transition-all duration-500 ease-in-out ${
+            className={`${
+              isFullscreen 
+                ? 'fixed inset-0 w-full h-full' 
+                : 'absolute top-0 right-0 h-full w-full md:w-[600px]'
+            } bg-black/85 backdrop-blur-xl transform transition-all duration-500 ease-in-out ${
               isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
             }`}
             style={{
               pointerEvents: isVisible ? 'auto' : 'none',
-              zIndex: 100,
+              zIndex: isFullscreen ? 9999 : 100,
               backfaceVisibility: 'hidden',
               willChange: 'transform, opacity',
             }}
           >
             <div className="relative h-full w-full flex flex-col">
               {/* Header Area with Search and Close */}
-              <div className="flex-none p-4">
+              <div className={`flex-none p-4 ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''}`}>
                 <div className="flex items-center gap-4">
                   <button
                     onClick={handleClose}
@@ -653,7 +664,7 @@ export default function MapPanel({
               </div>
 
               {/* Weather Card */}
-              <div className="flex-none px-4 pb-4">
+              <div className={`flex-none px-4 pb-4 ${isFullscreen ? 'max-w-md mx-auto' : ''}`}>
                 <div className="glass-container p-3 md:p-4 rounded-lg md:rounded-xl backdrop-blur-md bg-black/40 shadow-lg border border-white/10">
                   <div className="flex flex-col gap-2 md:gap-4">
                     <div className="flex items-center justify-between gap-2 md:gap-4">
@@ -743,10 +754,16 @@ export default function MapPanel({
                                 latitude: center.lat,
                                 longitude: center.lng,
                               });
-                              handleClose();
+                              // Add a small delay to ensure location selection is processed
+                              setTimeout(() => {
+                                handleClose();
+                              }, 100);
                             } catch (error) {
                               console.warn('Error getting map center for location selection:', error);
+                              handleClose(); // Still close on error
                             }
+                          } else {
+                            handleClose(); // Close if map instance is not available
                           }
                         }}
                         className="flex-1 py-2 md:py-2.5 px-3 md:px-4 rounded-xl bg-black/20 hover:bg-black/30 transition-all duration-300 backdrop-blur-md text-white/90 hover:text-white border border-white/10 hover:border-white/20 flex items-center justify-center gap-2 group"
@@ -779,6 +796,7 @@ export default function MapPanel({
                   <div className="h-full w-full leaflet-container-custom">
                     <Suspense fallback={<LoadingFallback />}>
                       <MapContainer
+                        key={mapContainerId}
                         center={mapCenter}
                         zoom={defaultMapConfig.defaultZoom}
                         minZoom={defaultMapConfig.minZoom}

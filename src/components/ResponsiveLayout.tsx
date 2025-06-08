@@ -45,6 +45,11 @@ interface ResponsiveLayoutProps {
   handleAutoRefreshChange: (minutes: number | null) => void;
   showMap: boolean;
   setShowMap: (show: boolean) => void;
+  imageAttribution: {
+    photographerName: string;
+    photographerUsername: string;
+    photographerUrl: string;
+  } | null;
 }
 
 export default function ResponsiveLayout({
@@ -69,7 +74,8 @@ export default function ResponsiveLayout({
   autoRefreshInterval,
   handleAutoRefreshChange,
   showMap,
-  setShowMap
+  setShowMap,
+  imageAttribution
 }: ResponsiveLayoutProps) {
   const [isDesktop, setIsDesktop] = useState(false);
   
@@ -116,12 +122,15 @@ export default function ResponsiveLayout({
         onLocationSelect={onLocationSelect}
         selectedDay={selectedDay}
         onDaySelect={onDaySelect}
+        forecastPeriod={forecastPeriod}
+        onForecastPeriodChange={onForecastPeriodChange}
         showSettings={showSettings}
         setShowSettings={setShowSettings}
         autoRefreshInterval={autoRefreshInterval}
         handleAutoRefreshChange={handleAutoRefreshChange}
         showMap={showMap}
         setShowMap={setShowMap}
+        imageAttribution={imageAttribution}
       />
     );
   }

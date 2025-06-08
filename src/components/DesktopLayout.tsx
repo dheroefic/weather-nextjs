@@ -3,7 +3,16 @@
 import { Suspense, useState } from 'react';
 import Image from 'next/image';
 import LocationSelector from './LocationSelector';
+import HourlyForecast from './HourlyForecast';
+import DailyForecast from './DailyForecast';
+import WeatherMetrics from './WeatherMetrics';
+import Footer from './Footer';
+import EmbeddedMap from './EmbeddedMap';
+import dynamic from 'next/dynamic';
 import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/types/weather';
+
+// Dynamically import MapPanel to avoid SSR issues - for fullscreen map
+const MapPanel = dynamic(() => import('./MapPanel'), { ssr: false });
 
 interface DesktopLayoutProps {
   weatherData: WeatherData | null;
@@ -25,6 +34,13 @@ interface DesktopLayoutProps {
   handleAutoRefreshChange: (minutes: number | null) => void;
   showMap: boolean;
   setShowMap: (show: boolean) => void;
+  forecastPeriod: '4 days' | '8 days' | '14 days';
+  onForecastPeriodChange: (period: '4 days' | '8 days' | '14 days') => void;
+  imageAttribution: {
+    photographerName: string;
+    photographerUsername: string;
+    photographerUrl: string;
+  } | null;
 }
 
 export default function DesktopLayout({
@@ -45,34 +61,61 @@ export default function DesktopLayout({
   autoRefreshInterval,
   handleAutoRefreshChange,
   showMap,
-  setShowMap
+  setShowMap,
+  forecastPeriod,
+  onForecastPeriodChange,
+  imageAttribution
 }: DesktopLayoutProps) {
+  const [showFullscreenMap, setShowFullscreenMap] = useState(false);
+  const [embeddedMapKey, setEmbeddedMapKey] = useState(0);
+  const [fullscreenMapKey, setFullscreenMapKey] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  
   const currentWeather = weatherData?.currentWeather;
-  const hourlyForecast = weatherData?.hourlyForecast?.slice(0, 12) || []; // Show 12 hours instead of 4
-  const dailyForecast = weatherData?.dailyForecast?.slice(0, 14) || []; // Show 14 days for ultra-wide
+  const hourlyForecast = weatherData?.hourlyForecast?.slice(0, 12) || []; // Show 12 hours
+  const dailyForecast = weatherData?.dailyForecast?.slice(0, 14) || []; // Show 14 days
 
-  // State for hourly forecast modal
-  const [selectedHour, setSelectedHour] = useState<{
-    time: string;
-    temp: number;
-    icon: string;
-    precipitation: number;
-    uvIndex: { value: number; category: string };
-    humidity: number;
-    pressure: number;
-  } | null>(null);
+  // Handle fullscreen map opening with proper cleanup sequence
+  const handleExpandToFullscreen = () => {
+    setIsTransitioning(true);
+    // First, increment embedded map key to force cleanup
+    setEmbeddedMapKey(prev => prev + 1);
+    
+    // Small delay to allow embedded map cleanup
+    setTimeout(() => {
+      setShowFullscreenMap(true);
+      setFullscreenMapKey(prev => prev + 1);
+      setIsTransitioning(false);
+    }, 150);
+  };
+
+  // Handle fullscreen map closing with proper cleanup sequence  
+  const handleCloseFullscreen = () => {
+    setIsTransitioning(true);
+    setShowFullscreenMap(false);
+    // Increment fullscreen map key to force cleanup
+    setFullscreenMapKey(prev => prev + 1);
+    
+    // Delay before allowing embedded map to render again
+    setTimeout(() => {
+      setEmbeddedMapKey(prev => prev + 1);
+      setIsTransitioning(false);
+    }, 150);
+  };
 
   return (
     <>
       <div className="max-w-[2000px] mx-auto px-8 py-8">
-        <div className="grid grid-cols-12 gap-8">
-          {/* Main Weather Card - Consistent Design */}
-          <div className="col-span-12 lg:col-span-6">
-            <div className="desktop-main-card">
+        {/* 6-Section Grid Layout */}
+        <div className="grid grid-cols-12 gap-6 min-h-screen">
+          
+          {/* Section 1: Top Left - Time and Current Weather Info */}
+          <div className="col-span-12 lg:col-span-6 xl:col-span-6">
+            <div className="desktop-main-card h-full">
               <div className="flex flex-col h-full">
-                {/* Header Controls - Consistent Spacing */}
-                <div className="flex justify-between items-start mb-8">
-                  <div className="flex items-center space-lg">
+                {/* Header Controls */}
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex items-center space-x-4">
                     <button
                       onClick={handleRefresh}
                       className={`desktop-control-button ${loading ? 'animate-spin' : ''}`}
@@ -97,7 +140,7 @@ export default function DesktopLayout({
                           className="absolute top-full right-0 mt-3 desktop-forecast-card min-w-[280px] z-50"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div className="space-md">
+                          <div className="space-y-4">
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-secondary">Temperature</span>
                               <button
@@ -143,15 +186,15 @@ export default function DesktopLayout({
                   </div>
                   <button
                     onClick={onTempUnitToggle}
-                    className="text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-light text-secondary hover:text-primary transition-colors"
+                    className="text-3xl lg:text-4xl font-light text-secondary hover:text-primary transition-colors"
                   >
                     °{tempUnit === 'C' ? 'C' : 'F'}
                   </button>
                 </div>
 
-                {/* Current Time and Date - Consistent Typography */}
-                <div className="text-center mb-8">
-                  <div className="text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-light text-primary mb-2">
+                {/* Current Time and Date */}
+                <div className="text-center mb-6">
+                  <div className="text-4xl lg:text-5xl xl:text-6xl font-light text-primary mb-2">
                     {formatTime(currentTime)}
                   </div>
                   <div className="text-lg text-secondary">
@@ -159,299 +202,152 @@ export default function DesktopLayout({
                   </div>
                 </div>
 
-                {/* Temperature Display - Center Focus */}
-                <div className="flex-1 flex flex-col justify-center items-center mb-8">
+                {/* Current Weather Display */}
+                <div className="flex-1 flex flex-col justify-center items-center">
                   {loading ? (
                     <div className="text-center">
-                      <div className="h-32 w-32 bg-black/20 rounded-full mb-6 animate-pulse"></div>
-                      <div className="h-16 w-32 bg-black/20 rounded mb-4 animate-pulse"></div>
-                      <div className="h-6 w-24 bg-black/20 rounded animate-pulse"></div>
+                      <div className="h-24 w-24 bg-black/20 rounded-full mb-4 animate-pulse"></div>
+                      <div className="h-12 w-24 bg-black/20 rounded mb-3 animate-pulse"></div>
+                      <div className="h-6 w-20 bg-black/20 rounded animate-pulse"></div>
                     </div>
                   ) : (
                     <div className="text-center">
-                      <div className="text-8xl lg:text-9xl xl:text-[10rem] 2xl:text-[12rem] font-light text-primary mb-4">
+                      <div className="text-6xl lg:text-7xl xl:text-8xl font-light text-primary mb-3">
                         {convertTemp(currentWeather?.temperature || 22, tempUnit)}°
                       </div>
                       <div className="text-xl lg:text-2xl text-secondary mb-2">
                         {currentWeather?.condition || 'Clear'}
                       </div>
-                      <div className="text-lg text-tertiary">
-                        Temperature {convertTemp(currentWeather?.temperature || 24, tempUnit)}°
+                      <div className="text-lg text-tertiary mb-4">
+                        Feels like {convertTemp(currentWeather?.temperature || 24, tempUnit)}°
                       </div>
                       {currentWeather?.icon && (
-                        <div className="mt-6">
+                        <div>
                           <Image
                             src={currentWeather.icon}
                             alt={currentWeather.condition || 'Weather condition'}
-                            width={96}
-                            height={96}
-                            className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 xl:w-28 xl:h-28 2xl:w-32 2xl:h-32"
+                            width={80}
+                            height={80}
+                            className="w-16 h-16 lg:w-20 lg:h-20"
                           />
                         </div>
                       )}
                     </div>
                   )}
                 </div>
-
-                          {/* Weather Metrics Panel - Consistent Design System */}
-          <div className="col-span-12">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* UV Index */}
-              <div className="desktop-metric-card">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-secondary">UV Index</span>
-                  <svg className="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="text-2xl font-bold text-primary">
-                  {loading ? <div className="h-8 w-12 bg-black/20 rounded animate-pulse"></div> : currentWeather?.uvIndex?.value || '1.2'}
-                </div>
-                <div className="text-xs text-tertiary mt-1">Low</div>
-              </div>
-
-              {/* Wind */}
-              <div className="desktop-metric-card">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-secondary">Wind</span>
-                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-                  </svg>
-                </div>
-                <div className="text-2xl font-bold text-primary">
-                  {loading ? <div className="h-8 w-16 bg-black/20 rounded animate-pulse"></div> : `${currentWeather?.wind?.speed || 2}`}
-                </div>
-                <div className="text-xs text-tertiary mt-1">
-                  {currentWeather?.wind?.direction || 'Light breeze'}
-                </div>
-              </div>
-
-              {/* Humidity */}
-              <div className="desktop-metric-card">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-secondary">Humidity</span>
-                  <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.05 3.636a1 1 0 010 1.414 7 7 0 000 9.9 1 1 0 11-1.414 1.414 9 9 0 010-12.728 1 1 0 011.414 0zm9.9 0a1 1 0 011.414 0 9 9 0 010 12.728 1 1 0 11-1.414-1.414 7 7 0 000-9.9 1 1 0 010-1.414zM7.879 6.464a1 1 0 010 1.414 3 3 0 000 4.243 1 1 0 11-1.415 1.414 5 5 0 010-7.071 1 1 0 011.415 0zm4.242 0a1 1 0 011.415 0 5 5 0 010 7.072 1 1 0 01-1.415-1.415 3 3 0 000-4.242 1 1 0 010-1.415zM10 9a1 1 0 011 1v.01a1 1 0 11-2 0V10a1 1 0 011-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="text-2xl font-bold text-primary">
-                  {loading ? <div className="h-8 w-12 bg-black/20 rounded animate-pulse"></div> : `${currentWeather?.humidity || 63}%`}
-                </div>
-                <div className="text-xs text-tertiary mt-1">Normal</div>
-              </div>
-
-              {/* Pressure */}
-              <div className="desktop-metric-card">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-secondary">Pressure</span>
-                  <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 10a7 7 0 1114 0 7 7 0 01-14 0zm7-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="text-2xl font-bold text-primary">
-                  {loading ? <div className="h-8 w-16 bg-black/20 rounded animate-pulse"></div> : `${currentWeather?.pressure || 1013}`}
-                </div>
-                <div className="text-xs text-tertiary mt-1">hPa</div>
-              </div>
-            </div>
-          </div>
               </div>
             </div>
           </div>
 
-          {/* Hourly Forecast Panel - Consistent Design */}
-          <div className="col-span-12 lg:col-span-6">
-            <div className="desktop-sidebar-card">
-              <h3 className="text-xl font-semibold text-primary mb-6">Today&apos;s Hourly Forecast</h3>
-              
-              {/* Hourly forecast scroll area */}
-              <div>
-                {loading ? (
-                  <div className="flex gap-4 overflow-x-auto pb-2">
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <div key={i} className="text-center flex-shrink-0 min-w-[80px]">
-                        <div className="h-4 w-12 bg-black/20 rounded mb-2 mx-auto animate-pulse"></div>
-                        <div className="h-12 w-12 bg-black/20 rounded-lg mb-2 mx-auto animate-pulse"></div>
-                        <div className="h-4 w-8 bg-black/20 rounded mx-auto animate-pulse"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-                    {hourlyForecast.map((hour, index) => (
-                      <div 
-                        key={index} 
-                        className={`desktop-hourly-item text-center flex-shrink-0 min-w-[80px] p-3 cursor-pointer ${
-                          selectedHour?.time === hour.time ? 'selected' : ''
-                        }`}
-                        onClick={() => setSelectedHour(selectedHour?.time === hour.time ? null : hour)}
-                      >
-                        <div className="text-sm text-tertiary mb-2">
-                          {new Date(hour.time).toLocaleTimeString('en-US', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: false 
-                          })}
-                        </div>
-                        <div className="flex justify-center mb-2">
-                          <Image
-                            src={hour.icon}
-                            alt="Weather condition"
-                            width={48}
-                            height={48}
-                            className="w-10 h-10 sm:w-11 sm:h-11 lg:w-12 lg:h-12 xl:w-14 xl:h-14"
-                          />
-                        </div>
-                        <div className="text-lg font-semibold text-primary">
-                          {convertTemp(hour.temp, tempUnit)}°
-                        </div>
-                        <div className="text-xs text-tertiary mt-1">
-                          {hour.precipitation}%
-                        </div>
-                      </div>
-                    ))}
+          {/* Section 2: Top Right - Today's Hourly Forecast */}
+          <div className="col-span-12 lg:col-span-6 xl:col-span-6">
+            <div className="desktop-sidebar-card h-full">
+              <HourlyForecast
+                weatherData={weatherData}
+                tempUnit={tempUnit}
+                convertTemp={convertTemp}
+                loading={loading}
+              />
+            </div>
+          </div>
+
+          {/* Section 3: Bottom Left - Weather Metrics */}
+          <div className="col-span-12 lg:col-span-6 xl:col-span-6">
+            <div className="desktop-forecast-card h-full">
+              <WeatherMetrics
+                weatherData={weatherData}
+                loading={loading}
+              />
+            </div>
+          </div>
+
+          {/* Section 4: Bottom Right - Map */}
+          <div className="col-span-12 lg:col-span-6 xl:col-span-6">
+            <div className="desktop-forecast-card h-full overflow-hidden">
+              <div className="h-full">
+                {!showFullscreenMap && !isTransitioning && (
+                  <EmbeddedMap
+                    key={`embedded-map-${embeddedMapKey}`}
+                    weatherData={weatherData}
+                    location={location}
+                    tempUnit={tempUnit}
+                    convertTemp={convertTemp}
+                    onLocationSelect={(coordinates) => {
+                      onLocationSelect({
+                        city: coordinates.city || location.city,
+                        country: coordinates.country || location.country,
+                        coordinates: {
+                          latitude: coordinates.latitude,
+                          longitude: coordinates.longitude,
+                        },
+                      });
+                    }}
+                    onExpandToFullscreen={handleExpandToFullscreen}
+                    className="h-full"
+                  />
+                )}
+                {(showFullscreenMap || isTransitioning) && (
+                  <div className="h-full flex items-center justify-center bg-black/10 rounded-lg">
+                    <div className="text-center text-white/60">
+                      <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-sm">
+                        {isTransitioning ? 'Transitioning...' : 'Map opened in fullscreen'}
+                      </p>
+                    </div>
                   </div>
                 )}
-
-                {/* Hour Details Expandable Panel */}
-                <div className={`overflow-hidden transition-all duration-500 ease-out ${
-                  selectedHour ? 'max-h-96 opacity-100 mt-6' : 'max-h-0 opacity-0'
-                }`}>
-                  {selectedHour && (
-                    <div className="desktop-forecast-card">
-                      <div className="flex justify-between items-start mb-4">
-                        <h4 className="text-lg font-semibold text-primary">Hour Details</h4>
-                        <button
-                          onClick={() => setSelectedHour(null)}
-                          className="desktop-control-button"
-                        >
-                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                      
-                      <div className="text-center mb-4">
-                        <div className="text-xl font-bold text-primary mb-2">
-                          {new Date(selectedHour.time).toLocaleTimeString('en-US', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: false 
-                          })}
-                        </div>
-                        <div className="flex justify-center mb-3">
-                          <Image
-                            src={selectedHour.icon}
-                            alt="Weather condition"
-                            width={48}
-                            height={48}
-                            className="w-12 h-12"
-                          />
-                        </div>
-                        <div className="text-2xl font-bold text-primary">
-                          {convertTemp(selectedHour.temp, tempUnit)}°
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="desktop-metric-card text-center">
-                          <div className="flex items-center justify-center mb-1">
-                            <svg className="w-4 h-4 text-blue-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                            </svg>
-                            <span className="text-xs text-tertiary">Precipitation</span>
-                          </div>
-                          <div className="text-lg font-bold text-blue-400">{selectedHour.precipitation}%</div>
-                        </div>
-                        <div className="desktop-metric-card text-center">
-                          <div className="flex items-center justify-center mb-1">
-                            <svg className="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-                            </svg>
-                            <span className="text-xs text-tertiary">UV Index</span>
-                          </div>
-                          <div className="text-lg font-bold text-yellow-400">{selectedHour.uvIndex.value}</div>
-                        </div>
-                        <div className="desktop-metric-card text-center">
-                          <div className="flex items-center justify-center mb-1">
-                            <svg className="w-4 h-4 text-blue-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M5.05 3.636a1 1 0 010 1.414 7 7 0 000 9.9 1 1 0 11-1.414 1.414 9 9 0 010-12.728 1 1 0 011.414 0zm9.9 0a1 1 0 011.414 0 9 9 0 010 12.728 1 1 0 11-1.414-1.414 7 7 0 000-9.9 1 1 0 010-1.414zM7.879 6.464a1 1 0 010 1.414 3 3 0 000 4.243 1 1 0 11-1.415 1.414 5 5 0 010-7.071 1 1 0 011.415 0zm4.242 0a1 1 0 011.415 0 5 5 0 010 7.072 1 1 0 01-1.415-1.415 3 3 0 000-4.242 1 1 0 010-1.415zM10 9a1 1 0 011 1v.01a1 1 0 11-2 0V10a1 1 0 011-1z" clipRule="evenodd" />
-                            </svg>
-                            <span className="text-xs text-tertiary">Humidity</span>
-                          </div>
-                          <div className="text-lg font-bold text-blue-400">{selectedHour.humidity}%</div>
-                        </div>
-                        <div className="desktop-metric-card text-center">
-                          <div className="flex items-center justify-center mb-1">
-                            <svg className="w-4 h-4 text-green-400 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M3 10a7 7 0 1114 0 7 7 0 01-14 0zm7-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                            </svg>
-                            <span className="text-xs text-tertiary">Pressure</span>
-                          </div>
-                          <div className="text-lg font-bold text-green-400">{selectedHour.pressure} hPa</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           </div>
-          
-          {/* Daily Forecast - Full Width with Consistent Design */}
-          <div className="col-span-12 mt-8">
+
+          {/* Section 5: Bottom Section 1 - 14-Day Forecast */}
+          <div className="col-span-12">
             <div className="desktop-forecast-card">
-              <h3 className="text-xl font-semibold text-primary mb-6">14-Day Forecast</h3>
-              {loading ? (
-                <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-10 2xl:grid-cols-14 gap-4">
-                  {Array.from({ length: 14 }).map((_, i) => (
-                    <div key={i} className="desktop-daily-item p-4">
-                      <div className="h-4 w-16 bg-black/20 rounded mb-3 animate-pulse"></div>
-                      <div className="h-16 w-16 bg-black/20 rounded-lg mb-3 mx-auto animate-pulse"></div>
-                      <div className="h-4 w-12 bg-black/20 rounded mb-2 mx-auto animate-pulse"></div>
-                      <div className="h-3 w-8 bg-black/20 rounded mx-auto animate-pulse"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-10 2xl:grid-cols-14 gap-4">
-                  {dailyForecast.map((day, index) => (
-                    <div 
-                      key={index}
-                      className="desktop-daily-item p-4 cursor-pointer"
-                      onClick={() => onDaySelect(day)}
-                    >
-                      <div className="text-center">
-                        <div className="text-sm text-secondary mb-3">
-                          {index === 0 ? 'Today' : new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                        </div>
-                        <div className="flex justify-center mb-3">
-                          <Image
-                            src={day.icon}
-                            alt={day.condition}
-                            width={64}
-                            height={64}
-                            className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 xl:w-16 xl:h-16"
-                          />
-                        </div>
-                        <div className="text-lg font-semibold text-primary mb-1">
-                          {convertTemp(day.temp.max, tempUnit)}°
-                        </div>
-                        <div className="text-sm text-secondary">
-                          {convertTemp(day.temp.min, tempUnit)}°
-                        </div>
-                        <div className="text-xs text-tertiary mt-2">
-                          {day.condition}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <DailyForecast
+                dailyForecast={dailyForecast}
+                tempUnit={tempUnit}
+                convertTemp={convertTemp}
+                loading={loading}
+                onDaySelect={onDaySelect}
+                forecastPeriod={forecastPeriod}
+                onForecastPeriodChange={onForecastPeriodChange}
+              />
             </div>
           </div>
+
+          {/* Section 6: Bottom Section 2 - Footer */}
+          <div className="col-span-12">
+            <Footer imageAttribution={imageAttribution} />
+          </div>
+
         </div>
       </div>
+
+      {/* Fullscreen Map Panel */}
+      {showFullscreenMap && weatherData && location.coordinates && (
+        <MapPanel
+          key={`fullscreen-map-${fullscreenMapKey}`}
+          isOpen={showFullscreenMap}
+          weatherData={weatherData}
+          onClose={handleCloseFullscreen}
+          location={location}
+          tempUnit={tempUnit}
+          convertTemp={convertTemp}
+          isFullscreen={true}
+          onLocationSelect={(coordinates) => {
+            onLocationSelect({
+              city: coordinates.city || location.city,
+              country: coordinates.country || location.country,
+              coordinates: {
+                latitude: coordinates.latitude,
+                longitude: coordinates.longitude,
+              },
+            });
+          }}
+        />
+      )}
     </>
   );
 }
