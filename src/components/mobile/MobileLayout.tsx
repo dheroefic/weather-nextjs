@@ -121,10 +121,18 @@ export default function MobileLayout({
         location={location}
         tempUnit={tempUnit}
         convertTemp={convertTemp}
-        onLocationSelect={(coordinates) => {
+        onLocationSelect={(coordinates: {
+          latitude: number;
+          longitude: number;
+          city?: string;
+          country?: string;
+        }) => {
           onLocationSelect({
             ...location,
-            coordinates,
+            coordinates: {
+              latitude: coordinates.latitude,
+              longitude: coordinates.longitude
+            },
             city: coordinates.city || location.city,
             country: coordinates.country || location.country
           });

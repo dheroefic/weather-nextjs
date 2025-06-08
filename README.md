@@ -76,15 +76,21 @@ A modern, feature-rich weather application built with Next.js 15 that provides c
    
    Then add your API keys to `.env.local`:
    ```bash
+   # OpenMeteo API Configuration (all optional)
+   NEXT_PUBLIC_OPENMETEO_API_KEY=your_openmeteo_api_key
+   NEXT_PUBLIC_OPENMETEO_API_URL=https://api.open-meteo.com/v1
+   NEXT_PUBLIC_OPENMETEO_GEOCODING_URL=https://geocoding-api.open-meteo.com/v1
+   
    # Unsplash API for dynamic backgrounds (server-side secure)
    UNSPLASH_ACCESS_KEY=your_unsplash_access_key
    
-   # Enable Unsplash backgrounds (client-side feature flag)
+   # Feature flags (client-side feature flags)
    NEXT_PUBLIC_ENABLE_UNSPLASH=true
-   
-   # Optional: Custom API endpoints
-   NEXT_PUBLIC_WEATHER_API_URL=your_custom_weather_api
+   NEXT_PUBLIC_DEBUG=false
+   NEXT_PUBLIC_ENABLE_DESKTOP_LAYOUT=true
    ```
+
+   **Note:** OpenMeteo is free to use without an API key. The API key is only needed if you want higher rate limits or are using a custom OpenMeteo instance. To get an API key for commercial usage, visit [OpenMeteo's pricing page](https://open-meteo.com/en/pricing).
 
 4. **Start the development server**
    ```bash
@@ -151,11 +157,15 @@ weather-nextjs/
 
 ### Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `UNSPLASH_ACCESS_KEY` | Unsplash API key for dynamic backgrounds (server-side only) | No |
-| `NEXT_PUBLIC_ENABLE_UNSPLASH` | Feature flag to enable Unsplash backgrounds (client-side safe) | No |
-| `NEXT_PUBLIC_WEATHER_API_URL` | Custom weather API endpoint | No |
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `NEXT_PUBLIC_OPENMETEO_API_KEY` | OpenMeteo API key for higher rate limits (optional) | No | - |
+| `NEXT_PUBLIC_OPENMETEO_API_URL` | Custom OpenMeteo API endpoint | No | `https://api.open-meteo.com/v1` |
+| `NEXT_PUBLIC_OPENMETEO_GEOCODING_URL` | Custom OpenMeteo Geocoding API endpoint | No | `https://geocoding-api.open-meteo.com/v1` |
+| `UNSPLASH_ACCESS_KEY` | Unsplash API key for dynamic backgrounds (server-side only) | No | - |
+| `NEXT_PUBLIC_ENABLE_UNSPLASH` | Feature flag to enable Unsplash backgrounds (client-side safe) | No | `false` |
+| `NEXT_PUBLIC_DEBUG` | Enable debug mode for additional logging | No | `false` |
+| `NEXT_PUBLIC_ENABLE_DESKTOP_LAYOUT` | Enable desktop layout features | No | `true` |
 
 ### Features Configuration
 

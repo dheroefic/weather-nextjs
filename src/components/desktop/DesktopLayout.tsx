@@ -74,6 +74,7 @@ export default function DesktopLayout({
 
   // Handle fullscreen map opening with proper cleanup sequence
   const handleExpandToFullscreen = () => {
+    console.log('handleExpandToFullscreen called');
     setIsTransitioning(true);
     
     // First, force embedded map unmount by incrementing key
@@ -84,6 +85,7 @@ export default function DesktopLayout({
       setEmbeddedMapDestroyed(true);
       // Additional delay to ensure DOM cleanup
       setTimeout(() => {
+        console.log('Setting showFullscreenMap to true');
         setShowFullscreenMap(true);
         setFullscreenMapKey(prev => prev + 1);
         setIsTransitioning(false);
@@ -273,18 +275,7 @@ export default function DesktopLayout({
                     key={`embedded-map-${embeddedMapKey}`}
                     weatherData={weatherData}
                     location={location}
-                    tempUnit={tempUnit}
-                    convertTemp={convertTemp}
-                    onLocationSelect={(coordinates) => {
-                      onLocationSelect({
-                        city: coordinates.city || location.city,
-                        country: coordinates.country || location.country,
-                        coordinates: {
-                          latitude: coordinates.latitude,
-                          longitude: coordinates.longitude,
-                        },
-                      });
-                    }}
+                    onLocationSelect={onLocationSelect}
                     onExpandToFullscreen={handleExpandToFullscreen}
                     className="h-full"
                   />
@@ -339,7 +330,12 @@ export default function DesktopLayout({
           tempUnit={tempUnit}
           convertTemp={convertTemp}
           isFullscreen={true}
-          onLocationSelect={(coordinates) => {
+          onLocationSelect={(coordinates: {
+            latitude: number;
+            longitude: number;
+            city?: string;
+            country?: string;
+          }) => {
             onLocationSelect({
               city: coordinates.city || location.city,
               country: coordinates.country || location.country,
@@ -351,6 +347,8 @@ export default function DesktopLayout({
           }}
         />
       )}
+      {/* Debug info */}
+      {console.log('DesktopLayout render - showFullscreenMap:', showFullscreenMap, 'location.coordinates:', location.coordinates)}
     </>
   );
 }
