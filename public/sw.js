@@ -20,7 +20,12 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // Cache weather API responses for 10 minutes
-  if (url.hostname === 'api.open-meteo.com') {
+  // Handle both default and custom OpenMeteo API URLs
+  if (url.hostname === 'api.open-meteo.com' || 
+      url.hostname === 'geocoding-api.open-meteo.com' ||
+      url.pathname.includes('/v1/forecast') ||
+      url.pathname.includes('/v1/search') ||
+      url.pathname.includes('/v1/reverse')) {
     event.respondWith(
       caches.open(WEATHER_API_CACHE).then((cache) => {
         return cache.match(request).then((response) => {

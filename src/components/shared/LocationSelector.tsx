@@ -127,7 +127,7 @@ export default function LocationSelector({ onLocationSelect, currentLocation }: 
             ) : filteredResults.map((result, index) => (
               <button
                 key={index}
-                className="w-full p-3 text-left hover:bg-white/10 transition-colors duration-200"
+                className="w-full p-3 text-left hover:bg-black/20 transition-colors duration-200"
                 onClick={() => {
                   onLocationSelect({
                     city: result.name,

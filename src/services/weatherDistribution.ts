@@ -1,5 +1,9 @@
 import { NearbyLocation } from '@/types/nearbyWeather';
 import { WMO_CODES, getUVCategory, getWindDirection, fetchWeatherForeacastMultipleLocationApi } from './weatherService';
+import { getOpenMeteoConfig } from '@/utils/openmeteoConfig';
+
+// Get OpenMeteo configuration
+const openMeteoConfig = getOpenMeteoConfig();
 
 /**
  * Fetches nearby weather data points around a center location with an optimized distribution pattern
@@ -100,7 +104,7 @@ export async function fetchNearbyWeatherData(
   const longitudes = points.map(point => point.longitude.toString()).join(',');
   
   try {
-    const responses = await fetchWeatherForeacastMultipleLocationApi('https://api.open-meteo.com/v1/forecast', {
+    const responses = await fetchWeatherForeacastMultipleLocationApi(`${openMeteoConfig.baseUrl}/forecast`, {
       latitude: latitudes,
       longitude: longitudes,
       hourly: [

@@ -1,5 +1,9 @@
 import type { Location } from '@/types/weather';
 import { getFromCache, setInCache } from './cacheService';
+import { getOpenMeteoConfig } from '@/utils/openmeteoConfig';
+
+// Get OpenMeteo configuration
+const openMeteoConfig = getOpenMeteoConfig();
 
 export interface SearchResult {
   name: string;
@@ -18,8 +22,6 @@ export interface Coordinates {
   latitude: number;
   longitude: number;
 }
-
-const GEOCODING_API_BASE_URL = 'https://geocoding-api.open-meteo.com/v1';
 
 export const getUserGeolocation = async (): Promise<GeolocationResponse<Coordinates>> => {
   return new Promise((resolve) => {
@@ -93,9 +95,18 @@ export async function searchLocations(query: string): Promise<GeolocationRespons
   }
 
   try {
-    const response = await fetch(
-      `${GEOCODING_API_BASE_URL}/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`
-    );
+    const searchUrl = new URL(`${openMeteoConfig.geocodingUrl}/search`);
+    searchUrl.searchParams.append('name', query);
+    searchUrl.searchParams.append('count', '5');
+    searchUrl.searchParams.append('language', 'en');
+    searchUrl.searchParams.append('format', 'json');
+    
+    // Add API key if provided
+    if (openMeteoConfig.apiKey) {
+      searchUrl.searchParams.append('apikey', openMeteoConfig.apiKey);
+    }
+    
+    const response = await fetch(searchUrl.toString());
 
     if (!response.ok) {
       throw new Error('Failed to fetch location data');
@@ -138,9 +149,17 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
 
   return new Promise(async (resolve) => {
     try {
-      const response = await fetch(
-        `${GEOCODING_API_BASE_URL}/reverse?latitude=${coordinates.latitude}&longitude=${coordinates.longitude}&language=en`
-      );
+      const reverseUrl = new URL(`${openMeteoConfig.geocodingUrl}/reverse`);
+      reverseUrl.searchParams.append('latitude', coordinates.latitude.toString());
+      reverseUrl.searchParams.append('longitude', coordinates.longitude.toString());
+      reverseUrl.searchParams.append('language', 'en');
+      
+      // Add API key if provided
+      if (openMeteoConfig.apiKey) {
+        reverseUrl.searchParams.append('apikey', openMeteoConfig.apiKey);
+      }
+      
+      const response = await fetch(reverseUrl.toString());
 
       if (!response.ok) {
         throw new Error('Failed to fetch location data');

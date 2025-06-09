@@ -1,55 +1,203 @@
 # Weather App
 
-A modern weather application that provides detailed weather information and forecasts using the OpenMeteo API.
+A modern, feature-rich weather application built with Next.js 15 that provides comprehensive weather information with an intuitive, glass-morphism interface. The app combines real-time weather data with interactive maps and dynamic backgrounds for an engaging user experience.
 
-## Features
+## ✨ Features
 
-- Real-time weather information
-- Hourly and daily weather forecasts
-- Detailed weather metrics including:
-  - Temperature
-  - Wind speed and direction
-  - UV index
-  - Precipitation probability
-  - Humidity
-  - Atmospheric pressure
-- Location search functionality
-- Responsive design with glass-morphism UI
-- Dynamic weather-based backgrounds
+### 🌤️ Weather Information
+- **Real-time weather data** with automatic refresh capabilities
+- **Detailed hourly and daily forecasts** with extended 7-day outlook
+- **Comprehensive weather metrics** including:
+  - Temperature with Celsius/Fahrenheit conversion
+  - Wind speed, direction, and Beaufort scale classification
+  - UV index with safety recommendations
+  - Precipitation probability and amounts
+  - Humidity and atmospheric pressure
+  - Visibility and cloud coverage
+  - Sunrise/sunset times
 
-## Technology Stack
+### 🗺️ Interactive Features
+- **Interactive weather maps** with nearby location data
+- **Location search** with autocomplete functionality
+- **Geolocation services** for automatic location detection
+- **Multiple location management** for weather comparison
 
-- **Frontend Framework**: Next.js 14
-- **Language**: TypeScript
-- **Styling**: 
-  - Tailwind CSS
-  - CSS Modules
-- **Weather Data**: OpenMeteo API
-- **Build Tool**: Vite
+### 🎨 User Experience
+- **Dynamic weather-based backgrounds** with both static and Unsplash API integration
+- **Glass-morphism UI design** with modern, responsive layouts
+- **Auto-refresh functionality** with configurable intervals
+- **Temperature unit conversion** (Celsius/Fahrenheit)
+- **Performance optimizations** with caching services
+- **Mobile-responsive design** optimized for all devices
+
+### 📊 Advanced Analytics
+- **Vercel Analytics** integration for performance monitoring
+- **Speed Insights** for optimal user experience
+- **Weather pattern analysis** and historical data context
+
+## 🛠️ Technology Stack
+
+- **Frontend Framework**: Next.js 15.3.3 with Turbopack
+- **Runtime**: React 19
+- **Language**: TypeScript 5
+- **Styling**: Tailwind CSS 3.4+ with custom components
+- **Maps**: Leaflet with React-Leaflet integration
+- **Weather Data**: OpenMeteo API with openmeteo client
+- **Background Images**: Unsplash API (optional)
+- **Analytics**: Vercel Analytics & Speed Insights
+- **Performance**: Critters for CSS optimization
 - **Package Manager**: pnpm
 
-## Getting Started
+## 🚀 Getting Started
 
-1. Clone the repository
-2. Install dependencies:
+### Prerequisites
+- Node.js 18+ 
+- pnpm (recommended) or npm
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/weather-nextjs.git
+   cd weather-nextjs
+   ```
+
+2. **Install dependencies**
    ```bash
    pnpm install
    ```
-3. Start the development server:
+
+3. **Environment Configuration (Optional)**
+   
+   For enhanced features, copy the example environment file:
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Then add your API keys to `.env.local`:
+   ```bash
+   # OpenMeteo API Configuration (all optional)
+   NEXT_PUBLIC_OPENMETEO_API_KEY=your_openmeteo_api_key
+   NEXT_PUBLIC_OPENMETEO_API_URL=https://api.open-meteo.com/v1
+   NEXT_PUBLIC_OPENMETEO_GEOCODING_URL=https://geocoding-api.open-meteo.com/v1
+   
+   # Unsplash API for dynamic backgrounds (server-side secure)
+   UNSPLASH_ACCESS_KEY=your_unsplash_access_key
+   
+   # Feature flags (client-side feature flags)
+   NEXT_PUBLIC_ENABLE_UNSPLASH=true
+   NEXT_PUBLIC_DEBUG=false
+   NEXT_PUBLIC_ENABLE_DESKTOP_LAYOUT=true
+   ```
+
+   **Note:** OpenMeteo is free to use without an API key. The API key is only needed if you want higher rate limits or are using a custom OpenMeteo instance. To get an API key for commercial usage, visit [OpenMeteo's pricing page](https://open-meteo.com/en/pricing).
+
+4. **Start the development server**
    ```bash
    pnpm run dev
    ```
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-## Project Structure
+5. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-- `/src/app` - Next.js application pages and layouts
-- `/src/components` - Reusable React components
-- `/src/services` - API integration and business logic
-- `/src/types` - TypeScript type definitions
-- `/src/utils` - Utility functions
-- `/public` - Static assets including weather icons and backgrounds
+### Build for Production
 
-## License
+```bash
+# Build the application
+pnpm run build
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+# Start production server
+pnpm run start
+```
+
+## 📁 Project Structure
+
+```
+weather-nextjs/
+├── src/
+│   ├── app/                    # Next.js 15 app directory
+│   │   ├── components/         # App-specific components
+│   │   │   ├── WeatherApp.tsx  # Main weather application
+│   │   │   ├── CurrentWeather/ # Current weather display
+│   │   │   ├── Forecast/       # Weather forecast components
+│   │   │   ├── Maps/           # Interactive map components
+│   │   │   └── BackgroundManager/ # Dynamic background system
+│   │   ├── globals.css         # Global styles
+│   │   ├── layout.tsx          # Root layout
+│   │   └── page.tsx           # Homepage
+│   ├── components/             # Reusable UI components
+│   │   ├── ui/                # Base UI components
+│   │   ├── WeatherMetrics/    # Weather data displays
+│   │   ├── LocationSearch/    # Location search functionality
+│   │   └── UnitConverter/     # Temperature unit conversion
+│   ├── services/              # API integration and business logic
+│   │   ├── weatherService.ts  # OpenMeteo API integration
+│   │   ├── locationService.ts # Geolocation services
+│   │   ├── cacheService.ts    # Performance caching
+│   │   └── unsplashService.ts # Background image service
+│   ├── types/                 # TypeScript type definitions
+│   │   ├── weather.ts         # Weather data types
+│   │   └── location.ts        # Location data types
+│   ├── utils/                 # Utility functions
+│   │   ├── weatherUtils.ts    # Weather calculation helpers
+│   │   ├── formatters.ts      # Data formatting utilities
+│   │   └── constants.ts       # Application constants
+│   └── hooks/                 # Custom React hooks
+│       ├── useWeather.ts      # Weather data management
+│       ├── useLocation.ts     # Location management
+│       └── useLocalStorage.ts # Persistent storage
+├── public/                    # Static assets
+│   ├── weather-icons/         # Weather condition icons
+│   ├── backgrounds/           # Static background images
+│   └── favicon.ico           # Application favicon
+└── package.json              # Project dependencies and scripts
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `NEXT_PUBLIC_OPENMETEO_API_KEY` | OpenMeteo API key for higher rate limits (optional) | No | - |
+| `NEXT_PUBLIC_OPENMETEO_API_URL` | Custom OpenMeteo API endpoint | No | `https://api.open-meteo.com/v1` |
+| `NEXT_PUBLIC_OPENMETEO_GEOCODING_URL` | Custom OpenMeteo Geocoding API endpoint | No | `https://geocoding-api.open-meteo.com/v1` |
+| `UNSPLASH_ACCESS_KEY` | Unsplash API key for dynamic backgrounds (server-side only) | No | - |
+| `NEXT_PUBLIC_ENABLE_UNSPLASH` | Feature flag to enable Unsplash backgrounds (client-side safe) | No | `false` |
+| `NEXT_PUBLIC_DEBUG` | Enable debug mode for additional logging | No | `false` |
+| `NEXT_PUBLIC_ENABLE_DESKTOP_LAYOUT` | Enable desktop layout features | No | `true` |
+
+### Features Configuration
+
+The app includes several configurable features:
+
+- **Auto-refresh intervals**: Customizable through user preferences
+- **Background sources**: Toggle between static images and Unsplash API
+- **Temperature units**: User-selectable Celsius/Fahrenheit
+- **Map providers**: Configurable map tile sources
+- **Cache duration**: Adjustable API response caching
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 API Credits
+
+- **Weather Data**: [OpenMeteo](https://open-meteo.com/) - Free weather API
+- **Maps**: [OpenStreetMap](https://www.openstreetmap.org/) via Leaflet
+- **Background Images**: [Unsplash](https://unsplash.com/) (optional)
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- OpenMeteo for providing free, high-quality weather data
+- Unsplash for beautiful weather-related imagery
+- The Next.js team for an excellent framework
+- The open-source community for the amazing libraries used in this project

@@ -29,11 +29,11 @@ interface WeatherMetricsProps {
 
 const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: WeatherMetricsProps) {
   const LoadingMetric = memo(({ title, width }: { title: string, width: string }) => (
-    <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
-      <div className="flex items-center justify-between gap-2">
+    <div className="p-3 md:p-4 bg-black/10 rounded-lg md:rounded-xl">
+      <div className="flex items-center justify-between gap-2 md:gap-3">
         <div>
-          <div className="text-xs md:text-sm opacity-70">{title}</div>
-          <div className={`text-base md:text-lg font-semibold loading-element ${width}`}></div>
+          <div className="text-xs md:text-sm opacity-70 mb-1">{title}</div>
+          <div className={`text-sm md:text-base font-semibold loading-element ${width}`}></div>
         </div>
       </div>
     </div>
@@ -58,27 +58,29 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
 
   if (loading) {
     return (
-      <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5">
+      <div>
+        <div className="text-base md:text-lg font-semibold mb-4 md:mb-6 text-primary">Weather Details</div>
         <div className="grid grid-cols-2 gap-3 md:gap-4">
-          <LoadingMetric title="Weather Condition" width="w-32" />
-          <LoadingMetric title="Precipitation" width="w-16" />
-          <LoadingMetric title="UV Index" width="w-32" />
-          <LoadingMetric title="Humidity" width="w-16" />
-          <LoadingMetric title="Wind (Beaufort)" width="w-24" />
-          <LoadingMetric title="Pressure" width="w-24" />
+          <LoadingMetric title="Condition" width="w-20" />
+          <LoadingMetric title="Precipitation" width="w-12" />
+          <LoadingMetric title="UV Index" width="w-16" />
+          <LoadingMetric title="Humidity" width="w-12" />
+          <LoadingMetric title="Wind" width="w-16" />
+          <LoadingMetric title="Pressure" width="w-16" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="glass-container p-3 md:p-6 mb-4 md:mb-8 rounded-lg md:rounded-2xl backdrop-blur-md bg-white/5">
+    <div>
+      <div className="text-base md:text-lg font-semibold mb-4 md:mb-6 text-primary">Weather Details</div>
       <div className="grid grid-cols-2 gap-3 md:gap-4">
-        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
-          <div className="flex items-center justify-between gap-2">
+        <div className="p-3 md:p-4 bg-black/10 rounded-lg md:rounded-xl">
+          <div className="flex items-center justify-between gap-2 md:gap-3">
             <div>
-              <div className="text-xs md:text-sm opacity-70">Weather Condition</div>
-              <div className="text-base md:text-lg font-semibold">
+              <div className="text-xs md:text-sm opacity-70 mb-1">Weather Condition</div>
+              <div className="text-sm md:text-base font-semibold">
                 {weatherData ? weatherData.currentWeather.condition : ''}
               </div>
             </div>
@@ -86,31 +88,31 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
               <Image
                 src={weatherData.currentWeather.icon}
                 alt={weatherData.currentWeather.condition}
-                width={56}
-                height={56}
-                className="w-12 md:w-14 h-12 md:h-14 opacity-80"
+                width={40}
+                height={40}
+                className="w-9 md:w-10 h-9 md:h-10 opacity-80"
               />
             )}
           </div>
         </div>
 
-        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
-          <div className="flex items-center justify-between gap-2">
+        <div className="p-3 md:p-4 bg-black/10 rounded-lg md:rounded-xl">
+          <div className="flex items-center justify-between gap-2 md:gap-3">
             <div>
-              <div className="text-xs md:text-sm opacity-70">Precipitation</div>
-              <div className="text-base md:text-lg font-semibold">
+              <div className="text-xs md:text-sm opacity-70 mb-1">Precipitation</div>
+              <div className="text-sm md:text-base font-semibold">
                 {weatherData ? `${weatherData.currentWeather.precipitation}%` : ''}
               </div>
             </div>
-            <Image src="/icons/weathers/raindrops.svg" alt="Precipitation" width={56} height={56} className="w-12 md:w-14 h-12 md:h-14 opacity-80" />
+            <Image src="/icons/weathers/raindrops.svg" alt="Precipitation" width={40} height={40} className="w-9 md:w-10 h-9 md:h-10 opacity-80" />
           </div>
         </div>
 
-        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
-          <div className="flex items-center justify-between gap-2">
+        <div className="p-3 md:p-4 bg-black/10 rounded-lg md:rounded-xl">
+          <div className="flex items-center justify-between gap-2 md:gap-3">
             <div>
-              <div className="text-xs md:text-sm opacity-70">UV Index</div>
-              <div className="text-base md:text-lg font-semibold">
+              <div className="text-xs md:text-sm opacity-70 mb-1">UV Index</div>
+              <div className="text-sm md:text-base font-semibold">
                 {weatherData ? (
                   <>
                     {weatherData.currentWeather.uvIndex.value} - {weatherData.currentWeather.uvIndex.category}
@@ -122,31 +124,31 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
               <Image
                 src={uvIcon}
                 alt={`UV Index - ${weatherData?.currentWeather?.uvIndex?.category}`}
-                width={56}
-                height={56}
-                className="w-12 md:w-14 h-12 md:h-14 opacity-80"
+                width={40}
+                height={40}
+                className="w-9 md:w-10 h-9 md:h-10 opacity-80"
               />
             )}
           </div>
         </div>
 
-        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
-          <div className="flex items-center justify-between gap-2">
+        <div className="p-3 md:p-4 bg-black/10 rounded-lg md:rounded-xl">
+          <div className="flex items-center justify-between gap-2 md:gap-3">
             <div>
-              <div className="text-xs md:text-sm opacity-70">Humidity</div>
-              <div className="text-base md:text-lg font-semibold">
+              <div className="text-xs md:text-sm opacity-70 mb-1">Humidity</div>
+              <div className="text-sm md:text-base font-semibold">
                 {weatherData ? `${weatherData.currentWeather.humidity}%` : ''}
               </div>
             </div>
-            <Image src="/icons/weathers/humidity.svg" alt="Humidity" width={56} height={56} className="w-12 md:w-14 h-12 md:h-14 opacity-80" />
+            <Image src="/icons/weathers/humidity.svg" alt="Humidity" width={40} height={40} className="w-9 md:w-10 h-9 md:h-10 opacity-80" />
           </div>
         </div>
 
-        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
-          <div className="flex items-center justify-between gap-2">
+        <div className="p-3 md:p-4 bg-black/10 rounded-lg md:rounded-xl">
+          <div className="flex items-center justify-between gap-2 md:gap-3">
             <div>
-              <div className="text-xs md:text-sm opacity-70">Wind (Beaufort)</div>
-              <div className="text-base md:text-lg font-semibold">
+              <div className="text-xs md:text-sm opacity-70 mb-1">Wind (Beaufort)</div>
+              <div className="text-sm md:text-base font-semibold">
                 {beaufortData ? (
                   <>
                     {beaufortData.scale} - {beaufortData.description}
@@ -158,23 +160,23 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
               <Image
                 src={windIcon}
                 alt="Wind Speed"
-                width={56}
-                height={56}
-                className="w-12 md:w-14 h-12 md:h-14 opacity-80"
+                width={40}
+                height={40}
+                className="w-9 md:w-10 h-9 md:h-10 opacity-80"
               />
             )}
           </div>
         </div>
 
-        <div className="p-2.5 md:p-3 bg-white/5 rounded-lg">
-          <div className="flex items-center justify-between gap-2">
+        <div className="p-3 md:p-4 bg-black/10 rounded-lg md:rounded-xl">
+          <div className="flex items-center justify-between gap-2 md:gap-3">
             <div>
-              <div className="text-xs md:text-sm opacity-70">Pressure</div>
-              <div className="text-base md:text-lg font-semibold">
+              <div className="text-xs md:text-sm opacity-70 mb-1">Pressure</div>
+              <div className="text-sm md:text-base font-semibold">
                 {weatherData ? `${weatherData.currentWeather.pressure} hPa` : ''}
               </div>
             </div>
-            <Image src="/icons/weathers/barometer.svg" alt="Pressure" width={56} height={56} className="w-12 md:w-14 h-12 md:h-14 opacity-80" />
+            <Image src="/icons/weathers/barometer.svg" alt="Pressure" width={40} height={40} className="w-9 md:w-10 h-9 md:h-10 opacity-80" />
           </div>
         </div>
       </div>
