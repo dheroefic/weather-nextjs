@@ -67,11 +67,18 @@ const WeatherLegend = ({
   };
 
   const baseClasses = variant === 'mobile' 
-    ? "absolute bottom-4 left-4 right-4 bg-black/80 backdrop-blur-md border border-white/20 rounded-lg overflow-hidden z-[1010]"
-    : "absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/20 rounded-lg overflow-hidden z-[1010] max-w-sm";
+    ? "absolute bottom-4 left-4 right-4 rounded-lg overflow-hidden z-[1010]"
+    : "absolute top-20 right-6 rounded-lg overflow-hidden z-[1010] max-w-sm";
+
+  const containerStyle = {
+    background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
+    backdropFilter: 'blur(24px)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+  };
 
   return (
-    <div className={baseClasses}>
+    <div className={baseClasses} style={containerStyle}>
       <div className="flex items-center justify-between p-2 border-b border-white/10">
         <span className="text-white text-sm font-medium">Weather Conditions</span>
         <button
@@ -148,7 +155,12 @@ const SearchInterface = ({
       <div className="flex justify-start">
         <button
           onClick={onClose}
-          className="w-10 h-10 bg-gray-800/90 backdrop-blur-md border border-gray-600/50 rounded-lg hover:bg-gray-700/90 transition-colors flex items-center justify-center"
+          className="w-10 h-10 rounded-lg transition-all duration-200 backdrop-blur-md text-white border flex items-center justify-center"
+          style={{
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
+            borderColor: 'rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+          }}
           title="Close map"
         >
           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,7 +176,13 @@ const SearchInterface = ({
           placeholder="Search location..."
           value={searchQuery}
           onChange={(e) => onSearchQueryChange(e.target.value)}
-          className="w-full px-4 py-3 bg-gray-800/90 backdrop-blur-md border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 text-base"
+          className="w-full px-4 py-3 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-1 text-base transition-all duration-200"
+          style={{
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
+            backdropFilter: 'blur(24px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+          }}
         />
         {isSearching && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -175,16 +193,24 @@ const SearchInterface = ({
       
       {/* Search Results */}
       {searchQuery && (
-        <div className="bg-gray-800/90 backdrop-blur-md border border-gray-600/50 rounded-lg shadow-lg max-h-60 overflow-y-auto max-w-2xl">
+        <div 
+          className="rounded-lg shadow-2xl max-h-60 overflow-y-auto max-w-2xl"
+          style={{
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
+            backdropFilter: 'blur(24px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+          }}
+        >
           {isSearching ? (
-            <div className="px-4 py-3 text-center text-gray-400">
+            <div className="px-4 py-3 text-center text-white/70">
               <div className="flex items-center justify-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 Searching...
               </div>
             </div>
           ) : searchResults.length === 0 ? (
-            <div className="px-4 py-3 text-center text-gray-400">
+            <div className="px-4 py-3 text-center text-white/70">
               No results found
             </div>
           ) : (
@@ -192,10 +218,10 @@ const SearchInterface = ({
               <button
                 key={index}
                 onClick={() => onSearchResultSelect(result)}
-                className="w-full px-4 py-3 text-left hover:bg-gray-700/50 transition-colors border-b border-gray-600/30 last:border-b-0"
+                className="w-full px-4 py-3 text-left hover:bg-white/15 transition-all duration-200 border-b border-white/10 last:border-b-0 group"
               >
-                <div className="text-white font-medium">{result.name}</div>
-                <div className="text-gray-400 text-sm">{result.country}</div>
+                <div className="text-white/90 font-medium group-hover:text-white">{result.name}</div>
+                <div className="text-white/70 text-sm group-hover:text-white/85">{result.country}</div>
               </button>
             ))
           )}
@@ -204,7 +230,15 @@ const SearchInterface = ({
 
       {/* Location Display */}
       {location && (
-        <div className="bg-gray-800/90 backdrop-blur-md border border-gray-600/50 rounded-lg p-4 max-w-2xl">
+        <div 
+          className="rounded-lg p-4 max-w-2xl"
+          style={{
+            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
+            backdropFilter: 'blur(24px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+          }}
+        >
           <div className="flex items-center justify-between">
             <div className="text-white text-lg font-semibold">
               {location.city}, {location.country}
@@ -243,7 +277,11 @@ const SearchInterface = ({
                   );
                 }
               }}
-              className="flex-1 py-3 px-4 rounded-lg bg-gray-700/80 hover:bg-gray-700 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500 flex items-center justify-center gap-2"
+              className="flex-1 py-3 px-4 rounded-lg transition-all duration-200 text-white border flex items-center justify-center gap-2 hover:bg-white/15"
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderColor: 'rgba(255, 255, 255, 0.2)'
+              }}
               title="Use your current location"
             >
               <svg
@@ -273,7 +311,11 @@ const SearchInterface = ({
                 // Set location functionality
                 if (onClose) onClose();
               }}
-              className="flex-1 py-3 px-4 rounded-lg bg-gray-700/80 hover:bg-gray-700 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500 flex items-center justify-center gap-2"
+              className="flex-1 py-3 px-4 rounded-lg transition-all duration-200 text-white border flex items-center justify-center gap-2 hover:bg-white/15"
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderColor: 'rgba(255, 255, 255, 0.2)'
+              }}
               title="Set location"
             >
               <svg
@@ -352,52 +394,263 @@ export default function MapPanel({
     ? "fixed inset-0 z-[100] bg-black"
     : "fixed inset-0 z-50 bg-black/95 backdrop-blur-sm";
 
+  const desktopLayout = variant === 'desktop';
+
   return (
     <div className={containerClasses}>
-      <SearchInterface
-        searchQuery={search.searchQuery}
-        searchResults={search.searchResults}
-        isSearching={search.isSearching}
-        onSearchQueryChange={search.setSearchQuery}
-        onSearchResultSelect={search.handleSearchResultSelect}
-        onClose={onClose}
-        location={location}
-        onLocationSelect={onLocationSelect}
-      />
+      {desktopLayout ? (
+        // Clean, minimal desktop layout
+        <div className="h-full w-full relative">
+          {/* Simple top bar with close and search */}
+          <div className="absolute top-4 left-4 right-4 z-[1020] flex items-center justify-between gap-4">
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-lg transition-all duration-200 backdrop-blur-md text-white border hover:bg-white/10 flex-shrink-0"
+              style={{
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)'
+              }}
+              title="Close map"
+            >
+              <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
 
-      <div className="absolute inset-0">
-        {mapState.leaflet ? (
-          <div id={mapContainerId} className="h-full w-full relative">
-            <Suspense fallback={<LoadingFallback variant={variant} />}>
-              <MapCore
-                center={[safeCoordinates.latitude, safeCoordinates.longitude]}
-                zoom={DEFAULT_MAP_CONFIG.defaultZoom}
-                mapConfig={DEFAULT_MAP_CONFIG}
-                setMapInstance={mapState.setMapInstance}
-                setIsMapReady={mapState.setIsMapReady}
-                isMobile={variant === 'mobile'}
+            {/* Search input - simplified */}
+            <div className="flex-1 max-w-md relative">
+              <input
+                type="text"
+                placeholder="Search location..."
+                value={search.searchQuery}
+                onChange={(e) => search.setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg text-white placeholder-white/60 focus:outline-none text-sm transition-all duration-200"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
+                  backdropFilter: 'blur(24px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)'
+                }}
+              />
+              {search.isSearching && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                </div>
+              )}
+              
+              {/* Search results dropdown */}
+              {search.searchQuery && (
+                <div 
+                  className="absolute top-full left-0 right-0 mt-2 rounded-lg shadow-xl max-h-60 overflow-y-auto z-[1030]"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.8) 100%)',
+                    backdropFilter: 'blur(24px)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4)'
+                  }}
+                >
+                  {search.isSearching ? (
+                    <div className="px-4 py-3 text-center text-white/70 text-sm">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                        Searching...
+                      </div>
+                    </div>
+                  ) : search.searchResults.length === 0 ? (
+                    <div className="px-4 py-3 text-center text-white/70 text-sm">
+                      No results found
+                    </div>
+                  ) : (
+                    search.searchResults.map((result, index) => (
+                      <button
+                        key={index}
+                        onClick={() => search.handleSearchResultSelect(result)}
+                        className="w-full px-4 py-2.5 text-left hover:bg-white/10 transition-all duration-200 border-b border-white/5 last:border-b-0 group"
+                      >
+                        <div className="text-white/90 font-medium group-hover:text-white text-sm">{result.name}</div>
+                        <div className="text-white/60 text-xs group-hover:text-white/80">{result.country}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Location display - minimal */}
+            <div className="flex-shrink-0">
+              {location && (
+                <div 
+                  className="px-4 py-2.5 rounded-lg backdrop-blur-md text-white text-sm font-medium"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                  }}
+                >
+                  {location.city}, {location.country}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Simple bottom actions */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-[1020]">
+            <div 
+              className="flex items-center gap-2 px-3 py-2.5 rounded-lg backdrop-blur-md"
+              style={{
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}
+            >
+              <button
+                onClick={() => {
+                  if (navigator.geolocation && onLocationSelect) {
+                    navigator.geolocation.getCurrentPosition(
+                      (position) => {
+                        const { latitude, longitude } = position.coords;
+                        onLocationSelect({
+                          latitude,
+                          longitude,
+                          city: 'Current Location',
+                          country: ''
+                        });
+                      },
+                      (error) => {
+                        console.error('Error getting current location:', error);
+                      }
+                    );
+                  }
+                }}
+                className="px-3 py-2 rounded-md transition-all duration-200 text-white border text-sm flex items-center gap-2 hover:bg-white/10"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderColor: 'rgba(255, 255, 255, 0.2)'
+                }}
+                title="Use your current location"
               >
-                {markers.map((marker, index) => (
-                  <WeatherMarker
-                    key={`${marker.position[0]}-${marker.position[1]}-${index}`}
-                    marker={marker}
-                    tempUnit={tempUnit}
-                    convertTemp={convertTemp}
-                  />
-                ))}
-              </MapCore>
-            </Suspense>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                My Location
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (mapState.mapInstance?.getCenter) {
+                    const center = mapState.mapInstance.getCenter();
+                    onLocationSelect({
+                      latitude: center.lat,
+                      longitude: center.lng,
+                      city: 'Selected Location',
+                      country: ''
+                    });
+                    onClose();
+                  }
+                }}
+                className="px-3 py-2 rounded-md transition-all duration-200 text-white border text-sm flex items-center gap-2 hover:bg-blue-600/20 bg-blue-600/10"
+                style={{
+                  borderColor: 'rgba(59, 130, 246, 0.5)'
+                }}
+                title="Use this location"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
+                </svg>
+                Use This Location
+              </button>
+            </div>
+          </div>
 
-            <WeatherLegend variant={variant} />
+          {/* Map Container */}
+          <div className="absolute inset-0">
+            {mapState.leaflet ? (
+              <div id={mapContainerId} className="h-full w-full relative">
+                <Suspense fallback={<LoadingFallback variant={variant} />}>
+                  <MapCore
+                    center={[safeCoordinates.latitude, safeCoordinates.longitude]}
+                    zoom={DEFAULT_MAP_CONFIG.defaultZoom}
+                    mapConfig={DEFAULT_MAP_CONFIG}
+                    setMapInstance={mapState.setMapInstance}
+                    setIsMapReady={mapState.setIsMapReady}
+                    isMobile={false}
+                  >
+                    {markers.map((marker, index) => (
+                      <WeatherMarker
+                        key={`${marker.position[0]}-${marker.position[1]}-${index}`}
+                        marker={marker}
+                        tempUnit={tempUnit}
+                        convertTemp={convertTemp}
+                      />
+                    ))}
+                  </MapCore>
+                </Suspense>
 
-            {!mapState.isMapReady && (
+                <WeatherLegend variant={variant} />
+
+                {!mapState.isMapReady && (
+                  <LoadingFallback variant={variant} />
+                )}
+              </div>
+            ) : (
               <LoadingFallback variant={variant} />
             )}
           </div>
-        ) : (
-          <LoadingFallback variant={variant} />
-        )}
-      </div>
+        </div>
+      ) : (
+        // Mobile layout - using the original SearchInterface component
+        <div className="h-full w-full relative">
+          <SearchInterface
+            searchQuery={search.searchQuery}
+            searchResults={search.searchResults}
+            isSearching={search.isSearching}
+            onSearchQueryChange={search.setSearchQuery}
+            onSearchResultSelect={search.handleSearchResultSelect}
+            onClose={onClose}
+            location={location}
+            onLocationSelect={onLocationSelect}
+          />
+
+          <div className="absolute inset-0">
+            {mapState.leaflet ? (
+              <div id={mapContainerId} className="h-full w-full relative">
+                <Suspense fallback={<LoadingFallback variant={variant} />}>
+                  <MapCore
+                    center={[safeCoordinates.latitude, safeCoordinates.longitude]}
+                    zoom={DEFAULT_MAP_CONFIG.defaultZoom}
+                    mapConfig={DEFAULT_MAP_CONFIG}
+                    setMapInstance={mapState.setMapInstance}
+                    setIsMapReady={mapState.setIsMapReady}
+                    isMobile={variant === 'mobile'}
+                  >
+                    {markers.map((marker, index) => (
+                      <WeatherMarker
+                        key={`${marker.position[0]}-${marker.position[1]}-${index}`}
+                        marker={marker}
+                        tempUnit={tempUnit}
+                        convertTemp={convertTemp}
+                      />
+                    ))}
+                  </MapCore>
+                </Suspense>
+
+                <WeatherLegend variant={variant} />
+
+                {!mapState.isMapReady && (
+                  <LoadingFallback variant={variant} />
+                )}
+              </div>
+            ) : (
+              <LoadingFallback variant={variant} />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

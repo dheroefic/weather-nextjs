@@ -7,6 +7,7 @@ import DailyForecast from '../shared/DailyForecast';
 import WeatherMetrics from '../shared/WeatherMetrics';
 import Footer from '../shared/Footer';
 import EmbeddedMap from './EmbeddedMap';
+import LocationSelector from '../shared/LocationSelector';
 import dynamic from 'next/dynamic';
 import MapPanelComponent from '../shared/Map/MapPanel';
 import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/types/weather';
@@ -70,9 +71,25 @@ export default function DesktopLayout({
   const [fullscreenMapKey, setFullscreenMapKey] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [embeddedMapDestroyed, setEmbeddedMapDestroyed] = useState(false);
+  const [showLocationSelector, setShowLocationSelector] = useState(false);
   
   const currentWeather = weatherData?.currentWeather;
   const dailyForecast = weatherData?.dailyForecast?.slice(0, 14) || []; // Show 14 days
+
+  // Handle panel toggles - only allow one panel open at a time
+  const handleSettingsToggle = () => {
+    if (showLocationSelector) {
+      setShowLocationSelector(false);
+    }
+    setShowSettings(!showSettings);
+  };
+
+  const handleLocationToggle = () => {
+    if (showSettings) {
+      setShowSettings(false);
+    }
+    setShowLocationSelector(!showLocationSelector);
+  };
 
   // Debug effect to track showFullscreenMap state changes
   useEffect(() => {
@@ -154,7 +171,7 @@ export default function DesktopLayout({
                     </button>
                     <div className="relative">
                       <button
-                        onClick={(e) => {setShowSettings(!showSettings); e.stopPropagation();}}
+                        onClick={(e) => {handleSettingsToggle(); e.stopPropagation();}}
                         className="desktop-control-button"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -164,32 +181,40 @@ export default function DesktopLayout({
                       </button>
                       {showSettings && (
                         <div
-                          className="absolute top-full left-0 mt-3 desktop-forecast-card min-w-[280px] z-50"
+                          className="absolute top-full left-0 mt-3 min-w-[280px] z-50 rounded-xl shadow-2xl"
                           onClick={(e) => e.stopPropagation()}
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
+                            backdropFilter: 'blur(24px)',
+                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+                          }}
                         >
-                          <div className="space-y-4">
+                          <div className="p-4 space-y-4">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-secondary">Temperature Unit</span>
+                              <span className="text-sm font-medium text-white/80">Temperature Unit</span>
                               <button
                                 onClick={onTempUnitToggle}
-                                className={`desktop-control-button px-3 py-2 text-sm font-semibold ${
-                                  tempUnit === 'C' ? 'bg-blue-500/20 border-blue-400/40 text-blue-300' : 'text-primary'
+                                className={`px-3 py-2 text-sm font-semibold rounded-lg border transition-all duration-200 ${
+                                  tempUnit === 'C' 
+                                    ? 'bg-blue-500/30 border-blue-400/60 text-blue-200' 
+                                    : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'
                                 }`}
                               >
                                 °{tempUnit === 'C' ? 'C' : 'F'}
                               </button>
                             </div>
                             <div className="space-y-3">
-                              <span className="text-sm font-medium text-secondary">Auto-refresh Interval</span>
+                              <span className="text-sm font-medium text-white/80">Auto-refresh Interval</span>
                               <div className="grid grid-cols-2 gap-2">
                                 {[1, 5, 15, null].map((minutes) => (
                                   <button
                                     key={minutes || 'off'}
                                     onClick={() => handleAutoRefreshChange(minutes)}
-                                    className={`desktop-control-button px-2 py-2 text-xs font-semibold ${
+                                    className={`px-2 py-2 text-xs font-semibold rounded-lg border transition-all duration-200 ${
                                       autoRefreshInterval === minutes
-                                        ? 'bg-blue-500/20 border-blue-400/40 text-blue-300'
-                                        : 'text-primary'
+                                        ? 'bg-blue-500/30 border-blue-400/60 text-blue-200'
+                                        : 'bg-white/10 border-white/20 text-white/80 hover:bg-white/20'
                                     }`}
                                   >
                                     {minutes ? `${minutes}m` : 'Off'}
@@ -214,11 +239,12 @@ export default function DesktopLayout({
                   </div>
                   {/* Current Location */}
                   <div className="flex items-center justify-center space-x-2 text-sm font-medium text-tertiary">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span>{location.city}, {location.country}</span>
+                    <LocationSelector
+                      currentLocation={location}
+                      onLocationSelect={onLocationSelect}
+                      isOpen={showLocationSelector}
+                      onToggle={handleLocationToggle}
+                    />
                   </div>
                 </div>
 
