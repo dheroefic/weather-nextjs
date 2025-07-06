@@ -5,11 +5,12 @@ import Image from 'next/image';
 import type { TemperatureUnit, WeatherData, Location } from '@/types/weather';
 import { WMO_CODES } from '@/services/weatherService';
 import { useSafeCoordinates, DEFAULT_MAP_CONFIG } from '@/utils/mapUtility';
+import { useMapLocationUpdate } from '@/hooks/useMapLocationUpdate';
 import { MapCore, WeatherMarker, type MarkerData } from './MapCore';
 import { useMapState, useCustomIcon, useMapInvalidation } from './useMapHooks';
 import { useSearch } from './useSearch';
 
-console.log('MapPanel component loaded');
+
 
 export interface MapPanelProps {
   isOpen: boolean;
@@ -351,13 +352,38 @@ export default function MapPanel({
   variant = 'desktop',
   nearbyLocations = [],
 }: MapPanelProps) {
-  console.log('MapPanel function called with props:', { isOpen, variant, hasWeatherData: !!weatherData, hasLocation: !!location });
   
   const safeCoordinates = useSafeCoordinates(location);
   const mapState = useMapState();
   const { createCustomIcon } = useCustomIcon(mapState.leaflet, weatherData, variant === 'mobile');
   const search = useSearch({ onLocationSelect });
   const [mapContainerId] = useState(() => `${variant}-map-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const previousCoordinatesRef = React.useRef<{ latitude: number; longitude: number } | null>(null);
+  const [isFlying, setIsFlying] = React.useState(false);
+
+  // Create validated center coordinates
+  const validatedCenter: [number, number] = React.useMemo(() => {
+    // Always ensure we have safeCoordinates and they are valid
+    if (!safeCoordinates) {
+      console.warn('MapPanel: safeCoordinates is null/undefined, using fallback');
+      return [-6.2088, 106.8456]; // Jakarta fallback
+    }
+    
+    const { latitude, longitude } = safeCoordinates;
+    
+    if (typeof latitude === 'number' && 
+        typeof longitude === 'number' &&
+        !isNaN(latitude) && 
+        !isNaN(longitude) &&
+        latitude >= -90 && latitude <= 90 &&
+        longitude >= -180 && longitude <= 180) {
+      return [latitude, longitude];
+    }
+    
+    console.warn('MapPanel: safeCoordinates contain invalid values:', safeCoordinates);
+    // Fallback to Jakarta coordinates if safeCoordinates are invalid
+    return [-6.2088, 106.8456];
+  }, [safeCoordinates]);
 
   // Map invalidation for responsive behavior
   useMapInvalidation({
@@ -367,28 +393,177 @@ export default function MapPanel({
     delay: variant === 'mobile' ? 100 : 150,
   });
 
-  if (!isOpen) {
-    return null;
-  }
+  // Handle map location updates when user interacts with map
+  const handleLocationUpdate = React.useCallback(async (lat: number, lng: number) => {
+    try {
+      // Call the location select handler with updated coordinates
+      onLocationSelect({
+        latitude: lat,
+        longitude: lng,
+        city: location.city, // Keep existing city info temporarily
+        country: location.country, // Keep existing country info temporarily
+      });
+    } catch (error) {
+      console.error('Error updating location from map interaction:', error);
+    }
+  }, [location, onLocationSelect]);
 
-  // Prepare markers
-  const markers: MarkerData[] = [
-    // Main location marker
-    {
-      position: [safeCoordinates.latitude, safeCoordinates.longitude],
+  // Set up map location update hook
+  const { updateLastLocation } = useMapLocationUpdate({
+    map: mapState.mapInstance,
+    onLocationChange: handleLocationUpdate,
+    debounceMs: 800, // Wait 800ms after user stops moving the map
+    minDistanceKm: 3, // Only update if moved more than 3km
+    enabled: isOpen // Only enabled when map panel is open
+  });
+
+  // Handle location changes with smooth animation
+  React.useEffect(() => {
+    if (mapState.mapInstance && mapState.isMapReady && isOpen) {
+      // Create validated coordinates directly in the effect to avoid timing issues
+      let validCoords: [number, number];
+      
+      if (!safeCoordinates) {
+        console.warn('MapPanel effect: safeCoordinates is null/undefined, using fallback');
+        validCoords = [-6.2088, 106.8456]; // Jakarta fallback
+      } else {
+        const { latitude, longitude } = safeCoordinates;
+        
+        if (typeof latitude === 'number' && 
+            typeof longitude === 'number' &&
+            !isNaN(latitude) && 
+            !isNaN(longitude) &&
+            latitude >= -90 && latitude <= 90 &&
+            longitude >= -180 && longitude <= 180) {
+          validCoords = [latitude, longitude];
+        } else {
+          console.warn('MapPanel effect: safeCoordinates contain invalid values:', safeCoordinates);
+          validCoords = [-6.2088, 106.8456]; // Jakarta fallback
+        }
+      }
+      
+
+      const [lat, lng] = validCoords;
+
+      const currentCoords = { 
+        latitude: lat, 
+        longitude: lng 
+      };
+      
+      // Check if coordinates actually changed
+      const previousCoords = previousCoordinatesRef.current;
+      const coordinatesChanged = !previousCoords || 
+        previousCoords.latitude !== currentCoords.latitude || 
+        previousCoords.longitude !== currentCoords.longitude;
+      
+      if (coordinatesChanged) {
+        console.log('MapPanel: Flying to new location:', currentCoords);
+        
+        // Triple-check that coordinates are actually valid before flying
+        if (typeof lat !== 'number' || typeof lng !== 'number' || 
+            isNaN(lat) || isNaN(lng) ||
+            lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+          console.error('MapPanel: CRITICAL - Attempted to fly to invalid coordinates:', validCoords);
+          return;
+        }
+        
+        setIsFlying(true);
+        
+        // Use flyTo for smooth animation to new location with error handling
+        try {
+          // Final safety check right before flyTo call
+          const finalLat = Number(validCoords[0]);
+          const finalLng = Number(validCoords[1]);
+          
+          if (isNaN(finalLat) || isNaN(finalLng) || 
+              finalLat < -90 || finalLat > 90 || 
+              finalLng < -180 || finalLng > 180) {
+            console.error('MapPanel: ABORT - Coordinates became invalid right before flyTo:', {
+              originalValidCoords: validCoords,
+              finalLat,
+              finalLng
+            });
+            return;
+          }
+          
+          // Create a fresh coordinate array to prevent any reference issues
+          const safeCoordinateArray: [number, number] = [finalLat, finalLng];
+
+          
+          mapState.mapInstance.flyTo(
+            safeCoordinateArray,
+            DEFAULT_MAP_CONFIG.defaultZoom,
+            {
+              duration: 1.5, // 1.5 seconds animation
+              easeLinearity: 0.25, // Smooth easing
+            }
+          );
+        } catch (error) {
+          console.error('MapPanel: Error during flyTo operation:', error);
+          console.error('MapPanel: Attempted coordinates:', validCoords);
+          
+          // Fallback: try to set view directly without animation
+          try {
+            const fallbackLat = Number(validCoords[0]);
+            const fallbackLng = Number(validCoords[1]);
+            
+            if (!isNaN(fallbackLat) && !isNaN(fallbackLng)) {
+              mapState.mapInstance.setView([fallbackLat, fallbackLng], DEFAULT_MAP_CONFIG.defaultZoom);
+            } else {
+              console.error('MapPanel: Fallback coordinates also invalid, using Jakarta');
+              mapState.mapInstance.setView([-6.2088, 106.8456], DEFAULT_MAP_CONFIG.defaultZoom);
+            }
+          } catch (fallbackError) {
+            console.error('MapPanel: Fallback setView also failed:', fallbackError);
+          }
+        }
+        
+        // Set flying state to false after animation completes
+        setTimeout(() => {
+          setIsFlying(false);
+        }, 1500);
+        
+        // Update the ref to track current coordinates
+        previousCoordinatesRef.current = currentCoords;
+        
+        // Update the map location hook to prevent triggering location update from this programmatic change
+        updateLastLocation(currentCoords.latitude, currentCoords.longitude);
+      }
+    }
+  }, [mapState.mapInstance, mapState.isMapReady, safeCoordinates, isOpen, updateLastLocation]);
+
+  // Prepare markers with validated coordinates (moved before early return to fix hooks order)
+  const markers: MarkerData[] = React.useMemo(() => {
+    const mainMarker = {
+      position: validatedCenter,
       icon: createCustomIcon(),
       weatherData,
       location: { city: location.city, country: location.country },
       onClick: () => console.log('Current location marker clicked'),
-    },
-    // Nearby location markers
-    ...nearbyLocations.map((loc) => ({
-      position: [loc.latitude, loc.longitude] as [number, number],
-      icon: createCustomIcon(loc.weatherData?.currentWeather?.icon),
-      weatherData: loc.weatherData,
-      location: { city: loc.city || 'Unknown Location', country: undefined },
-    })),
-  ];
+    };
+
+    const nearbyMarkers = nearbyLocations
+      .filter((loc) => 
+        typeof loc.latitude === 'number' && 
+        typeof loc.longitude === 'number' &&
+        !isNaN(loc.latitude) && 
+        !isNaN(loc.longitude) &&
+        loc.latitude >= -90 && loc.latitude <= 90 &&
+        loc.longitude >= -180 && loc.longitude <= 180
+      )
+      .map((loc) => ({
+        position: [loc.latitude, loc.longitude] as [number, number],
+        icon: createCustomIcon(loc.weatherData?.currentWeather?.icon),
+        weatherData: loc.weatherData,
+        location: { city: loc.city || 'Unknown Location', country: undefined },
+      }));
+
+    return [mainMarker, ...nearbyMarkers];
+  }, [validatedCenter, createCustomIcon, weatherData, location, nearbyLocations]);
+
+  if (!isOpen) {
+    return null;
+  }
 
   const containerClasses = variant === 'mobile' 
     ? "fixed inset-0 z-[100] bg-black"
@@ -573,7 +748,7 @@ export default function MapPanel({
               <div id={mapContainerId} className="h-full w-full relative">
                 <Suspense fallback={<LoadingFallback variant={variant} />}>
                   <MapCore
-                    center={[safeCoordinates.latitude, safeCoordinates.longitude]}
+                    center={validatedCenter}
                     zoom={DEFAULT_MAP_CONFIG.defaultZoom}
                     mapConfig={DEFAULT_MAP_CONFIG}
                     setMapInstance={mapState.setMapInstance}
@@ -621,7 +796,7 @@ export default function MapPanel({
               <div id={mapContainerId} className="h-full w-full relative">
                 <Suspense fallback={<LoadingFallback variant={variant} />}>
                   <MapCore
-                    center={[safeCoordinates.latitude, safeCoordinates.longitude]}
+                    center={validatedCenter}
                     zoom={DEFAULT_MAP_CONFIG.defaultZoom}
                     mapConfig={DEFAULT_MAP_CONFIG}
                     setMapInstance={mapState.setMapInstance}

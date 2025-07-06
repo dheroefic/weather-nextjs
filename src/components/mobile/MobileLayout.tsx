@@ -6,6 +6,7 @@ import HourlyForecast from '../shared/HourlyForecast';
 import DailyForecast from '../shared/DailyForecast';
 import DetailPanel from '../shared/DetailPanel';
 import MapPanel from '../shared/Map/MapPanel';
+import { useNearbyWeather } from '@/hooks/useNearbyWeather';
 import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/types/weather';
 
 interface MobileLayoutProps {
@@ -62,6 +63,13 @@ export default function MobileLayout({
   showMap,
   setShowMap
 }: MobileLayoutProps) {
+  // Use nearby weather hook for mobile map
+  const { nearbyWeatherData, isLoading: nearbyLoading } = useNearbyWeather({
+    location,
+    weatherData,
+    zoomLevel: 13,
+    enabled: showMap // Only fetch when map is open to improve performance
+  });
   return (
     <div className="flex flex-col gap-6 md:gap-12 w-full">
       <Header
@@ -122,6 +130,17 @@ export default function MobileLayout({
         tempUnit={tempUnit}
         convertTemp={convertTemp}
         variant="mobile"
+        nearbyLocations={nearbyWeatherData.map(nearby => ({
+          latitude: nearby.latitude,
+          longitude: nearby.longitude,
+          city: nearby.city,
+          weatherData: nearby.weatherData ? {
+            currentWeather: nearby.weatherData.currentWeather,
+            hourlyForecast: [],
+            dailyForecast: [],
+            alerts: []
+          } : undefined
+        }))}
         onLocationSelect={(coordinates: {
           latitude: number;
           longitude: number;

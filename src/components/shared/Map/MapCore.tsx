@@ -97,6 +97,17 @@ export const WeatherMarker: React.FC<WeatherMarkerProps> = ({
   tempUnit,
   convertTemp,
 }) => {
+  // Validate marker position to prevent NaN errors
+  const [lat, lng] = marker.position;
+  const isValidPosition = typeof lat === 'number' && typeof lng === 'number' && 
+                         !isNaN(lat) && !isNaN(lng) &&
+                         lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+  
+  if (!isValidPosition) {
+    console.warn('WeatherMarker received invalid position:', marker.position);
+    return null; // Don't render invalid markers
+  }
+
   return (
     <Marker
       position={marker.position}
@@ -143,6 +154,25 @@ export const MapCore: React.FC<MapCoreProps> = ({
   children,
   isMobile = false,
 }) => {
+  // Validate center coordinates to prevent NaN errors
+  const [lat, lng] = center;
+  const isValidCenter = typeof lat === 'number' && typeof lng === 'number' && 
+                       !isNaN(lat) && !isNaN(lng) &&
+                       lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+  
+  if (!isValidCenter) {
+    console.warn('MapCore received invalid center coordinates:', center);
+    // Return a loading placeholder instead of crashing
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-black/10 rounded-lg">
+        <div className="text-center text-white/60">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white/60 mx-auto mb-2"></div>
+          <p className="text-sm">Loading map...</p>
+        </div>
+      </div>
+    );
+  }
+
   const mapProps = {
     center,
     zoom,

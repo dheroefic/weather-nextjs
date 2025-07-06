@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic';
 import MapPanelComponent from '../shared/Map/MapPanel';
 import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/types/weather';
 import { debug } from '@/utils/debug';
+import { useNearbyWeather } from '@/hooks/useNearbyWeather';
 
 // Dynamically import MapPanel to avoid SSR issues - for fullscreen map
 const MapPanel = dynamic(() => import('../shared/Map/MapPanel'), { ssr: false });
@@ -74,7 +75,15 @@ export default function DesktopLayout({
   const [showLocationSelector, setShowLocationSelector] = useState(false);
   
   const currentWeather = weatherData?.currentWeather;
-  const dailyForecast = weatherData?.dailyForecast?.slice(0, 14) || []; // Show 14 days
+  const dailyForecast = weatherData?.dailyForecast || [];
+
+  // Use nearby weather hook for fullscreen map
+  const { nearbyWeatherData, isLoading: nearbyLoading } = useNearbyWeather({
+    location,
+    weatherData,
+    zoomLevel: 13,
+    enabled: true
+  });
 
   // Handle panel toggles - only allow one panel open at a time
   const handleSettingsToggle = () => {
@@ -91,20 +100,7 @@ export default function DesktopLayout({
     setShowLocationSelector(!showLocationSelector);
   };
 
-  // Debug effect to track showFullscreenMap state changes
-  useEffect(() => {
-    console.log('showFullscreenMap state changed:', showFullscreenMap);
-  }, [showFullscreenMap]);
 
-  // Debug effect to track weatherData state
-  useEffect(() => {
-    console.log('weatherData state:', {
-      hasWeatherData: !!weatherData,
-      loading,
-      currentWeather: !!weatherData?.currentWeather,
-      weatherDataType: typeof weatherData
-    });
-  }, [weatherData, loading]);
 
   // Handle fullscreen map opening with proper cleanup sequence
   const handleExpandToFullscreen = () => {
@@ -120,9 +116,7 @@ export default function DesktopLayout({
       // Additional delay to ensure DOM cleanup
       setTimeout(() => {
         debug.layout('Setting showFullscreenMap to true');
-        console.log('About to set showFullscreenMap to true');
         setShowFullscreenMap(true);
-        console.log('showFullscreenMap state has been set to true');
         setFullscreenMapKey(prev => prev + 1);
         setIsTransitioning(false);
       }, 200);
@@ -322,6 +316,7 @@ export default function DesktopLayout({
                     location={location}
                     onLocationSelect={onLocationSelect}
                     onExpandToFullscreen={handleExpandToFullscreen}
+                    currentWeather={currentWeather}
                     className="h-full"
                   />
                 )}
@@ -367,20 +362,11 @@ export default function DesktopLayout({
       {/* Fullscreen Map Panel */}
       {(() => {
         const shouldRender = showFullscreenMap && location.coordinates;
-        console.log('Fullscreen map render check:', {
-          showFullscreenMap,
-          weatherData: !!weatherData,
-          locationCoordinates: !!location.coordinates,
-          locationCoordinatesValue: location.coordinates,
-          shouldRender
-        });
         
         if (!shouldRender) {
-          console.log('Not rendering fullscreen map - conditions not met');
           return null;
         }
         
-        console.log('Rendering fullscreen map with MapPanel component');
         return (
           <MapPanelComponent
             key={`fullscreen-map-${fullscreenMapKey}`}
@@ -391,6 +377,17 @@ export default function DesktopLayout({
             tempUnit={tempUnit}
             convertTemp={convertTemp}
             variant="desktop"
+            nearbyLocations={nearbyWeatherData.map(nearby => ({
+              latitude: nearby.latitude,
+              longitude: nearby.longitude,
+              city: nearby.city,
+              weatherData: nearby.weatherData ? {
+                currentWeather: nearby.weatherData.currentWeather,
+                hourlyForecast: [],
+                dailyForecast: [],
+                alerts: []
+              } : undefined
+            }))}
             onLocationSelect={(coordinates: {
               latitude: number;
               longitude: number;
