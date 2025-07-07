@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Header from '../shared/Header';
 import WeatherMetrics from '../shared/WeatherMetrics';
 import HourlyForecast from '../shared/HourlyForecast';
@@ -70,58 +71,74 @@ export default function MobileLayout({
     zoomLevel: 13,
     enabled: showMap // Only fetch when map is open to improve performance
   });
+
+  // Prevent body scroll when mobile map is open
+  useEffect(() => {
+    if (showMap) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showMap]);
   return (
-    <div className="flex flex-col gap-6 md:gap-12 w-full">
-      <Header
-        weatherData={weatherData}
-        location={location}
-        currentTime={currentTime}
-        tempUnit={tempUnit}
-        loading={loading}
-        onLocationSelect={onLocationSelect}
-        onTempUnitToggle={onTempUnitToggle}
-        convertTemp={convertTemp}
-        getWindRotationDegree={getWindRotationDegree}
-        formatDate={formatDate}
-        formatTime={formatTime}
-        handleRefresh={handleRefresh}
-        showSettings={showSettings}
-        setShowSettings={setShowSettings}
-        autoRefreshInterval={autoRefreshInterval}
-        handleAutoRefreshChange={handleAutoRefreshChange}
-        showMap={showMap}
-        setShowMap={setShowMap}
-      />
+    <>
+      <div className="flex flex-col gap-6 md:gap-12 w-full">
+        <Header
+          weatherData={weatherData}
+          location={location}
+          currentTime={currentTime}
+          tempUnit={tempUnit}
+          loading={loading}
+          onLocationSelect={onLocationSelect}
+          onTempUnitToggle={onTempUnitToggle}
+          convertTemp={convertTemp}
+          getWindRotationDegree={getWindRotationDegree}
+          formatDate={formatDate}
+          formatTime={formatTime}
+          handleRefresh={handleRefresh}
+          showSettings={showSettings}
+          setShowSettings={setShowSettings}
+          autoRefreshInterval={autoRefreshInterval}
+          handleAutoRefreshChange={handleAutoRefreshChange}
+          showMap={showMap}
+          setShowMap={setShowMap}
+        />
 
-      <WeatherMetrics weatherData={weatherData} loading={loading} />
+        <WeatherMetrics weatherData={weatherData} loading={loading} />
 
-      <HourlyForecast
-        weatherData={weatherData}
-        loading={loading}
-        tempUnit={tempUnit}
-        convertTemp={convertTemp}
-      />
+        <HourlyForecast
+          weatherData={weatherData}
+          loading={loading}
+          tempUnit={tempUnit}
+          convertTemp={convertTemp}
+        />
 
-      <DailyForecast
-        forecastPeriod={forecastPeriod}
-        loading={loading}
-        dailyForecast={weatherData?.dailyForecast}
-        tempUnit={tempUnit}
-        convertTemp={convertTemp}
-        onForecastPeriodChange={onForecastPeriodChange}
-        onDaySelect={onDaySelect}
-      />
+        <DailyForecast
+          forecastPeriod={forecastPeriod}
+          loading={loading}
+          dailyForecast={weatherData?.dailyForecast}
+          tempUnit={tempUnit}
+          convertTemp={convertTemp}
+          onForecastPeriodChange={onForecastPeriodChange}
+          onDaySelect={onDaySelect}
+        />
 
-      <DetailPanel
-        selectedDay={selectedDay}
-        weatherData={weatherData}
-        tempUnit={tempUnit}
-        convertTemp={convertTemp}
-        onClose={() => onDaySelect(null)}
-        onDaySelect={onDaySelect}
-      />
+        <DetailPanel
+          selectedDay={selectedDay}
+          weatherData={weatherData}
+          tempUnit={tempUnit}
+          convertTemp={convertTemp}
+          onClose={() => onDaySelect(null)}
+          onDaySelect={onDaySelect}
+        />
+      </div>
 
-      {/* MapPanel */}
+      {/* MapPanel - Rendered outside main layout to avoid scroll issues */}
       <MapPanel
         isOpen={showMap}
         weatherData={weatherData}
@@ -158,6 +175,6 @@ export default function MobileLayout({
           });
         }}
       />
-    </div>
+    </>
   );
 }

@@ -149,17 +149,13 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
 
   return new Promise(async (resolve) => {
     try {
-      const reverseUrl = new URL(`${openMeteoConfig.geocodingUrl}/reverse`);
-      reverseUrl.searchParams.append('latitude', coordinates.latitude.toString());
-      reverseUrl.searchParams.append('longitude', coordinates.longitude.toString());
-      reverseUrl.searchParams.append('language', 'en');
+      // Use the Next.js API route instead of direct external API call to avoid CORS
+      const apiUrl = new URL('/api/geocoding', window.location.origin);
+      apiUrl.searchParams.append('latitude', coordinates.latitude.toString());
+      apiUrl.searchParams.append('longitude', coordinates.longitude.toString());
+      apiUrl.searchParams.append('language', 'en');
       
-      // Add API key if provided
-      if (openMeteoConfig.apiKey) {
-        reverseUrl.searchParams.append('apikey', openMeteoConfig.apiKey);
-      }
-      
-      const response = await fetch(reverseUrl.toString());
+      const response = await fetch(apiUrl.toString());
 
       if (!response.ok) {
         throw new Error('Failed to fetch location data');

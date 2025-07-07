@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import type { TemperatureUnit, WeatherData, Location } from '@/types/weather';
 import { WMO_CODES } from '@/services/weatherService';
@@ -59,7 +60,8 @@ const WeatherLegend = ({
   isMinimized?: boolean;
   onToggleMinimized?: () => void;
 }) => {
-  const [localMinimized, setLocalMinimized] = useState(isMinimized);
+  // For mobile, start expanded by default so it's immediately visible
+  const [localMinimized, setLocalMinimized] = useState(variant === 'mobile' ? false : isMinimized);
 
   const toggleMinimized = () => {
     const newState = !localMinimized;
@@ -68,27 +70,44 @@ const WeatherLegend = ({
   };
 
   const baseClasses = variant === 'mobile' 
-    ? "absolute bottom-4 left-4 right-4 rounded-lg overflow-hidden z-[1010]"
+    ? "fixed rounded-lg overflow-hidden z-[9999] max-w-[200px]"
     : "absolute top-20 right-6 rounded-lg overflow-hidden z-[1010] max-w-sm";
 
+  // Simple mobile positioning - always visible on all devices
+  const mobilePositionStyle = variant === 'mobile' ? {
+    bottom: '20px',
+    left: '20px',
+    maxWidth: '200px',
+    maxHeight: '300px'
+  } : {};
+
   const containerStyle = {
-    background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
+    background: variant === 'mobile' 
+      ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.9) 100%)'
+      : 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
     backdropFilter: 'blur(24px)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+    border: variant === 'mobile' 
+      ? '2px solid rgba(255, 255, 255, 0.4)'
+      : '1px solid rgba(255, 255, 255, 0.2)',
+    boxShadow: variant === 'mobile'
+      ? '0 25px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+      : '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+    ...mobilePositionStyle
   };
 
   return (
     <div className={baseClasses} style={containerStyle}>
       <div className="flex items-center justify-between p-2 border-b border-white/10">
-        <span className="text-white text-sm font-medium">Weather Conditions</span>
+        <span className={`text-white font-medium ${variant === 'mobile' ? 'text-xs' : 'text-sm'}`}>
+          {variant === 'mobile' ? '🌤️ Legend' : 'Weather Conditions'}
+        </span>
         <button
           onClick={toggleMinimized}
           className="text-white/70 hover:text-white p-1 transition-colors"
           aria-label={localMinimized ? "Expand legend" : "Collapse legend"}
         >
           <svg
-            className={`w-4 h-4 transition-transform ${localMinimized ? 'rotate-180' : ''}`}
+            className={`${variant === 'mobile' ? 'w-3 h-3' : 'w-4 h-4'} transition-transform ${localMinimized ? 'rotate-180' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -104,14 +123,23 @@ const WeatherLegend = ({
       </div>
       <div
         className={`overflow-y-auto transition-all duration-300 ${
-          localMinimized ? 'max-h-0' : variant === 'mobile' ? 'max-h-[200px]' : 'max-h-[300px]'
+          localMinimized ? 'max-h-0' : variant === 'mobile' ? 'max-h-[120px]' : 'max-h-[300px]'
         }`}
       >
         <div className={`grid gap-2 p-3 ${variant === 'mobile' ? 'grid-cols-2' : 'grid-cols-2'}`}>
+          {/* Show all conditions for both mobile and desktop */}
           {Object.entries(WMO_CODES).map(([code, { condition, icon }]) => (
             <div key={code} className="flex items-center gap-2">
-              <Image src={icon} alt={condition} width={20} height={20} className="w-5 h-5" />
-              <span className="text-xs text-white/90">{condition}</span>
+              <Image 
+                src={icon} 
+                alt={condition} 
+                width={16} 
+                height={16} 
+                className={variant === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'} 
+              />
+              <span className={`text-white/90 ${variant === 'mobile' ? 'text-xs' : 'text-xs'}`}>
+                {condition}
+              </span>
             </div>
           ))}
         </div>
@@ -532,6 +560,33 @@ export default function MapPanel({
     }
   }, [mapState.mapInstance, mapState.isMapReady, safeCoordinates, isOpen, updateLastLocation]);
 
+  // Prevent body scroll on mobile when map is open
+  React.useEffect(() => {
+    if (variant === 'mobile' && isOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+      
+      // Prevent scrolling
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.height = '100vh';
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        // Restore scrolling
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
+        document.body.style.overflow = '';
+        
+        // Restore scroll position
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [variant, isOpen]);
+
   // Prepare markers with validated coordinates (moved before early return to fix hooks order)
   const markers: MarkerData[] = React.useMemo(() => {
     const mainMarker = {
@@ -566,12 +621,12 @@ export default function MapPanel({
   }
 
   const containerClasses = variant === 'mobile' 
-    ? "fixed inset-0 z-[100] bg-black"
+    ? "mobile-map-fullscreen bg-black overflow-hidden"
     : "fixed inset-0 z-50 bg-black/95 backdrop-blur-sm";
 
   const desktopLayout = variant === 'desktop';
 
-  return (
+  const mapContent = (
     <div className={containerClasses}>
       {desktopLayout ? (
         // Clean, minimal desktop layout
@@ -778,8 +833,19 @@ export default function MapPanel({
           </div>
         </div>
       ) : (
-        // Mobile layout - using the original SearchInterface component
-        <div className="h-full w-full relative">
+        // Mobile layout - force true fullscreen viewport
+        <div 
+          className="w-full h-full relative"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh'
+          }}
+        >
           <SearchInterface
             searchQuery={search.searchQuery}
             searchResults={search.searchResults}
@@ -791,9 +857,27 @@ export default function MapPanel({
             onLocationSelect={onLocationSelect}
           />
 
-          <div className="absolute inset-0">
+          <div 
+            className="absolute inset-0"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: '100vw',
+              height: '100vh'
+            }}
+          >
             {mapState.leaflet ? (
-              <div id={mapContainerId} className="h-full w-full relative">
+              <div 
+                id={mapContainerId} 
+                className="h-full w-full relative"
+                style={{
+                  width: '100vw',
+                  height: '100vh'
+                }}
+              >
                 <Suspense fallback={<LoadingFallback variant={variant} />}>
                   <MapCore
                     center={validatedCenter}
@@ -802,6 +886,13 @@ export default function MapPanel({
                     setMapInstance={mapState.setMapInstance}
                     setIsMapReady={mapState.setIsMapReady}
                     isMobile={variant === 'mobile'}
+                    style={{ 
+                      height: '100vh', 
+                      width: '100vw',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0
+                    }}
                   >
                     {markers.map((marker, index) => (
                       <WeatherMarker
@@ -814,8 +905,6 @@ export default function MapPanel({
                   </MapCore>
                 </Suspense>
 
-                <WeatherLegend variant={variant} />
-
                 {!mapState.isMapReady && (
                   <LoadingFallback variant={variant} />
                 )}
@@ -824,8 +913,19 @@ export default function MapPanel({
               <LoadingFallback variant={variant} />
             )}
           </div>
+
+          {/* Mobile Weather Legend - positioned outside map container */}
+          <WeatherLegend variant={variant} />
         </div>
       )}
     </div>
   );
+
+  // For mobile, render with portal to bypass all parent containers
+  if (variant === 'mobile' && typeof document !== 'undefined') {
+    return createPortal(mapContent, document.body);
+  }
+
+  // For desktop, render normally
+  return mapContent;
 }

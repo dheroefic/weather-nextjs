@@ -2,6 +2,30 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+/* Force mobile map to use full viewport - overrides all parent containers */
+.mobile-map-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important; /* Dynamic viewport height for mobile */
+  z-index: 99999 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  /* Ensure it's above any backdrop or overlay */
+  backdrop-filter: none !important;
+  /* Override any parent container constraints */
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 100vw !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+}
+
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
