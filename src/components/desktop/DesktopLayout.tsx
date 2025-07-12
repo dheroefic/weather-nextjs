@@ -100,8 +100,6 @@ export default function DesktopLayout({
     setShowLocationSelector(!showLocationSelector);
   };
 
-
-
   // Handle fullscreen map opening with proper cleanup sequence
   const handleExpandToFullscreen = () => {
     debug.layout('handleExpandToFullscreen called');

@@ -50,18 +50,15 @@ const LoadingFallback = ({ variant = 'desktop' }: { variant?: 'desktop' | 'mobil
   </div>
 );
 
-// Weather Legend component
-const WeatherLegend = ({ 
-  variant = 'desktop',
+// Compact Mobile Weather Legend
+const MobileWeatherLegend = ({ 
   isMinimized = false,
   onToggleMinimized
 }: { 
-  variant?: 'desktop' | 'mobile';
   isMinimized?: boolean;
   onToggleMinimized?: () => void;
 }) => {
-  // For mobile, start expanded by default so it's immediately visible
-  const [localMinimized, setLocalMinimized] = useState(variant === 'mobile' ? false : isMinimized);
+  const [localMinimized, setLocalMinimized] = useState(true); // Start minimized
 
   const toggleMinimized = () => {
     const newState = !localMinimized;
@@ -69,45 +66,346 @@ const WeatherLegend = ({
     onToggleMinimized?.();
   };
 
-  const baseClasses = variant === 'mobile' 
-    ? "fixed rounded-lg overflow-hidden z-[9999] max-w-[200px]"
-    : "absolute top-20 right-6 rounded-lg overflow-hidden z-[1010] max-w-sm";
+  return (
+    <div 
+      className="fixed rounded-xl overflow-hidden z-[1015] transition-all duration-300"
+      style={{
+        bottom: '100px',
+        right: '16px',
+        maxWidth: '180px',
+        maxHeight: localMinimized ? '36px' : '200px',
+        background: 'rgba(0, 0, 0, 0.9)',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        backdropFilter: 'blur(15px)',
+      }}
+    >
+      {/* Compact Header */}
+      <div 
+        className="flex items-center justify-between p-3 cursor-pointer"
+        onClick={toggleMinimized}
+      >
+        <span className="text-white font-medium text-xs">Conditions</span>
+        <svg
+          className={`w-3 h-3 transition-transform duration-200 text-white/60 ${localMinimized ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
 
-  // Simple mobile positioning - always visible on all devices
-  const mobilePositionStyle = variant === 'mobile' ? {
-    bottom: '20px',
-    left: '20px',
-    maxWidth: '200px',
-    maxHeight: '300px'
-  } : {};
+      {/* Compact Content */}
+      {!localMinimized && (
+        <div className="overflow-y-auto max-h-[200px]">
+          <div className="grid grid-cols-2 gap-2 p-3 pt-0">
+            {Object.entries(WMO_CODES).slice(0, 8).map(([code, { condition, icon }]) => (
+              <div key={code} className="flex items-center space-x-1">
+                <Image 
+                  src={icon} 
+                  alt={condition} 
+                  width={14} 
+                  height={14} 
+                  className="flex-shrink-0" 
+                />
+                <span className="text-white/80 text-xs leading-tight">
+                  {condition.split(' ')[0]}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
-  const containerStyle = {
-    background: variant === 'mobile' 
-      ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.9) 100%)'
-      : 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
-    backdropFilter: 'blur(24px)',
-    border: variant === 'mobile' 
-      ? '2px solid rgba(255, 255, 255, 0.4)'
-      : '1px solid rgba(255, 255, 255, 0.2)',
-    boxShadow: variant === 'mobile'
-      ? '0 25px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1)'
-      : '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
-    ...mobilePositionStyle
-  };
+// Beautiful Mobile Header with better spacing
+const MobileHeader = ({
+  searchQuery,
+  isSearching,
+  onSearchQueryChange,
+  onClose,
+  location
+}: {
+  searchQuery: string;
+  isSearching: boolean;
+  onSearchQueryChange: (query: string) => void;
+  onClose?: () => void;
+  location?: { city: string; country: string };
+}) => {
+  return (
+    <div className="absolute inset-x-0 top-0 z-[1020]">
+      <div 
+        className="px-4 pt-8 pb-3"
+        style={{
+          background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.8) 70%, rgba(0, 0, 0, 0.4) 100%)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+      >
+        {/* Compact header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex-1">
+            <h1 className="text-white text-xl font-light">Weather Map</h1>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-10 h-10 rounded-full transition-all duration-200 flex items-center justify-center"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              backdropFilter: 'blur(10px)',
+            }}
+          >
+            <svg 
+              className="w-5 h-5 text-white/80" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Compact search bar */}
+        <div className="relative">
+          <div
+            className="relative overflow-hidden rounded-xl"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              backdropFilter: 'blur(15px)',
+            }}
+          >
+            <div className="flex items-center px-4 py-3">
+              <svg className="w-4 h-4 text-white/60 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search location..."
+                value={searchQuery}
+                onChange={(e) => onSearchQueryChange(e.target.value)}
+                className="flex-1 bg-transparent text-white placeholder-white/50 focus:outline-none text-sm font-light"
+                style={{ caretColor: 'white' }}
+              />
+              {isSearching && (
+                <div className="ml-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Compact current location */}
+        {location && (
+          <div 
+            className="mt-2 rounded-lg p-2"
+            style={{
+              background: 'rgba(59, 130, 246, 0.15)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              backdropFilter: 'blur(15px)',
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div 
+                  className="w-1.5 h-1.5 rounded-full animate-pulse"
+                  style={{
+                    background: 'linear-gradient(45deg, #3b82f6, #8b5cf6)'
+                  }}
+                ></div>
+                <div>
+                  <div className="text-white text-xs font-medium">{location.city}</div>
+                  <div className="text-white/60 text-xs">{location.country}</div>
+                </div>
+              </div>
+              <svg className="w-3 h-3 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              </svg>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Mobile Search Results (separate component for better organization)
+const MobileSearchResults = ({
+  searchQuery,
+  searchResults,
+  isSearching,
+  onSearchResultSelect
+}: {
+  searchQuery: string;
+  searchResults: Array<{
+    name: string;
+    country: string;
+    latitude: number;
+    longitude: number;
+  }>;
+  isSearching: boolean;
+  onSearchResultSelect: (result: {
+    name: string;
+    country: string;
+    latitude: number;
+    longitude: number;
+  }) => void;
+}) => {
+  if (!searchQuery) return null;
 
   return (
-    <div className={baseClasses} style={containerStyle}>
-      <div className="flex items-center justify-between p-2 border-b border-white/10">
-        <span className={`text-white font-medium ${variant === 'mobile' ? 'text-xs' : 'text-sm'}`}>
-          {variant === 'mobile' ? '🌤️ Legend' : 'Weather Conditions'}
-        </span>
+    <div className="absolute inset-x-0 z-[1025]" style={{ top: '130px' }}>
+      <div 
+        className="mx-4 rounded-xl shadow-lg max-h-48 overflow-y-auto"
+        style={{
+          background: 'rgba(0, 0, 0, 0.95)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.6)'
+        }}
+      >
+        {isSearching ? (
+          <div className="px-4 py-3 text-center">
+            <div className="flex items-center justify-center space-x-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
+              <span className="text-white/70 text-sm">Searching...</span>
+            </div>
+          </div>
+        ) : searchResults.length === 0 ? (
+          <div className="px-4 py-3 text-center">
+            <div className="text-white/60 text-sm">No locations found</div>
+          </div>
+        ) : (
+          <div className="divide-y divide-white/10">
+            {searchResults.map((result, index) => (
+              <button
+                key={index}
+                onClick={() => onSearchResultSelect(result)}
+                className="w-full px-4 py-3 text-left transition-all duration-200 hover:bg-white/10"
+              >
+                <div className="text-white text-sm font-medium">{result.name}</div>
+                <div className="text-white/60 text-xs">{result.country}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Compact Mobile Bottom Actions
+const MobileBottomActions = ({ 
+  onLocationSelect,
+  onUseLocation 
+}: { 
+  onLocationSelect?: (coordinates: { latitude: number; longitude: number; city?: string; country?: string }) => void;
+  onUseLocation?: () => void;
+}) => {
+  return (
+    <div className="absolute bottom-0 inset-x-0 z-[1020]">
+      <div 
+        className="px-4 pb-6 pt-4"
+        style={{
+          background: 'linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 80%, rgba(0, 0, 0, 0.2) 100%)',
+          backdropFilter: 'blur(15px)',
+        }}
+      >
+        <div className="flex space-x-3">
+          <button
+            onClick={() => {
+              if (navigator.geolocation && onLocationSelect) {
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    const { latitude, longitude } = position.coords;
+                    onLocationSelect({
+                      latitude,
+                      longitude,
+                      city: 'Current Location',
+                      country: ''
+                    });
+                  },
+                  (error) => {
+                    console.error('Error getting current location:', error);
+                  }
+                );
+              }
+            }}
+            className="flex-1 py-3 px-4 rounded-xl transition-all duration-200"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              backdropFilter: 'blur(10px)',
+            }}
+          >
+            <div className="flex items-center justify-center space-x-2">
+              <svg 
+                className="w-4 h-4 text-white/80" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              </svg>
+              <span className="text-white text-sm font-medium">My Location</span>
+            </div>
+          </button>
+          
+          <button
+            onClick={onUseLocation}
+            className="flex-1 py-3 px-4 rounded-xl transition-all duration-200"
+            style={{
+              background: 'rgba(59, 130, 246, 0.2)',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              backdropFilter: 'blur(10px)',
+            }}
+          >
+            <div className="flex items-center justify-center space-x-2">
+              <svg 
+                className="w-4 h-4 text-white" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-white text-sm font-medium">Use This Location</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Desktop Weather Legend Component  
+const DesktopWeatherLegend = () => {
+  const [isMinimized, setIsMinimized] = useState(false);
+
+  return (
+    <div 
+      className="absolute top-20 right-6 rounded-xl overflow-hidden z-[1010] max-w-sm"
+      style={{
+        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
+        backdropFilter: 'blur(24px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+      }}
+    >
+      <div className="flex items-center justify-between p-3 border-b border-white/10">
+        <span className="text-white font-medium text-sm">Weather Conditions</span>
         <button
-          onClick={toggleMinimized}
+          onClick={() => setIsMinimized(!isMinimized)}
           className="text-white/70 hover:text-white p-1 transition-colors"
-          aria-label={localMinimized ? "Expand legend" : "Collapse legend"}
+          aria-label={isMinimized ? "Expand legend" : "Collapse legend"}
         >
           <svg
-            className={`${variant === 'mobile' ? 'w-3 h-3' : 'w-4 h-4'} transition-transform ${localMinimized ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 transition-transform ${isMinimized ? 'rotate-180' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -123,11 +421,10 @@ const WeatherLegend = ({
       </div>
       <div
         className={`overflow-y-auto transition-all duration-300 ${
-          localMinimized ? 'max-h-0' : variant === 'mobile' ? 'max-h-[120px]' : 'max-h-[300px]'
+          isMinimized ? 'max-h-0' : 'max-h-[300px]'
         }`}
       >
-        <div className={`grid gap-2 p-3 ${variant === 'mobile' ? 'grid-cols-2' : 'grid-cols-2'}`}>
-          {/* Show all conditions for both mobile and desktop */}
+        <div className="grid gap-2 p-3 grid-cols-2">
           {Object.entries(WMO_CODES).map(([code, { condition, icon }]) => (
             <div key={code} className="flex items-center gap-2">
               <Image 
@@ -135,9 +432,9 @@ const WeatherLegend = ({
                 alt={condition} 
                 width={16} 
                 height={16} 
-                className={variant === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'} 
+                className="w-5 h-5" 
               />
-              <span className={`text-white/90 ${variant === 'mobile' ? 'text-xs' : 'text-xs'}`}>
+              <span className="text-white/90 text-xs">
                 {condition}
               </span>
             </div>
@@ -148,227 +445,6 @@ const WeatherLegend = ({
   );
 };
 
-// Search interface component
-const SearchInterface = ({
-  searchQuery,
-  searchResults,
-  isSearching,
-  onSearchQueryChange,
-  onSearchResultSelect,
-  onClose,
-  location,
-  onLocationSelect
-}: {
-  searchQuery: string;
-  searchResults: Array<{
-    name: string;
-    country: string;
-    latitude: number;
-    longitude: number;
-  }>;
-  isSearching: boolean;
-  onSearchQueryChange: (query: string) => void;
-  onSearchResultSelect: (result: {
-    name: string;
-    country: string;
-    latitude: number;
-    longitude: number;
-  }) => void;
-  onClose?: () => void;
-  location?: { city: string; country: string };
-  onLocationSelect?: (coordinates: { latitude: number; longitude: number; city?: string; country?: string }) => void;
-}) => {
-  return (
-    <div className="absolute top-4 left-4 right-4 z-[1020] space-y-4">
-      {/* Close Button */}
-      <div className="flex justify-start">
-        <button
-          onClick={onClose}
-          className="w-10 h-10 rounded-lg transition-all duration-200 backdrop-blur-md text-white border flex items-center justify-center"
-          style={{
-            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
-            borderColor: 'rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
-          }}
-          title="Close map"
-        >
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Search Input */}
-      <div className="relative max-w-2xl">
-        <input
-          type="text"
-          placeholder="Search location..."
-          value={searchQuery}
-          onChange={(e) => onSearchQueryChange(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-1 text-base transition-all duration-200"
-          style={{
-            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
-            backdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
-          }}
-        />
-        {isSearching && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-          </div>
-        )}
-      </div>
-      
-      {/* Search Results */}
-      {searchQuery && (
-        <div 
-          className="rounded-lg shadow-2xl max-h-60 overflow-y-auto max-w-2xl"
-          style={{
-            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
-            backdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
-          }}
-        >
-          {isSearching ? (
-            <div className="px-4 py-3 text-center text-white/70">
-              <div className="flex items-center justify-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Searching...
-              </div>
-            </div>
-          ) : searchResults.length === 0 ? (
-            <div className="px-4 py-3 text-center text-white/70">
-              No results found
-            </div>
-          ) : (
-            searchResults.map((result, index) => (
-              <button
-                key={index}
-                onClick={() => onSearchResultSelect(result)}
-                className="w-full px-4 py-3 text-left hover:bg-white/15 transition-all duration-200 border-b border-white/10 last:border-b-0 group"
-              >
-                <div className="text-white/90 font-medium group-hover:text-white">{result.name}</div>
-                <div className="text-white/70 text-sm group-hover:text-white/85">{result.country}</div>
-              </button>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Location Display */}
-      {location && (
-        <div 
-          className="rounded-lg p-4 max-w-2xl"
-          style={{
-            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
-            backdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div className="text-white text-lg font-semibold">
-              {location.city}, {location.country}
-            </div>
-            <div className="flex items-center gap-2 text-white/80">
-              <div className="flex items-center gap-1">
-                <span className="text-blue-400 text-lg">💧</span>
-                <span className="text-sm">%</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-gray-400">•</span>
-                <span className="text-sm">⊙</span>
-                <span className="text-sm">hPa</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Action Buttons */}
-          <div className="flex gap-3 mt-4">
-            <button
-              onClick={() => {
-                if (navigator.geolocation && onLocationSelect) {
-                  navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                      const { latitude, longitude } = position.coords;
-                      onLocationSelect({
-                        latitude,
-                        longitude,
-                        city: 'Current Location',
-                        country: ''
-                      });
-                    },
-                    (error) => {
-                      console.error('Error getting current location:', error);
-                    }
-                  );
-                }
-              }}
-              className="flex-1 py-3 px-4 rounded-lg transition-all duration-200 text-white border flex items-center justify-center gap-2 hover:bg-white/15"
-              style={{
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderColor: 'rgba(255, 255, 255, 0.2)'
-              }}
-              title="Use your current location"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 text-white/80"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-              <span className="text-sm font-medium">Current Location</span>
-            </button>
-            <button
-              onClick={() => {
-                // Set location functionality
-                if (onClose) onClose();
-              }}
-              className="flex-1 py-3 px-4 rounded-lg transition-all duration-200 text-white border flex items-center justify-center gap-2 hover:bg-white/15"
-              style={{
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderColor: 'rgba(255, 255, 255, 0.2)'
-              }}
-              title="Set location"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 text-white/80"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              <span className="text-sm font-medium">Set Location</span>
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 export default function MapPanel({
   isOpen,
   weatherData,
@@ -821,7 +897,7 @@ export default function MapPanel({
                   </MapCore>
                 </Suspense>
 
-                <WeatherLegend variant={variant} />
+                <DesktopWeatherLegend />
 
                 {!mapState.isMapReady && (
                   <LoadingFallback variant={variant} />
@@ -833,7 +909,7 @@ export default function MapPanel({
           </div>
         </div>
       ) : (
-        // Mobile layout - force true fullscreen viewport
+        // Mobile layout - Clean and spacious
         <div 
           className="w-full h-full relative"
           style={{
@@ -846,17 +922,41 @@ export default function MapPanel({
             height: '100vh'
           }}
         >
-          <SearchInterface
+          {/* Compact Mobile Header */}
+          <MobileHeader
+            searchQuery={search.searchQuery}
+            isSearching={search.isSearching}
+            onSearchQueryChange={search.setSearchQuery}
+            onClose={onClose}
+            location={location}
+          />
+
+          {/* Search Results (positioned separately) */}
+          <MobileSearchResults
             searchQuery={search.searchQuery}
             searchResults={search.searchResults}
             isSearching={search.isSearching}
-            onSearchQueryChange={search.setSearchQuery}
             onSearchResultSelect={search.handleSearchResultSelect}
-            onClose={onClose}
-            location={location}
-            onLocationSelect={onLocationSelect}
           />
 
+          {/* Compact Bottom Actions */}
+          <MobileBottomActions 
+            onLocationSelect={onLocationSelect} 
+            onUseLocation={() => {
+              if (mapState.mapInstance?.getCenter) {
+                const center = mapState.mapInstance.getCenter();
+                onLocationSelect({
+                  latitude: center.lat,
+                  longitude: center.lng,
+                  city: 'Selected Location',
+                  country: ''
+                });
+                onClose();
+              }
+            }}
+          />
+
+          {/* Map Container - Full Screen */}
           <div 
             className="absolute inset-0"
             style={{
@@ -914,8 +1014,8 @@ export default function MapPanel({
             )}
           </div>
 
-          {/* Mobile Weather Legend - positioned outside map container */}
-          <WeatherLegend variant={variant} />
+          {/* Compact Weather Legend */}
+          <MobileWeatherLegend />
         </div>
       )}
     </div>

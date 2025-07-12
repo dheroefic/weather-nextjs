@@ -90,17 +90,20 @@ export default function LocationSelector({ onLocationSelect, currentLocation, is
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        if (onToggle) {
-          onToggle();
-        } else {
-          setInternalIsOpen(false);
+        // Only close if dropdown is currently open - don't toggle
+        if (isOpen) {
+          if (onToggle) {
+            onToggle();
+          } else {
+            setInternalIsOpen(false);
+          }
         }
       }
     }
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onToggle]);
+  }, [onToggle, isOpen]);
   
   return (
     <div className="relative" ref={dropdownRef} onClick={(e) => e.stopPropagation()}>
