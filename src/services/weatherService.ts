@@ -2,6 +2,13 @@ import type { ForecastDay } from '@/types/weather';
 import { debug } from '@/utils/debug';
 import { getFromCache, setInCache } from './cacheService';
 import { performanceMonitor, requestQueue } from '@/utils/performance';
+import { getOpenMeteoConfig, debugOpenMeteoConfig } from '@/utils/openmeteoConfig';
+
+// Get OpenMeteo configuration
+const openMeteoConfig = getOpenMeteoConfig();
+
+// Debug configuration in development
+debugOpenMeteoConfig();
 
 interface OpenMeteoResponse {
   latitude: number;
@@ -69,9 +76,8 @@ export async function getUserGeolocation(): Promise<GeolocationResponse> {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
-          const response = await fetch(
-            `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&language=en`
-          );
+          const geocodingUrl = `${openMeteoConfig.geocodingUrl}/reverse?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&language=en`;
+          const response = await fetch(geocodingUrl);
           const data = await response.json();
           
           resolve({
@@ -131,6 +137,8 @@ interface OpenMeteoResponse {
     uv_index_max: number[];
   };
 }
+
+export type { OpenMeteoResponse };
 
 export function getUVIndexIcon(uvIndex: number): WeatherIconPath {
   if (uvIndex <= 0) return '/icons/weathers/uv-index-1.svg';
@@ -208,6 +216,11 @@ async function fetchWeatherApi(url: string, params: WeatherApiParams): Promise<O
   // Add extended forecast days
   queryParams.append('forecast_days', '14');
   
+  // Add API key if provided
+  if (openMeteoConfig.apiKey) {
+    queryParams.append('apikey', openMeteoConfig.apiKey);
+  }
+  
   Object.entries(params).forEach(([key, value]) => {
     if (Array.isArray(value)) {
       queryParams.append(key, value.join(','));
@@ -257,6 +270,11 @@ export async function fetchWeatherForeacastMultipleLocationApi(
 ): Promise<OpenMeteoResponse[]> {
   const queryParams = new URLSearchParams();
   queryParams.append('forecast_days', '1');
+  
+  // Add API key if provided
+  if (openMeteoConfig.apiKey) {
+    queryParams.append('apikey', openMeteoConfig.apiKey);
+  }
   
   Object.entries(params).forEach(([key, value]) => {
     if (Array.isArray(value)) {
@@ -342,7 +360,7 @@ export async function fetchWeatherData(latitude: number, longitude: number): Pro
     return cachedData;
   }
 
-  const response = await fetchWeatherApi('https://api.open-meteo.com/v1/forecast', {
+  const response = await fetchWeatherApi(`${openMeteoConfig.baseUrl}/forecast`, {
     latitude,
     longitude,
     hourly: [

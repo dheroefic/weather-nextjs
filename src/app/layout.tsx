@@ -1,10 +1,18 @@
-import './globals.css';
+import './styles/index.css';
 import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'] });
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#000000'
+};
 
 export const metadata = {
   metadataBase: new URL('http://weather.dheroefic.my.id'),
@@ -80,13 +88,20 @@ export default function RootLayout({
         <Script id="service-worker-registration" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
+              const isDebugEnabled = window.location.hostname === 'localhost' || 
+                window.location.search.includes('debug=true');
+              
               window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js')
                   .then(function(registration) {
-                    console.log('SW registered: ', registration);
+                    if (isDebugEnabled) {
+                      console.log('SW registered: ', registration);
+                    }
                   })
                   .catch(function(registrationError) {
-                    console.log('SW registration failed: ', registrationError);
+                    if (isDebugEnabled) {
+                      console.log('SW registration failed: ', registrationError);
+                    }
                   });
               });
             }
