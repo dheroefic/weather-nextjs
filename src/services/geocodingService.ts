@@ -4,7 +4,27 @@
  */
 
 import { supabaseAdmin } from '@/lib/supabase';
-import { CountryName, CountryOsmGrid, GeocodingResult } from '@/types/geocoding';
+import { GeocodingResult } from '@/types/geocoding';
+
+interface CountryData {
+  name: string;
+  country_code: string;
+  default_language_code?: string;
+}
+
+interface GridData {
+  area?: number;
+  geometry?: unknown;
+}
+
+interface SubRegionData {
+  sub_region_code: string;
+  name: string;
+  division_type: string;
+  latitude: number;
+  longitude: number;
+  country_code: string;
+}
 
 export class GeocodingService {
   private static readonly EARTH_RADIUS_KM = 6371;
@@ -39,35 +59,52 @@ export class GeocodingService {
    * Extract coordinates from PostGIS geometry (JSON or WKT format)
    * Handles GeoJSON objects and WKT strings for POINT and POLYGON geometries
    */
-  private static extractCoordinates(geometry: any): { latitude: number; longitude: number } | null {
+  private static extractCoordinates(geometry: unknown): { latitude: number; longitude: number } | null {
     try {
-      // Handle GeoJSON objects
-      if (typeof geometry === 'object' && geometry.type) {
-        switch (geometry.type) {
+      if (
+        geometry &&
+        typeof geometry === 'object' &&
+        'type' in geometry &&
+        'coordinates' in geometry
+      ) {
+        const geo = geometry as { 
+          type: string; 
+          coordinates: unknown
+        };
+        switch (geo.type) {
           case 'Point':
-            // Point: { type: 'Point', coordinates: [lng, lat] }
-            if (geometry.coordinates && Array.isArray(geometry.coordinates) && geometry.coordinates.length >= 2) {
+            const pointCoords = geo.coordinates as number[];
+            if (Array.isArray(pointCoords) && pointCoords.length >= 2) {
               return {
-                longitude: geometry.coordinates[0],
-                latitude: geometry.coordinates[1]
+                longitude: pointCoords[0],
+                latitude: pointCoords[1]
               };
             }
             break;
           case 'Polygon':
-            // Polygon: { type: 'Polygon', coordinates: [[[lng, lat], ...]] }
-            if (geometry.coordinates && Array.isArray(geometry.coordinates) && geometry.coordinates[0] && geometry.coordinates[0][0]) {
+            const polygonCoords = geo.coordinates as number[][][];
+            if (
+              Array.isArray(polygonCoords) &&
+              polygonCoords[0] &&
+              polygonCoords[0][0]
+            ) {
               return {
-                longitude: geometry.coordinates[0][0][0],
-                latitude: geometry.coordinates[0][0][1]
+                longitude: polygonCoords[0][0][0],
+                latitude: polygonCoords[0][0][1]
               };
             }
             break;
           case 'MultiPolygon':
-            // MultiPolygon: { type: 'MultiPolygon', coordinates: [[[[lng, lat], ...]]] }
-            if (geometry.coordinates && Array.isArray(geometry.coordinates) && geometry.coordinates[0] && geometry.coordinates[0][0] && geometry.coordinates[0][0][0]) {
+            const multiPolygonCoords = geo.coordinates as number[][][][];
+            if (
+              Array.isArray(multiPolygonCoords) &&
+              multiPolygonCoords[0] &&
+              multiPolygonCoords[0][0] &&
+              multiPolygonCoords[0][0][0]
+            ) {
               return {
-                longitude: geometry.coordinates[0][0][0][0],
-                latitude: geometry.coordinates[0][0][0][1]
+                longitude: multiPolygonCoords[0][0][0][0],
+                latitude: multiPolygonCoords[0][0][0][1]
               };
             }
             break;
@@ -148,9 +185,9 @@ export class GeocodingService {
    * Create a Nominatim-compatible result from database data with sub-region support
    */
   private static formatEnhancedResult(
-    countryData: any,
-    gridData: any,
-    subRegionData: any,
+    countryData: CountryData,
+    gridData: GridData,
+    subRegionData: SubRegionData | null,
     latitude: number,
     longitude: number,
     distance?: number
@@ -177,9 +214,9 @@ export class GeocodingService {
     let importance = 0.75;
     let placeId = `country_${countryData.country_code}`;
 
-    const address: any = {
+    const address: { [key: string]: string } = {
       country: countryData.name,
-      country_code: countryData.country_code.toLowerCase(),
+      country_code: countryData.country_code?.toLowerCase(),
     };
 
     if (isSubRegion) {
@@ -193,8 +230,10 @@ export class GeocodingService {
       placeId = `sub_region_${subRegionData.sub_region_code}`;
       
       // Add sub-region to address
-      address[subRegionData.division_type] = subRegionData.name;
-      address.state = subRegionData.name; // Common field for administrative divisions
+      if (subRegionData.division_type) {
+        address[subRegionData.division_type] = subRegionData.name;
+      }
+      address['state'] = subRegionData.name; // Common field for administrative divisions
     }
 
     const result: GeocodingResult = {
@@ -213,10 +252,10 @@ export class GeocodingService {
       display_name: displayName,
       address,
       boundingbox,
-      geometry: gridData?.geometry || {
+      geometry: (gridData?.geometry as GeoJSON.Geometry) || {
         type: "Point",
         coordinates: [longitude, latitude]
-      },
+      } as GeoJSON.Point,
       // Internal fields
       country_code: countryData.country_code,
       country_name: countryData.name,
@@ -282,8 +321,8 @@ export class GeocodingService {
    * Following official Nominatim API result structure
    */
   private static formatResult(
-    countryData: any,
-    gridData: any,
+    countryData: CountryData,
+    gridData: GridData,
     latitude: number,
     longitude: number,
     distance?: number
@@ -318,7 +357,7 @@ export class GeocodingService {
         country_code: countryData.country_code.toLowerCase(),
       },
       boundingbox,
-      geometry: gridData?.geometry,
+      geometry: gridData?.geometry as GeoJSON.Geometry | undefined,
       // Internal fields
       country_code: countryData.country_code,
       country_name: countryData.name,
@@ -338,7 +377,7 @@ export class GeocodingService {
   /**
    * Reverse geocoding using Supabase data with ISO 3166-2 sub-region support
    */
-  static async reverseGeocode(latitude: number, longitude: number, language = 'en') {
+  static async reverseGeocode(latitude: number, longitude: number) {
     try {
       // First, try to find sub-regions by proximity to coordinates
       let closestSubRegion = null;
@@ -346,8 +385,8 @@ export class GeocodingService {
       let minDistance = Infinity;
       
       // Get ALL sub-regions with coordinates by using pagination to bypass Supabase's 1000 record limit
-      let subRegionsData: any[] = [];
-      let pageSize = 1000;
+      let subRegionsData: SubRegionData[] = [];
+      const pageSize = 1000;
       let page = 0;
       let hasMore = true;
       
@@ -468,9 +507,9 @@ export class GeocodingService {
 
       // Create the result with sub-region information if available
       const result = this.formatEnhancedResult(
-        country,
-        grid,
-        closestSubRegion,
+        country as CountryData,
+        grid as GridData,
+        closestSubRegion as SubRegionData | null,
         latitude,
         longitude,
         minDistance

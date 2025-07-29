@@ -52,10 +52,8 @@ const LoadingFallback = ({ variant = 'desktop' }: { variant?: 'desktop' | 'mobil
 
 // Compact Mobile Weather Legend
 const MobileWeatherLegend = ({ 
-  isMinimized = false,
   onToggleMinimized
 }: { 
-  isMinimized?: boolean;
   onToggleMinimized?: () => void;
 }) => {
   const [localMinimized, setLocalMinimized] = useState(false); // Start expanded to show all conditions
@@ -427,68 +425,6 @@ const MobileBottomActions = ({
   );
 };
 
-// Desktop Weather Legend Component  
-const DesktopWeatherLegend = () => {
-  const [isMinimized, setIsMinimized] = useState(false);
-
-  return (
-    <div 
-      className="absolute top-20 right-6 rounded-xl overflow-hidden z-[1010] max-w-sm"
-      style={{
-        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
-        backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
-      }}
-    >
-      <div className="flex items-center justify-between p-3 border-b border-white/10">
-        <span className="text-white font-medium text-sm">Weather Conditions</span>
-        <button
-          onClick={() => setIsMinimized(!isMinimized)}
-          className="text-white/70 hover:text-white p-1 transition-colors"
-          aria-label={isMinimized ? "Expand legend" : "Collapse legend"}
-        >
-          <svg
-            className={`w-4 h-4 transition-transform ${isMinimized ? 'rotate-180' : ''}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </button>
-      </div>
-      <div
-        className={`overflow-y-auto transition-all duration-300 ${
-          isMinimized ? 'max-h-0' : 'max-h-[300px]'
-        }`}
-      >
-        <div className="grid gap-2 p-3 grid-cols-2">
-          {Object.entries(WMO_CODES).map(([code, { condition, icon }]) => (
-            <div key={code} className="flex items-center gap-2">
-              <Image 
-                src={icon} 
-                alt={condition} 
-                width={16} 
-                height={16} 
-                className="w-5 h-5" 
-              />
-              <span className="text-white/90 text-xs">
-                {condition}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Enhanced Loading Indicator Component
 const MapLoadingIndicator = ({ 
   isVisible, 
@@ -605,7 +541,6 @@ export default function MapPanel({
   const search = useSearch({ onLocationSelect });
   const [mapContainerId] = useState(() => `${variant}-map-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const previousCoordinatesRef = React.useRef<{ latitude: number; longitude: number } | null>(null);
-  const [isFlying, setIsFlying] = React.useState(false);
   const [isMapInteractionLoading, setIsMapInteractionLoading] = React.useState(false);
 
   // Debug logging for search loading
@@ -799,8 +734,6 @@ export default function MapPanel({
           return;
         }
         
-        setIsFlying(true);
-        
         // Use flyTo for smooth animation to new location with error handling
         try {
           // Final safety check right before flyTo call
@@ -850,10 +783,7 @@ export default function MapPanel({
           }
         }
         
-        // Set flying state to false after animation completes
-        setTimeout(() => {
-          setIsFlying(false);
-        }, 1500);
+
         
         // Update the ref to track current coordinates
         previousCoordinatesRef.current = currentCoords;

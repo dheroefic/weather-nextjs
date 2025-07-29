@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import HourlyForecast from '../shared/HourlyForecast';
 import DailyForecast from '../shared/DailyForecast';
@@ -9,14 +9,10 @@ import Footer from '../shared/Footer';
 import EmbeddedMap from './EmbeddedMap';
 import LocationSelector from '../shared/LocationSelector';
 import DetailPanel from '../shared/DetailPanel';
-import dynamic from 'next/dynamic';
 import MapPanelComponent from '../shared/Map/MapPanel';
 import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/types/weather';
 import { debug } from '@/utils/debug';
 import { useNearbyWeather } from '@/hooks/useNearbyWeather';
-
-// Dynamically import MapPanel to avoid SSR issues - for fullscreen map
-const MapPanel = dynamic(() => import('../shared/Map/MapPanel'), { ssr: false });
 
 interface DesktopLayoutProps {
   weatherData: WeatherData | null;
@@ -80,15 +76,12 @@ export default function DesktopLayout({
   const dailyForecast = weatherData?.dailyForecast || [];
 
   // Use nearby weather hook for fullscreen map
-  const { nearbyWeatherData, isLoading: nearbyLoading } = useNearbyWeather({
+  const { nearbyWeatherData } = useNearbyWeather({
     location,
     weatherData,
     zoomLevel: 13,
     enabled: true
   });
-
-  // Enhanced loading state that combines multiple loading states
-  const isAnyDataLoading = loading || nearbyLoading;
 
   // Handle panel toggles - only allow one panel open at a time
   const handleSettingsToggle = () => {
@@ -380,7 +373,6 @@ export default function DesktopLayout({
             tempUnit={tempUnit}
             convertTemp={convertTemp}
             variant="desktop"
-            isLoadingData={isAnyDataLoading}
             nearbyLocations={nearbyWeatherData.map(nearby => ({
               latitude: nearby.latitude,
               longitude: nearby.longitude,
@@ -407,7 +399,6 @@ export default function DesktopLayout({
                 },
               });
             }}
-            onWeatherDataRefresh={handleRefresh}
           />
         );
       })()}

@@ -131,6 +131,7 @@ function clearOldCacheEntries(): void {
       }
     } catch (error) {
       // If we can't parse it, it might be corrupted cache, remove it
+      console.error('Error parsing cache item for key:', key, error);
       keysToDelete.push(key);
     }
   }
@@ -163,6 +164,7 @@ function shouldClearCache(): boolean {
     return totalSize > FOUR_MB;
   } catch (error) {
     // If we can't check, err on the side of caution
+    console.error('Error checking localStorage size', error);
     return true;
   }
 }

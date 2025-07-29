@@ -3,8 +3,6 @@
  */
 
 import { 
-  getCachedGeocoding, 
-  cacheGeocodingResult, 
   cleanupGeocodingCache,
   getOrRequestGeocoding
 } from '@/utils/geocodingCache';

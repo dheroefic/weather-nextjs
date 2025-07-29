@@ -5,7 +5,6 @@ import {
   cacheGeocodingResult, 
   cleanupGeocodingCache 
 } from '@/utils/geocodingCache';
-import { getOpenMeteoConfig } from '@/utils/openmeteoConfig';
 
 export interface GeolocationResponse<T> {
   success: boolean;
@@ -18,8 +17,19 @@ export interface Coordinates {
   longitude: number;
 }
 
-// Get OpenMeteo configuration
-const openMeteoConfig = getOpenMeteoConfig();
+interface GeocodingResultItem {
+  name?: string;
+  country_name?: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  lat?: number;
+  lon?: number;
+  address?: {
+    country?: string;
+  };
+}
 
 export interface SearchResult {
   name: string;
@@ -139,12 +149,15 @@ export async function searchLocations(query: string): Promise<GeolocationRespons
     }
 
     // Transform the results to match SearchResult interface
-    const results = data.results.map((item: any) => ({
-      name: item.name || item.country_name || 'Unknown Location',
-      country: item.country_name || item.address?.country || 'Unknown Country',
-      latitude: item.coordinates?.latitude || item.lat || 0,
-      longitude: item.coordinates?.longitude || item.lon || 0
-    }));
+    const results = data.results.map((item: unknown) => {
+      const typedItem = item as GeocodingResultItem;
+      return {
+        name: typedItem.name || typedItem.country_name || 'Unknown Location',
+        country: typedItem.country_name || typedItem.address?.country || 'Unknown Country',
+        latitude: typedItem.coordinates?.latitude || typedItem.lat || 0,
+        longitude: typedItem.coordinates?.longitude || typedItem.lon || 0
+      };
+    });
 
     const result = {
       success: true,

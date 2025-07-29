@@ -30,14 +30,12 @@ const DetailPanel = memo(function DetailPanel({
 }: DetailPanelProps) {
   const [selectedHour, setSelectedHour] = useState<number | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (selectedDay) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setIsVisible(true);
-      setSlideDirection(null);
       panelRef.current?.scrollTo({ top: 0 });
       setSelectedHour(null);
     } else {
@@ -54,10 +52,8 @@ const DetailPanel = memo(function DetailPanel({
     if (!selectedDay || !weatherData?.dailyForecast) return;
     const currentIndex = weatherData.dailyForecast.findIndex(day => day.date === selectedDay.date);
     if (currentIndex > 0) {
-      setSlideDirection('right');
       setTimeout(() => {
         onDaySelect(weatherData.dailyForecast[currentIndex - 1]);
-        setSlideDirection(null);
       }, 250);
     }
   }, [selectedDay, weatherData, onDaySelect]);
@@ -66,10 +62,8 @@ const DetailPanel = memo(function DetailPanel({
     if (!selectedDay || !weatherData?.dailyForecast) return;
     const currentIndex = weatherData.dailyForecast.findIndex(day => day.date === selectedDay.date);
     if (currentIndex < weatherData.dailyForecast.length - 1) {
-      setSlideDirection('left');
       setTimeout(() => {
         onDaySelect(weatherData.dailyForecast[currentIndex + 1]);
-        setSlideDirection(null);
       }, 250);
     }
   }, [selectedDay, weatherData, onDaySelect]);

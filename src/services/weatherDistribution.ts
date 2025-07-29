@@ -1,5 +1,5 @@
 import { NearbyLocation } from '@/types/nearbyWeather';
-import { WMO_CODES, getUVCategory, getWindDirection, fetchWeatherForeacastMultipleLocationApi } from './weatherService';
+import { WMO_CODES, getUVCategory, getWindDirection, fetchWeatherForeacastMultipleLocationApi, type OpenMeteoResponse } from './weatherService';
 import { getOpenMeteoConfig } from '@/utils/openmeteoConfig';
 import { reverseGeocode, GeolocationResponse } from './geolocationService';
 import { Location } from '@/types/weather';
@@ -175,7 +175,7 @@ export async function fetchNearbyWeatherData(
 
     // Define a consistent naming scheme for all nearby points
     // Use radius-based distance categories for cleaner UX
-    const getLocationName = (point: { latitude: number; longitude: number }, index: number) => {
+    const getLocationName = (point: { latitude: number; longitude: number }) => {
       const latDiff = point.latitude - centerLat;
       const lngDiff = point.longitude - centerLng;
       
@@ -224,7 +224,7 @@ export async function fetchNearbyWeatherData(
     };
 
     // Process responses with consistent naming
-    responses.forEach((response: any, i: number) => {
+    responses.forEach((response: OpenMeteoResponse, i: number) => {
       // Skip some points randomly to reduce density in areas with many weather icons
       // but ensure we always have at least 4 points
       if (nearbyLocations.length < 4 || Math.random() < displayProbability) {
@@ -232,7 +232,7 @@ export async function fetchNearbyWeatherData(
         const weatherInfo = WMO_CODES[weatherCode] || WMO_CODES[0];
 
         const point = points[i];
-        const locationInfo = getLocationName(point, i);
+        const locationInfo = getLocationName(point);
         
         const nearbyLocation: NearbyLocation = {
           latitude: point.latitude,

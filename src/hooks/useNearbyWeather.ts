@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { NearbyLocation } from '@/types/nearbyWeather';
-import { Location } from '@/types/weather';
+import { Location, WeatherData } from '@/types/weather';
 import { fetchNearbyWeatherData } from '@/services/weatherDistribution';
 
 interface UseNearbyWeatherProps {
   location: Location;
-  weatherData?: any; // Current weather data for the main location
+  weatherData?: WeatherData | null; // Current weather data for the main location
   zoomLevel?: number;
   enabled?: boolean;
 }
@@ -27,7 +27,7 @@ export function useNearbyWeather({
   const locationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Function to fetch nearby weather data
-  const fetchNearbyData = async (lat: number, lng: number, zoom: number) => {
+  const fetchNearbyData = useCallback(async (lat: number, lng: number, zoom: number) => {
     // Cancel any existing request
     if (currentRequestRef.current) {
       currentRequestRef.current.abort();
@@ -78,7 +78,7 @@ export function useNearbyWeather({
       setIsLoading(false);
       currentRequestRef.current = null;
     }
-  };
+  }, [weatherData, location.city, location.country]);
 
   // Handle location changes with debouncing
   useEffect(() => {
@@ -122,7 +122,7 @@ export function useNearbyWeather({
         clearTimeout(locationTimeoutRef.current);
       }
     };
-  }, [location.coordinates?.latitude, location.coordinates?.longitude, enabled]);
+  }, [location.coordinates, enabled, fetchNearbyData, zoomLevel]);
 
   // Handle zoom level changes (immediate, no delay)
   useEffect(() => {
@@ -142,7 +142,7 @@ export function useNearbyWeather({
     }
     
     fetchNearbyData(latitude, longitude, zoomLevel);
-  }, [zoomLevel]);
+  }, [zoomLevel, enabled, location.coordinates, nearbyWeatherData.length, fetchNearbyData]);
 
   // Cleanup on unmount
   useEffect(() => {

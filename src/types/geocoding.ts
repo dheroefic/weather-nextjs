@@ -18,7 +18,7 @@ export interface CountryOsmGrid {
   id: string;
   country_code: string;
   area?: number;
-  geometry?: any; // PostGIS geometry (GeoJSON or WKT)
+  geometry?: GeoJSON.Geometry; // PostGIS geometry (GeoJSON or WKT)
   created_at: string;
   updated_at: string;
 }
@@ -67,7 +67,7 @@ export interface GeocodingResult {
     county?: string;
   };
   boundingbox?: [string, string, string, string]; // [min_lat, max_lat, min_lon, max_lon]
-  geometry?: any;
+  geometry?: GeoJSON.Geometry;
   // Internal fields
   country_code: string;
   country_name: string;

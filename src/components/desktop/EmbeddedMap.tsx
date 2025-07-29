@@ -118,9 +118,9 @@ export default function EmbeddedMap({
   const mapManager = useMapManager(DEFAULT_EMBEDDED_MAP_CONFIG);
   
   // Use nearby weather hook
-  const { nearbyWeatherData, isLoading: nearbyLoading, error: nearbyError } = useNearbyWeather({
+  const { nearbyWeatherData, isLoading: nearbyLoading } = useNearbyWeather({
     location,
-    weatherData,
+    weatherData: weatherData ?? undefined,
     zoomLevel: 13, // Default zoom for embedded map
     enabled: true
   });

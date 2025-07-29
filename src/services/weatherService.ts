@@ -138,6 +138,8 @@ interface OpenMeteoResponse {
   };
 }
 
+export type { OpenMeteoResponse };
+
 export function getUVIndexIcon(uvIndex: number): WeatherIconPath {
   if (uvIndex <= 0) return '/icons/weathers/uv-index-1.svg';
   if (uvIndex <= 2) return '/icons/weathers/uv-index-2.svg';

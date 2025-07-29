@@ -162,7 +162,7 @@ export class AuditLogger {
         }
       } else {
         // Create new association - only include UUID fields if they have values
-        const insertData: any = {
+        const insertData: Record<string, unknown> = {
           ip_address: ipAddress,
           hit_count: 1,
           first_seen: now,

@@ -4,11 +4,9 @@ import { AuthMiddleware } from '@/lib/authMiddleware';
 import { GeocodingResponse, GeocodingError } from '@/types/geocoding';
 
 export async function GET(request: NextRequest) {
-  const startTime = Date.now();
-
   return AuthMiddleware.withAuth(
     request,
-    async (req, context) => {
+    async () => {
       const { searchParams } = new URL(request.url);
       const latitude = searchParams.get('latitude');
       const longitude = searchParams.get('longitude');
@@ -58,7 +56,7 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        const results = await GeocodingService.reverseGeocode(lat, lng, language);
+        const results = await GeocodingService.reverseGeocode(lat, lng);
         
         const response: GeocodingResponse = {
           results,

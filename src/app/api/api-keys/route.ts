@@ -141,6 +141,7 @@ export async function POST(request: NextRequest) {
         const result = await ApiKeyManager.createApiKey(
           context.user.id,
           name.trim(),
+          'user', // role
           expiresAt
         );
 
