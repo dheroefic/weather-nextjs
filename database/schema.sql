@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     key_hash VARCHAR(255) NOT NULL UNIQUE,
+    role VARCHAR(50) DEFAULT 'user' CHECK (role IN ('root', 'admin', 'user')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     is_active BOOLEAN DEFAULT TRUE,

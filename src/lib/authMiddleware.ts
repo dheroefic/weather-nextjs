@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ApiKeyManager } from './apiKeyManager';
+import { ApiKeyManager, type ApiKeyRole } from './apiKeyManager';
 import { defaultRateLimiter, rateLimitConfigs, RateLimitConfigKey } from './rateLimiter';
 import { AuditLogger } from './auditLogger';
 
@@ -8,6 +8,7 @@ export interface AuthContext {
     id: string;
     userId: string;
     name: string;
+    role: ApiKeyRole;
   };
   user?: {
     id: string;
@@ -129,6 +130,7 @@ export class AuthMiddleware {
             id: apiKeyData.id,
             userId: apiKeyData.user_id,
             name: apiKeyData.name,
+            role: (apiKeyData.role as ApiKeyRole) || 'user',
           },
           user: {
             id: apiKeyData.user_id,
@@ -157,50 +159,62 @@ export class AuthMiddleware {
         };
       }
 
-      // Apply rate limiting
-      const rateLimitKey = authContext.apiKey?.id || ipAddress;
-      const rateConfig = options.customRateLimit || 
-                       (options.rateLimitConfig ? rateLimitConfigs[options.rateLimitConfig] : rateLimitConfigs.default);
+      // Apply rate limiting (skip for root role)
+      const shouldBypassRateLimit = authContext.apiKey?.role && 
+                                   ApiKeyManager.shouldBypassRateLimit(authContext.apiKey.role);
+      
+      if (!shouldBypassRateLimit) {
+        const rateLimitKey = authContext.apiKey?.id || ipAddress;
+        const rateConfig = options.customRateLimit || 
+                         (options.rateLimitConfig ? rateLimitConfigs[options.rateLimitConfig] : rateLimitConfigs.default);
 
-      const rateLimitResult = await defaultRateLimiter.checkRateLimit(
-        rateLimitKey,
-        endpoint,
-        rateConfig
-      );
-
-      if (!rateLimitResult.success) {
-        const responseTime = Date.now() - startTime;
-        
-        if (!options.skipAudit) {
-          await AuditLogger.logRequest(request, {
-            endpoint,
-            responseStatus: 429,
-            responseTimeMs: responseTime,
-            apiKeyId: authContext.apiKey?.id,
-            userId: authContext.user?.id,
-            errorMessage: rateLimitResult.error,
-          });
-        }
-
-        const response = NextResponse.json(
-          { 
-            error: 'Rate limit exceeded',
-            retryAfter: Math.ceil((rateLimitResult.resetTime.getTime() - Date.now()) / 1000)
-          },
-          { status: 429 }
+        const rateLimitResult = await defaultRateLimiter.checkRateLimit(
+          rateLimitKey,
+          endpoint,
+          rateConfig
         );
 
-        // Add rate limit headers
-        response.headers.set('X-RateLimit-Limit', rateConfig.maxRequests.toString());
-        response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
-        response.headers.set('X-RateLimit-Reset', rateLimitResult.resetTime.toISOString());
-        response.headers.set('Retry-After', Math.ceil((rateLimitResult.resetTime.getTime() - Date.now()) / 1000).toString());
+        if (!rateLimitResult.success) {
+          const responseTime = Date.now() - startTime;
+          
+          if (!options.skipAudit) {
+            await AuditLogger.logRequest(request, {
+              endpoint,
+              responseStatus: 429,
+              responseTimeMs: responseTime,
+              apiKeyId: authContext.apiKey?.id,
+              userId: authContext.user?.id,
+              errorMessage: rateLimitResult.error,
+            });
+          }
 
-        return {
-          success: false,
-          error: 'Rate limit exceeded',
-          response,
-        };
+          // Ensure resetTime is a proper Date object
+          const resetTime = rateLimitResult.resetTime instanceof Date 
+            ? rateLimitResult.resetTime 
+            : new Date(rateLimitResult.resetTime);
+
+          const retryAfterSeconds = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
+
+          const response = NextResponse.json(
+            { 
+              error: 'Rate limit exceeded',
+              retryAfter: retryAfterSeconds
+            },
+            { status: 429 }
+          );
+
+          // Add rate limit headers
+          response.headers.set('X-RateLimit-Limit', rateConfig.maxRequests.toString());
+          response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+          response.headers.set('X-RateLimit-Reset', resetTime.toISOString());
+          response.headers.set('Retry-After', retryAfterSeconds.toString());
+
+          return {
+            success: false,
+            error: 'Rate limit exceeded',
+            response,
+          };
+        }
       }
 
       return {

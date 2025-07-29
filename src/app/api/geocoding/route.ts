@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
       const search = searchParams.get('search'); // For country name search
 
       try {
-        // Handle country search by name
+        // Handle location search by name (cities and countries)
         if (search) {
-          const results = await GeocodingService.searchCountries(search, language, 10);
+          const results = await GeocodingService.searchLocations(search, language, 10);
           
           const response: GeocodingResponse = {
             results,

@@ -85,8 +85,8 @@ export class AuditLogger {
         method: request.method,
         ip_address: ip,
         user_agent: userAgent,
-        api_key_id: options.apiKeyId,
-        user_id: options.userId,
+        api_key_id: options.apiKeyId || undefined,
+        user_id: options.userId || undefined,
         request_params: options.requestParams,
         response_status: options.responseStatus,
         response_time_ms: options.responseTimeMs,
@@ -119,14 +119,26 @@ export class AuditLogger {
     userAgent?: string
   ): Promise<void> {
     try {
-      // Try to find existing association
-      const { data: existing, error: selectError } = await supabaseAdmin
+      // Build query to find existing association
+      let query = supabaseAdmin
         .from('associations')
         .select('*')
-        .eq('ip_address', ipAddress)
-        .eq('api_key_id', apiKeyId || null)
-        .eq('user_id', userId || null)
-        .single();
+        .eq('ip_address', ipAddress);
+
+      // Handle null values properly for UUID fields
+      if (apiKeyId) {
+        query = query.eq('api_key_id', apiKeyId);
+      } else {
+        query = query.is('api_key_id', null);
+      }
+
+      if (userId) {
+        query = query.eq('user_id', userId);
+      } else {
+        query = query.is('user_id', null);
+      }
+
+      const { data: existing, error: selectError } = await query.single();
 
       if (selectError && selectError.code !== 'PGRST116') {
         throw selectError;
@@ -149,18 +161,26 @@ export class AuditLogger {
           console.error('Failed to update association:', updateError);
         }
       } else {
-        // Create new association
+        // Create new association - only include UUID fields if they have values
+        const insertData: any = {
+          ip_address: ipAddress,
+          hit_count: 1,
+          first_seen: now,
+          last_seen: now,
+          user_agent: userAgent,
+        };
+
+        if (apiKeyId) {
+          insertData.api_key_id = apiKeyId;
+        }
+
+        if (userId) {
+          insertData.user_id = userId;
+        }
+
         const { error: insertError } = await supabaseAdmin
           .from('associations')
-          .insert({
-            ip_address: ipAddress,
-            api_key_id: apiKeyId,
-            user_id: userId,
-            hit_count: 1,
-            first_seen: now,
-            last_seen: now,
-            user_agent: userAgent,
-          });
+          .insert(insertData);
 
         if (insertError) {
           console.error('Failed to create association:', insertError);

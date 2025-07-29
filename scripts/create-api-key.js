@@ -24,15 +24,18 @@ async function createRootApiKey() {
 
   const baseUrl = process.argv[2] || 'http://localhost:3000';
   const apiKeyName = process.argv[3] || `Root API Key ${new Date().toISOString().slice(0, 19)}`;
+  const role = process.argv[4] || 'root'; // Default to root role
 
   console.log('🔑 Creating Root API Key for Weather App');
   console.log('========================================');
   console.log(`📡 API endpoint: ${baseUrl}`);
   console.log(`🏷️  API key name: ${apiKeyName}`);
+  console.log(`👤 Role: ${role}`);
   console.log('');
 
   const postData = JSON.stringify({
     name: apiKeyName,
+    role: role,
     expiresInDays: 365
   });
 

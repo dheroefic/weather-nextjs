@@ -124,10 +124,10 @@ export async function searchLocations(query: string): Promise<GeolocationRespons
 
     // Transform the results to match SearchResult interface
     const results = data.results.map((item: any) => ({
-      name: item.country_name || 'Unknown Country',
-      country: item.country_name || 'Unknown Country',
-      latitude: item.coordinates?.latitude || 0,
-      longitude: item.coordinates?.longitude || 0
+      name: item.name || item.country_name || 'Unknown Location',
+      country: item.country_name || item.address?.country || 'Unknown Country',
+      latitude: item.coordinates?.latitude || item.lat || 0,
+      longitude: item.coordinates?.longitude || item.lon || 0
     }));
 
     const result = {

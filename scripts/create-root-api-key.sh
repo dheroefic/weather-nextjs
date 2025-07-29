@@ -25,9 +25,11 @@ fi
 # Get the base URL
 BASE_URL=${1:-"http://localhost:3000"}
 API_KEY_NAME=${2:-"Root API Key $(date +%Y%m%d-%H%M%S)"}
+ROLE=${3:-"root"}
 
 echo "📡 Creating API key at: $BASE_URL"
 echo "🏷️  API key name: $API_KEY_NAME"
+echo "👤 Role: $ROLE"
 echo ""
 
 # Create the API key
@@ -36,6 +38,7 @@ RESPONSE=$(curl -s -X POST "$BASE_URL/api/admin/api-keys" \
   -H "X-Admin-Secret: $ADMIN_SECRET" \
   -d "{
     \"name\": \"$API_KEY_NAME\",
+    \"role\": \"$ROLE\",
     \"expiresInDays\": 365
   }")
 

@@ -93,7 +93,7 @@ export class RateLimiter {
         return {
           success: false,
           remaining: 0,
-          resetTime: existingLimit.window_end,
+          resetTime: new Date(existingLimit.window_end),
           error: 'Rate limit exceeded',
         };
       }
@@ -112,7 +112,7 @@ export class RateLimiter {
       return {
         success: true,
         remaining: existingLimit.max_requests - existingLimit.request_count - 1,
-        resetTime: existingLimit.window_end,
+        resetTime: new Date(existingLimit.window_end),
       };
     } catch (error) {
       console.error('Rate limiter error:', error);

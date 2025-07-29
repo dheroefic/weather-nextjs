@@ -733,4 +733,143 @@ export class GeocodingService {
     
     return searchResults;
   }
+
+  /**
+   * Search for locations (cities and countries) by name
+   * This combines city search from local JSON data with country search from database
+   */
+  static async searchLocations(
+    query: string,
+    language: string = 'en',
+    limit: number = 10
+  ): Promise<GeocodingResult[]> {
+    try {
+      console.log(`🔍 [SEARCH DEBUG] Starting location search for query: "${query}", language: ${language}, limit: ${limit}`);
+      
+      const results: GeocodingResult[] = [];
+      const normalizedQuery = query.toLowerCase().trim();
+
+      // First, search for cities in local JSON data
+      const citiesModule = await import('@/data/cities.json');
+      const cities = citiesModule.default;
+      
+      const matchingCities = cities.filter(city => 
+        city.name.toLowerCase().includes(normalizedQuery)
+      ).slice(0, Math.min(limit, 5)); // Limit cities to 5 max
+
+      console.log(`🏙️ [CITY DEBUG] Found ${matchingCities.length} matching cities`);
+
+      // Convert cities to GeocodingResult format
+      for (const city of matchingCities) {
+        const result: GeocodingResult = {
+          place_id: `city_${city.name.toLowerCase().replace(/\s+/g, '_')}_${city.country.toLowerCase().replace(/\s+/g, '_')}`,
+          licence: "© OpenStreetMap contributors",
+          osm_type: "node",
+          osm_id: "0",
+          lat: city.latitude,
+          lon: city.longitude,
+          category: "place",
+          type: "city",
+          place_rank: 16,
+          importance: 0.7,
+          addresstype: "city",
+          name: city.name,
+          display_name: `${city.name}, ${city.country}`,
+          address: {
+            city: city.name,
+            country: city.country,
+            country_code: this.getCountryCode(city.country)
+          },
+          boundingbox: [
+            (city.latitude - 0.1).toString(),
+            (city.latitude + 0.1).toString(),
+            (city.longitude - 0.1).toString(),
+            (city.longitude + 0.1).toString()
+          ],
+          geometry: {
+            type: "Point",
+            coordinates: [city.longitude, city.latitude]
+          },
+          country_code: this.getCountryCode(city.country),
+          country_name: city.country,
+          default_language: language,
+          coordinates: {
+            latitude: city.latitude,
+            longitude: city.longitude
+          }
+        };
+        
+        results.push(result);
+        console.log(`✅ [CITY RESULT] Added city: ${city.name}, ${city.country}`);
+      }
+
+      // If we have space for more results, search countries
+      const remainingLimit = limit - results.length;
+      if (remainingLimit > 0) {
+        console.log(`🌍 [COUNTRY DEBUG] Searching for countries with remaining limit: ${remainingLimit}`);
+        const countryResults = await this.searchCountries(query, language, remainingLimit);
+        results.push(...countryResults);
+      }
+
+      console.log(`✅ [FINAL DEBUG] Total results found: ${results.length}`);
+      return results.slice(0, limit);
+    } catch (error) {
+      console.error('Error in searchLocations:', error);
+      // Fallback to country search only
+      return this.searchCountries(query, language, limit);
+    }
+  }
+
+  /**
+   * Helper method to get country code from country name
+   * This is a simplified mapping - you might want to use a more comprehensive solution
+   */
+  private static getCountryCode(countryName: string): string {
+    const countryMap: { [key: string]: string } = {
+      'United Kingdom': 'gb',
+      'United States': 'us',
+      'France': 'fr',
+      'Germany': 'de',
+      'Italy': 'it',
+      'Spain': 'es',
+      'Canada': 'ca',
+      'Australia': 'au',
+      'Japan': 'jp',
+      'China': 'cn',
+      'India': 'in',
+      'Brazil': 'br',
+      'Russia': 'ru',
+      'South Korea': 'kr',
+      'Mexico': 'mx',
+      'Netherlands': 'nl',
+      'Turkey': 'tr',
+      'Saudi Arabia': 'sa',
+      'Switzerland': 'ch',
+      'Belgium': 'be',
+      'Poland': 'pl',
+      'Ireland': 'ie',
+      'Norway': 'no',
+      'Austria': 'at',
+      'Israel': 'il',
+      'United Arab Emirates': 'ae',
+      'Argentina': 'ar',
+      'South Africa': 'za',
+      'Chile': 'cl',
+      'Finland': 'fi',
+      'Denmark': 'dk',
+      'Indonesia': 'id',
+      'Thailand': 'th',
+      'Malaysia': 'my',
+      'Singapore': 'sg',
+      'Philippines': 'ph',
+      'Vietnam': 'vn',
+      'Egypt': 'eg',
+      'Nigeria': 'ng',
+      'Kenya': 'ke',
+      'Morocco': 'ma',
+      'Ghana': 'gh'
+    };
+    
+    return countryMap[countryName] || countryName.toLowerCase().substring(0, 2);
+  }
 }

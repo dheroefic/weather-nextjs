@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ApiKeyManager } from '@/lib/apiKeyManager';
+import { ApiKeyManager, type ApiKeyRole } from '@/lib/apiKeyManager';
 import { supabaseAdmin } from '@/lib/supabase';
 
 /**
@@ -27,11 +27,20 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, userId, expiresInDays = 365 } = body;
+    const { name, userId, role = 'root', expiresInDays = 365 } = body;
 
     if (!name || typeof name !== 'string') {
       return NextResponse.json(
         { error: 'API key name is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate role
+    const validRoles: ApiKeyRole[] = ['root', 'admin', 'user'];
+    if (!validRoles.includes(role as ApiKeyRole)) {
+      return NextResponse.json(
+        { error: 'Invalid role. Must be one of: root, admin, user' },
         { status: 400 }
       );
     }
@@ -53,6 +62,7 @@ export async function POST(request: NextRequest) {
         user_id: targetUserId,
         name,
         key_hash: keyHash,
+        role: role as ApiKeyRole,
         expires_at: expiresAt.toISOString(),
         is_active: true
       })
@@ -73,12 +83,13 @@ export async function POST(request: NextRequest) {
         id: data.id,
         name: data.name,
         key: apiKey, // The actual API key - store this securely!
+        role: data.role,
         user_id: targetUserId || 'system',
         created_at: data.created_at,
         expires_at: data.expires_at,
         is_active: data.is_active,
       },
-      message: 'Root API key created successfully. Store this key securely - it will not be shown again.',
+      message: `${role} API key created successfully. Store this key securely - it will not be shown again.`,
       usage: {
         geocoding: `curl -H "Authorization: Bearer ${apiKey}" "http://localhost:3000/api/geocoding?latitude=40.4637&longitude=-3.7492"`,
         weather: `curl -H "Authorization: Bearer ${apiKey}" "http://localhost:3000/api/weather?latitude=40.4637&longitude=-3.7492"`

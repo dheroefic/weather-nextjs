@@ -6,6 +6,8 @@ import type { Database } from '@/lib/supabase';
 type ApiKey = Database['public']['Tables']['api_keys']['Row'];
 type ApiKeyInsert = Database['public']['Tables']['api_keys']['Insert'];
 
+export type ApiKeyRole = 'root' | 'admin' | 'user';
+
 export class ApiKeyManager {
   private static readonly API_KEY_PREFIX = 'wapi_';
   private static readonly API_KEY_LENGTH = 32;
@@ -39,6 +41,7 @@ export class ApiKeyManager {
   static async createApiKey(
     userId: string,
     name: string,
+    role: ApiKeyRole = 'user',
     expiresAt?: Date
   ): Promise<{ apiKey: string; id: string } | null> {
     try {
@@ -51,6 +54,7 @@ export class ApiKeyManager {
           user_id: userId,
           name,
           key_hash: keyHash,
+          role,
           expires_at: expiresAt?.toISOString() || null,
         } as ApiKeyInsert)
         .select('id')
@@ -193,6 +197,13 @@ export class ApiKeyManager {
       console.error('Error in getApiKeyById:', error);
       return null;
     }
+  }
+
+  /**
+   * Check if a role should bypass rate limiting
+   */
+  static shouldBypassRateLimit(role: ApiKeyRole): boolean {
+    return role === 'root';
   }
 
   /**

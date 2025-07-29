@@ -54,6 +54,7 @@ export type Database = {
           user_id: string;
           name: string;
           key_hash: string;
+          role: string;
           created_at: string;
           updated_at: string;
           is_active: boolean;
@@ -64,6 +65,7 @@ export type Database = {
           user_id: string;
           name: string;
           key_hash: string;
+          role?: string;
           created_at?: string;
           updated_at?: string;
           is_active?: boolean;
@@ -74,6 +76,7 @@ export type Database = {
           user_id?: string;
           name?: string;
           key_hash?: string;
+          role?: string;
           created_at?: string;
           updated_at?: string;
           is_active?: boolean;
