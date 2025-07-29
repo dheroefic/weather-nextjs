@@ -600,6 +600,7 @@ For detailed documentation on specific features:
 - **[API Authentication Guide](docs/AUTHENTICATION.md)** - Complete authentication system
 - **[Admin API Keys Guide](docs/ADMIN_API_KEYS.md)** - API key management
 - **[Geocoding Service](docs/GEOCODING.md)** - Location services documentation
+- **[Supabase Health Check Setup](docs/HOBBY_PLAN_SETUP.md)** - Keep Supabase active (Hobby plan)
 
 ## 📝 API Credits & Acknowledgments
 

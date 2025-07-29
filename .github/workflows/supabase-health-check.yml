@@ -1,0 +1,44 @@
+name: Supabase Health Check
+
+on:
+  schedule:
+    # Run daily at 12:00 PM UTC (keeps Supabase active)
+    - cron: '0 12 * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub Actions tab
+
+jobs:
+  supabase-health-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Ping Supabase Health Check
+        env:
+          VERCEL_APP_URL: ${{ secrets.VERCEL_APP_URL }}
+        run: |
+          echo "🚀 Starting Supabase health check..."
+          echo "Target URL: https://$VERCEL_APP_URL/api/health/supabase"
+          
+          # Make the health check request
+          response=$(curl -s -w "%{http_code}" -m 30 "https://$VERCEL_APP_URL/api/health/supabase")
+          http_code="${response: -3}"
+          response_body="${response%???}"
+          
+          echo "📊 Response Details:"
+          echo "HTTP Status: $http_code"
+          echo "Response Body: $response_body"
+          
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Supabase health check successful!"
+            echo "🎯 Your Supabase project will remain active."
+          else
+            echo "❌ Supabase health check failed with HTTP $http_code"
+            echo "Response: $response_body"
+            exit 1
+          fi
+      
+      - name: Log Health Check Summary
+        if: always()
+        run: |
+          echo "📅 Health check completed at $(date -u)"
+          echo "🔄 Next scheduled run: Tomorrow at 12:00 PM UTC"
+          echo "💡 This daily ping prevents Supabase free-tier inactivity pause"
