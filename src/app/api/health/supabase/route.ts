@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // simple ping from rpc function
     const { error } = await supabaseAdmin.rpc('ping');
@@ -41,6 +41,6 @@ export async function GET(request: NextRequest) {
 }
 
 // Also support POST for Vercel Cron Jobs
-export async function POST(request: NextRequest) {
-  return GET(request);
+export async function POST() {
+  return GET();
 }
