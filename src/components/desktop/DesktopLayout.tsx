@@ -87,6 +87,9 @@ export default function DesktopLayout({
     enabled: true
   });
 
+  // Enhanced loading state that combines multiple loading states
+  const isAnyDataLoading = loading || nearbyLoading;
+
   // Handle panel toggles - only allow one panel open at a time
   const handleSettingsToggle = () => {
     if (showLocationSelector) {
@@ -377,6 +380,7 @@ export default function DesktopLayout({
             tempUnit={tempUnit}
             convertTemp={convertTemp}
             variant="desktop"
+            isLoadingData={isAnyDataLoading}
             nearbyLocations={nearbyWeatherData.map(nearby => ({
               latitude: nearby.latitude,
               longitude: nearby.longitude,
@@ -403,6 +407,7 @@ export default function DesktopLayout({
                 },
               });
             }}
+            onWeatherDataRefresh={handleRefresh}
           />
         );
       })()}

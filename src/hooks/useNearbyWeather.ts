@@ -84,6 +84,7 @@ export function useNearbyWeather({
   useEffect(() => {
     if (!enabled || !location.coordinates) {
       setNearbyWeatherData([]);
+      setIsLoading(false);
       return;
     }
 
@@ -96,6 +97,7 @@ export function useNearbyWeather({
         longitude < -180 || longitude > 180) {
       console.warn('Invalid coordinates provided to useNearbyWeather:', { latitude, longitude });
       setNearbyWeatherData([]);
+      setIsLoading(false);
       return;
     }
 
@@ -104,14 +106,16 @@ export function useNearbyWeather({
       clearTimeout(locationTimeoutRef.current);
     }
 
-    // Clear current data immediately when location changes
-    setNearbyWeatherData([]);
+    // Show loading immediately when location changes
     setIsLoading(true);
+    
+    // Clear current data to indicate that new data is being fetched
+    setNearbyWeatherData([]);
 
-    // Wait 1-2 seconds before fetching new data (as requested)
+    // Reduced delay for better responsiveness - fetch data more quickly
     locationTimeoutRef.current = setTimeout(() => {
       fetchNearbyData(latitude, longitude, zoomLevel);
-    }, 1500); // 1.5 seconds delay
+    }, 800); // Reduced from 1.5 seconds to 800ms
 
     return () => {
       if (locationTimeoutRef.current) {

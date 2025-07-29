@@ -72,6 +72,9 @@ export default function MobileLayout({
     enabled: showMap // Only fetch when map is open to improve performance
   });
 
+  // Enhanced loading state that combines multiple loading states
+  const isAnyDataLoading = loading || nearbyLoading;
+
   // Prevent body scroll when mobile map is open
   useEffect(() => {
     if (showMap) {
@@ -147,6 +150,7 @@ export default function MobileLayout({
         tempUnit={tempUnit}
         convertTemp={convertTemp}
         variant="mobile"
+        isLoadingData={isAnyDataLoading}
         nearbyLocations={nearbyWeatherData.map(nearby => ({
           latitude: nearby.latitude,
           longitude: nearby.longitude,
@@ -174,6 +178,7 @@ export default function MobileLayout({
             country: coordinates.country || location.country
           });
         }}
+        onWeatherDataRefresh={handleRefresh}
       />
     </>
   );

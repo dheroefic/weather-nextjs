@@ -5,7 +5,7 @@ import type { LatLngExpression, Map as LeafletMap } from 'leaflet';
 import type { Location } from '@/types/weather';
 import type { NearbyLocation } from '@/types/nearbyWeather';
 import { fetchNearbyWeatherData } from '@/services/weatherDistribution';
-import { getUserGeolocation, reverseGeocode } from '@/services/geolocationService';
+import { getUserGeolocation } from '@/services/geolocationService';
 import type { SearchResult } from '@/services/geolocationService';
 import { debug } from '@/utils/debug';
 
@@ -613,16 +613,13 @@ export const useLocationSelection = () => {
       // If callback provided, get city/country info and call it
       if (onLocationSelect) {
         try {
-          const locationResponse = await reverseGeocode({ latitude, longitude });
-          if (locationResponse.success && locationResponse.data) {
-            onLocationSelect(locationResponse.data);
-          } else {
-            onLocationSelect({
-              city: latitude.toString(),
-              country: longitude.toString(),
-              coordinates: { latitude, longitude },
-            });
-          }
+          const { getLocationWithFallback } = await import('@/utils/mapLocationUtils');
+          const result = await getLocationWithFallback(latitude, longitude);
+          onLocationSelect({
+            city: result.city,
+            country: result.country,
+            coordinates: { latitude, longitude },
+          });
         } catch (error) {
           debug.warn('Error in reverse geocoding:', error);
           onLocationSelect({

@@ -128,10 +128,17 @@ export default function EmbeddedMap({
   // Handle map location updates when user interacts with map
   const handleLocationUpdate = useCallback(async (lat: number, lng: number) => {
     try {
+      // Immediately update center marker with coordinates as temporary name
+      const tempLocationName = `${lat.toFixed(3)}°, ${lng.toFixed(3)}°`;
+      setCenterMarkerLocation({
+        city: tempLocationName,
+        country: 'Coordinates'
+      });
+
       // Create new location object for the updated coordinates
       const newLocation: Location = {
-        city: location.city, // Keep existing city info temporarily
-        country: location.country, // Keep existing country info temporarily
+        city: tempLocationName, // Use temporary coordinate-based name
+        country: 'Coordinates',
         coordinates: {
           latitude: lat,
           longitude: lng
@@ -140,10 +147,31 @@ export default function EmbeddedMap({
       
       // Call the location select handler to update the app state
       onLocationSelect(newLocation);
+
+      // Perform reverse geocoding to get the actual location name (in background)
+      try {
+        const { getLocationWithFallback } = await import('@/utils/mapLocationUtils');
+        const result = await getLocationWithFallback(lat, lng);
+        
+        // Update both center marker and main location with proper names
+        setCenterMarkerLocation({
+          city: result.city,
+          country: result.country
+        });
+
+        onLocationSelect({
+          city: result.city,
+          country: result.country,
+          coordinates: { latitude: lat, longitude: lng },
+        });
+      } catch (geocodeError) {
+        console.warn('Reverse geocoding failed during map interaction:', geocodeError);
+        // Keep the coordinate-based naming if geocoding fails
+      }
     } catch (error) {
       console.error('Error updating location from map interaction:', error);
     }
-  }, [location, onLocationSelect]);
+  }, [onLocationSelect]);
 
   // Set up map location update hook
   const { updateLastLocation } = useMapLocationUpdate({
@@ -162,6 +190,20 @@ export default function EmbeddedMap({
   const mountedRef = useRef(true);
   const previousCoordinatesRef = useRef<{ latitude: number; longitude: number } | null>(null);
   const [isFlying, setIsFlying] = useState(false);
+
+  // State to track the current center marker location (for real-time updates)
+  const [centerMarkerLocation, setCenterMarkerLocation] = useState({
+    city: location.city,
+    country: location.country
+  });
+
+  // Update center marker location when the main location prop changes
+  useEffect(() => {
+    setCenterMarkerLocation({
+      city: location.city,
+      country: location.country
+    });
+  }, [location.city, location.country]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -528,6 +570,7 @@ export default function EmbeddedMap({
             style={{ height: '100%', width: '100%' }}
             zoomControl={DEFAULT_EMBEDDED_MAP_CONFIG.controls.zoomControl}
             attributionControl={DEFAULT_EMBEDDED_MAP_CONFIG.controls.attributionControl}
+            className="leaflet-container-custom"
             whenReady={() => {
               console.log('EmbeddedMap MapContainer ready - setting local map ready state');
               setIsLocalMapReady(true);
@@ -551,8 +594,8 @@ export default function EmbeddedMap({
             >
               <Popup>
                 <div className="text-center">
-                  <strong>{location.city}</strong>
-                  {location.country && <div className="text-sm text-gray-600">{location.country}</div>}
+                  <strong>{centerMarkerLocation.city}</strong>
+                  {centerMarkerLocation.country && <div className="text-sm text-gray-600">{centerMarkerLocation.country}</div>}
                   {currentWeather && (
                     <div className="mt-2 space-y-1">
                       <div className="flex items-center justify-center gap-2">
@@ -630,7 +673,9 @@ export default function EmbeddedMap({
         <button
           onClick={async () => {
             try {
-              const { getUserGeolocation, reverseGeocode } = await import('@/services/geolocationService');
+              const { getUserGeolocation } = await import('@/services/geolocationService');
+              const { getLocationWithFallback } = await import('@/utils/mapLocationUtils');
+              
               const geoResponse = await getUserGeolocation();
               if (geoResponse.success && geoResponse.data) {
                 const { latitude, longitude } = geoResponse.data;
@@ -641,20 +686,12 @@ export default function EmbeddedMap({
                   });
                 }
 
-                const locationResponse = await reverseGeocode({ latitude, longitude });
-                if (locationResponse.success && locationResponse.data) {
-                  onLocationSelect({
-                    city: locationResponse.data.city,
-                    country: locationResponse.data.country,
-                    coordinates: { latitude, longitude }
-                  });
-                } else {
-                  onLocationSelect({
-                    city: latitude.toString(),
-                    country: longitude.toString(),
-                    coordinates: { latitude, longitude }
-                  });
-                }
+                const result = await getLocationWithFallback(latitude, longitude);
+                onLocationSelect({
+                  city: result.city,
+                  country: result.country,
+                  coordinates: { latitude, longitude }
+                });
               }
             } catch (error) {
               console.error('Error getting user location:', error);

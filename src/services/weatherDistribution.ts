@@ -1,7 +1,8 @@
 import { NearbyLocation } from '@/types/nearbyWeather';
 import { WMO_CODES, getUVCategory, getWindDirection, fetchWeatherForeacastMultipleLocationApi } from './weatherService';
 import { getOpenMeteoConfig } from '@/utils/openmeteoConfig';
-import { reverseGeocode } from './geolocationService';
+import { reverseGeocode, GeolocationResponse } from './geolocationService';
+import { Location } from '@/types/weather';
 
 // Get OpenMeteo configuration
 const openMeteoConfig = getOpenMeteoConfig();
@@ -9,6 +10,13 @@ const openMeteoConfig = getOpenMeteoConfig();
 /**
  * Fetches nearby weather data points around a center location with an optimized distribution pattern
  * that adjusts based on zoom level to provide a better visual experience.
+ * 
+ * Performance optimizations:
+ * - Weather API call starts immediately without waiting for geocoding
+ * - Only one geocoding call for center location (used for consistent naming)
+ * - All nearby points use predictable, distance-based naming relative to center
+ * - No individual geocoding calls for each nearby point
+ * - Geocoding has a timeout to ensure fast response
  */
 export async function fetchNearbyWeatherData(
   centerLat: number, 
@@ -103,31 +111,61 @@ export async function fetchNearbyWeatherData(
 
   const latitudes = points.map(point => point.latitude.toString()).join(',');
   const longitudes = points.map(point => point.longitude.toString()).join(',');
-  
-  try {
-    const responses = await fetchWeatherForeacastMultipleLocationApi(`${openMeteoConfig.baseUrl}/forecast`, {
-      latitude: latitudes,
-      longitude: longitudes,
-      hourly: [
-        'temperature_2m',
-        'weathercode',
-        'windspeed_10m',
-        'winddirection_10m',
-        'precipitation_probability',
-        'uv_index',
-        'relative_humidity_2m',
-        'surface_pressure'
-      ],
-      daily: [
-        'temperature_2m_max',
-        'temperature_2m_min',
-        'weathercode',
-        'precipitation_probability_max',
-        'uv_index_max'
-      ],
-      timezone: 'auto'
-    });
 
+  // Start weather API call immediately without waiting for geocoding
+  const weatherPromise = fetchWeatherForeacastMultipleLocationApi(`${openMeteoConfig.baseUrl}/forecast`, {
+    latitude: latitudes,
+    longitude: longitudes,
+    hourly: [
+      'temperature_2m',
+      'weathercode',
+      'windspeed_10m',
+      'winddirection_10m',
+      'precipitation_probability',
+      'uv_index',
+      'relative_humidity_2m',
+      'surface_pressure'
+    ],
+    daily: [
+      'temperature_2m_max',
+      'temperature_2m_min',
+      'weathercode',
+      'precipitation_probability_max',
+      'uv_index_max'
+    ],
+    timezone: 'auto'
+  });
+
+  // Get geocoding for center location only - used as fallback
+  // Use a timeout to ensure fast response even if geocoding is slow
+  const centerGeocodingPromise = Promise.race([
+    reverseGeocode({
+      latitude: centerLat,
+      longitude: centerLng,
+    }),
+    new Promise<GeolocationResponse<Location>>((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: false,
+          data: null,
+          error: 'Geocoding timeout'
+        });
+      }, 2000); // 2 second timeout for geocoding
+    })
+  ]);
+
+  // Wait for both promises to complete
+  const [responses, centerLocationResult] = await Promise.all([weatherPromise, centerGeocodingPromise]);
+
+  // Determine center location info for fallback naming
+  let centerCity = 'Current Area';
+  let centerCountry = 'Unknown';
+  if (centerLocationResult.success && centerLocationResult.data) {
+    centerCity = centerLocationResult.data.city;
+    centerCountry = centerLocationResult.data.country;
+  }
+
+  try {
     const currentIndex = new Date().getHours();
     const nearbyLocations: NearbyLocation[] = [];
 
@@ -135,65 +173,72 @@ export async function fetchNearbyWeatherData(
     // This helps prevent too many icons in one area
     const displayProbability = 0.8; // 80% chance of displaying each point
 
-    // Process responses with reverse geocoding for actual place names
-    const locationPromises = responses.map(async (response, i) => {
+    // Define a consistent naming scheme for all nearby points
+    // Use radius-based distance categories for cleaner UX
+    const getLocationName = (point: { latitude: number; longitude: number }, index: number) => {
+      const latDiff = point.latitude - centerLat;
+      const lngDiff = point.longitude - centerLng;
+      
+      // Calculate distance from center
+      const distanceKm = Math.round(
+        Math.sqrt(
+          Math.pow(111 * latDiff, 2) + 
+          Math.pow(111 * Math.cos(centerLat * Math.PI / 180) * lngDiff, 2)
+        )
+      );
+      
+      // For very close points (< 5km), use the center location name
+      if (distanceKm < 5) {
+        return {
+          city: centerCity,
+          country: centerCountry
+        };
+      }
+      
+      // For points 5-20km away, use distance-based naming
+      if (distanceKm <= 20) {
+        // Determine cardinal direction (simplified to 8 directions)
+        const angle = Math.atan2(latDiff, lngDiff) * (180 / Math.PI);
+        let direction = '';
+        
+        if (angle >= -22.5 && angle < 22.5) direction = 'East';
+        else if (angle >= 22.5 && angle < 67.5) direction = 'Northeast';
+        else if (angle >= 67.5 && angle < 112.5) direction = 'North';
+        else if (angle >= 112.5 && angle < 157.5) direction = 'Northwest';
+        else if (angle >= 157.5 || angle < -157.5) direction = 'West';
+        else if (angle >= -157.5 && angle < -112.5) direction = 'Southwest';
+        else if (angle >= -112.5 && angle < -67.5) direction = 'South';
+        else if (angle >= -67.5 && angle < -22.5) direction = 'Southeast';
+        
+        return {
+          city: `${direction} of ${centerCity}`,
+          country: centerCountry
+        };
+      }
+      
+      // For farther points (> 20km), use generic regional naming
+      return {
+        city: `${distanceKm}km from ${centerCity}`,
+        country: centerCountry
+      };
+    };
+
+    // Process responses with consistent naming
+    responses.forEach((response: any, i: number) => {
       // Skip some points randomly to reduce density in areas with many weather icons
       // but ensure we always have at least 4 points
       if (nearbyLocations.length < 4 || Math.random() < displayProbability) {
         const weatherCode = response.hourly.weathercode[currentIndex];
         const weatherInfo = WMO_CODES[weatherCode] || WMO_CODES[0];
 
-        const lat = points[i].latitude;
-        const lng = points[i].longitude;
-        
-        // Try to get actual location name using reverse geocoding
-        let cityName = '';
-        let countryName = '';
-        
-        try {
-          const locationResponse = await reverseGeocode({ latitude: lat, longitude: lng });
-          if (locationResponse.success && locationResponse.data) {
-            cityName = locationResponse.data.city;
-            countryName = locationResponse.data.country;
-          }
-        } catch (error) {
-          console.warn('Reverse geocoding failed for nearby location:', error);
-        }
-        
-        // If reverse geocoding failed, fall back to directional naming
-        if (!cityName) {
-          const latDiff = lat - centerLat;
-          const lngDiff = lng - centerLng;
-          
-          // Determine cardinal direction (N, NE, E, SE, S, SW, W, NW)
-          const angle = Math.atan2(latDiff, lngDiff) * (180 / Math.PI);
-          let direction = '';
-          
-          if (angle >= -22.5 && angle < 22.5) direction = 'East';
-          else if (angle >= 22.5 && angle < 67.5) direction = 'Northeast';
-          else if (angle >= 67.5 && angle < 112.5) direction = 'North';
-          else if (angle >= 112.5 && angle < 157.5) direction = 'Northwest';
-          else if (angle >= 157.5 || angle < -157.5) direction = 'West';
-          else if (angle >= -157.5 && angle < -112.5) direction = 'Southwest';
-          else if (angle >= -112.5 && angle < -67.5) direction = 'South';
-          else if (angle >= -67.5 && angle < -22.5) direction = 'Southeast';
-          
-          // Calculate approximate distance in km
-          const distanceKm = Math.round(
-            Math.sqrt(
-              Math.pow(111 * latDiff, 2) + 
-              Math.pow(111 * Math.cos(centerLat * Math.PI / 180) * lngDiff, 2)
-            )
-          );
-          
-          cityName = `${direction} (${distanceKm}km)`;
-        }
+        const point = points[i];
+        const locationInfo = getLocationName(point, i);
         
         const nearbyLocation: NearbyLocation = {
-          latitude: points[i].latitude,
-          longitude: points[i].longitude,
-          city: cityName,
-          country: countryName,
+          latitude: point.latitude,
+          longitude: point.longitude,
+          city: locationInfo.city,
+          country: locationInfo.country,
           weatherData: {
             currentWeather: {
               temperature: response.hourly.temperature_2m[currentIndex],
@@ -213,18 +258,8 @@ export async function fetchNearbyWeatherData(
             },
           },
         };
-        return nearbyLocation;
-      }
-      return null;
-    });
-
-    // Wait for all reverse geocoding requests to complete
-    const resolvedLocations = await Promise.all(locationPromises);
-    
-    // Filter out null values and add to nearby locations
-    resolvedLocations.forEach(location => {
-      if (location) {
-        nearbyLocations.push(location);
+        
+        nearbyLocations.push(nearbyLocation);
       }
     });
 

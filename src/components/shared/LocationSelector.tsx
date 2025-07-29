@@ -132,7 +132,18 @@ export default function LocationSelector({ onLocationSelect, currentLocation, is
           />
         </svg>
         <div className="truncate">
-          {currentLocation.city}, {currentLocation.country}
+          {currentLocation.city && currentLocation.country ? (
+            currentLocation.country === 'Coordinates' ? (
+              <span className="flex items-center gap-2">
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span>{currentLocation.city} • Finding location...</span>
+              </span>
+            ) : (
+              `${currentLocation.city}, ${currentLocation.country}`
+            )
+          ) : (
+            <span className="text-white/60">Select location</span>
+          )}
         </div>
         <svg
           className={`w-4 h-4 flex-shrink-0 text-tertiary transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}

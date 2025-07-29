@@ -1,6 +1,22 @@
 import type { Location } from '@/types/weather';
 import { getFromCache, setInCache } from './cacheService';
+import { 
+  getCachedGeocoding, 
+  cacheGeocodingResult, 
+  cleanupGeocodingCache 
+} from '@/utils/geocodingCache';
 import { getOpenMeteoConfig } from '@/utils/openmeteoConfig';
+
+export interface GeolocationResponse<T> {
+  success: boolean;
+  data: T | null;
+  error?: string;
+}
+
+export interface Coordinates {
+  latitude: number;
+  longitude: number;
+}
 
 // Get OpenMeteo configuration
 const openMeteoConfig = getOpenMeteoConfig();
@@ -147,6 +163,26 @@ export async function searchLocations(query: string): Promise<GeolocationRespons
 }
 
 export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationResponse<Location>> {
+  // Clean up expired cache entries periodically
+  cleanupGeocodingCache();
+  
+  // Check the new boundary-based cache first
+  const cachedResult = getCachedGeocoding(coordinates.latitude, coordinates.longitude);
+  if (cachedResult) {
+    return Promise.resolve({
+      success: true,
+      data: {
+        city: cachedResult.city,
+        country: cachedResult.country,
+        coordinates: {
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude
+        }
+      }
+    });
+  }
+  
+  // Fallback to old exact-coordinate cache for backward compatibility
   const cacheKey = `reverse-geo-${coordinates.latitude}-${coordinates.longitude}`;
   const cached = getFromCache<GeolocationResponse<Location>>(cacheKey);
   if (cached) {
@@ -154,6 +190,15 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
   }
 
   return new Promise(async (resolve) => {
+    // Add a timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      resolve({
+        success: false,
+        data: null,
+        error: 'Geocoding request timed out'
+      });
+    }, 5000); // 5 second timeout
+
     try {
       // Use the Next.js API route instead of direct external API call to avoid CORS
       const apiUrl = new URL('/api/geocoding', window.location.origin);
@@ -164,6 +209,7 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
       // Get API key from environment variable
       const apiKey = process.env.NEXT_PUBLIC_GEOCODING_API_KEY;
       if (!apiKey) {
+        clearTimeout(timeoutId);
         throw new Error('Geocoding API key not configured');
       }
 
@@ -172,9 +218,11 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
+        signal: AbortSignal.timeout(4000) // 4 second fetch timeout
       });
 
       if (!response.ok) {
+        clearTimeout(timeoutId);
         throw new Error('Failed to fetch location data');
       }
 
@@ -183,14 +231,18 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
       // Handle the response format from our Supabase-based geocoding API
       const firstResult = data.results?.[0];
       if (!firstResult) {
+        clearTimeout(timeoutId);
         throw new Error('No geocoding results found');
       }
+
+      const city = firstResult.sub_region_name || firstResult.name || 'Unknown City';
+      const country = firstResult.country_name || 'Unknown Country';
 
       const result = {
         success: true,
         data: {
-          city: firstResult.sub_region_name || firstResult.name || 'Unknown City',
-          country: firstResult.country_name || 'Unknown Country',
+          city,
+          country,
           coordinates: {
             latitude: coordinates.latitude,
             longitude: coordinates.longitude
@@ -198,9 +250,14 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
         }
       };
       
+      // Cache in both the old cache and new boundary-based cache
       setInCache(cacheKey, result);
+      cacheGeocodingResult(coordinates.latitude, coordinates.longitude, city, country);
+      
+      clearTimeout(timeoutId);
       resolve(result);
     } catch (error) {
+      clearTimeout(timeoutId);
       resolve({
         success: false,
         data: null,

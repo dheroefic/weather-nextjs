@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWeatherData } from '@/services/weatherService';
 import { getBackgroundImage } from '@/services/backgroundService';
 import { loadPreferences, savePreferences } from '@/services/preferencesService';
-import { getUserGeolocation, reverseGeocode } from '@/services/geolocationService';
+import { getUserGeolocation } from '@/services/geolocationService';
 import type { Location, WeatherData, ForecastDay, TemperatureUnit } from '@/types/weather';
 import { debug } from '@/utils/debug';
 
@@ -184,11 +184,16 @@ export function useWeatherData() {
         clearTimeout(timeoutId);
 
         if (geoResponse.success && geoResponse.data) {
-          const locationResponse = await reverseGeocode(geoResponse.data);
-          if (locationResponse.success && locationResponse.data) {
-            setLocation(locationResponse.data);
+          const { getLocationWithCache } = await import('@/utils/mapLocationUtils');
+          const result = await getLocationWithCache(geoResponse.data.latitude, geoResponse.data.longitude);
+          if (result) {
+            setLocation({
+              city: result.city,
+              country: result.country,
+              coordinates: result.coordinates
+            });
           } else {
-            debug.warn('Reverse geocoding failed:', locationResponse.error);
+            debug.warn('Reverse geocoding failed');
             setLocation(defaultLocation);
           }
         } else {

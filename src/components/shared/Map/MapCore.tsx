@@ -179,7 +179,7 @@ export const MapCore: React.FC<MapCoreProps> = ({
     style,
     zoomControl: mapConfig.controls.zoomControl,
     attributionControl: mapConfig.controls.attributionControl,
-    className,
+    className: `leaflet-container-custom ${className}`,
     ...(isMobile && {
       touchZoom: true,
       doubleClickZoom: true,

@@ -11,8 +11,6 @@ import { MapCore, WeatherMarker, type MarkerData } from './MapCore';
 import { useMapState, useCustomIcon, useMapInvalidation } from './useMapHooks';
 import { useSearch } from './useSearch';
 
-
-
 export interface MapPanelProps {
   isOpen: boolean;
   weatherData: WeatherData | null;
@@ -38,6 +36,8 @@ export interface MapPanelProps {
     city?: string;
     weatherData?: WeatherData;
   }>;
+  isLoadingData?: boolean;
+  onWeatherDataRefresh?: () => void; // Add callback for triggering weather refresh
 }
 
 // Loading fallback component
@@ -70,7 +70,7 @@ const MobileWeatherLegend = ({
     <div 
       className="fixed rounded-xl overflow-hidden z-[1015] transition-all duration-300"
       style={{
-        bottom: '100px',
+        bottom: '140px',
         right: '16px',
         maxWidth: '200px',
         maxHeight: localMinimized ? '36px' : '400px',
@@ -302,46 +302,58 @@ const MobileSearchResults = ({
 // Compact Mobile Bottom Actions
 const MobileBottomActions = ({ 
   onLocationSelect,
-  onUseLocation 
+  onUseLocation,
+  onLoadingStateChange,
+  variant = 'mobile'
 }: { 
   onLocationSelect?: (coordinates: { latitude: number; longitude: number; city?: string; country?: string }) => void;
   onUseLocation?: () => void;
+  onLoadingStateChange?: (isLoading: boolean) => void;
+  variant?: 'mobile' | 'desktop';
 }) => {
+  const isDesktop = variant === 'desktop';
+  
   return (
-    <div className="absolute bottom-0 inset-x-0 z-[1020]">
+    <div 
+      className="absolute z-[1020]" 
+      style={{ 
+        bottom: '50px', 
+        left: isDesktop ? '50%' : '16px', 
+        right: isDesktop ? 'auto' : '16px',
+        transform: isDesktop ? 'translateX(-50%)' : 'none'
+      }}
+    >
       <div 
-        className="px-4 pb-6 pt-4"
+        className="px-4 py-4"
         style={{
-          background: 'linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 80%, rgba(0, 0, 0, 0.2) 100%)',
+          background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
           backdropFilter: 'blur(15px)',
+          borderRadius: '16px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          minWidth: isDesktop ? '400px' : 'auto',
         }}
       >
         <div className="flex space-x-3">
           <button
             onClick={async () => {
               if (navigator.geolocation && onLocationSelect) {
+                // Show loading
+                if (onLoadingStateChange) {
+                  onLoadingStateChange(true);
+                }
+                
                 navigator.geolocation.getCurrentPosition(
                   async (position) => {
                     const { latitude, longitude } = position.coords;
                     try {
-                      const { reverseGeocode } = await import('@/services/geolocationService');
-                      const locationResponse = await reverseGeocode({ latitude, longitude });
-                      if (locationResponse.success && locationResponse.data) {
-                        onLocationSelect({
-                          latitude,
-                          longitude,
-                          city: locationResponse.data.city,
-                          country: locationResponse.data.country
-                        });
-                      } else {
-                        // Fallback to coordinates as strings
-                        onLocationSelect({
-                          latitude,
-                          longitude,
-                          city: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-                          country: ''
-                        });
-                      }
+                      const { getLocationWithFallback } = await import('@/utils/mapLocationUtils');
+                      const result = await getLocationWithFallback(latitude, longitude);
+                      onLocationSelect({
+                        latitude,
+                        longitude,
+                        city: result.city,
+                        country: result.country
+                      });
                     } catch (error) {
                       console.error('Error reverse geocoding location:', error);
                       // Fallback to coordinates as strings
@@ -351,10 +363,19 @@ const MobileBottomActions = ({
                         city: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
                         country: ''
                       });
+                    } finally {
+                      // Hide loading
+                      if (onLoadingStateChange) {
+                        setTimeout(() => onLoadingStateChange(false), 1000);
+                      }
                     }
                   },
                   (error) => {
                     console.error('Error getting current location:', error);
+                    // Hide loading on error
+                    if (onLoadingStateChange) {
+                      onLoadingStateChange(false);
+                    }
                   }
                 );
               }
@@ -468,6 +489,97 @@ const DesktopWeatherLegend = () => {
   );
 };
 
+// Enhanced Loading Indicator Component
+const MapLoadingIndicator = ({ 
+  isVisible, 
+  variant, 
+  isMapInteractionLoading = false,
+  isDataLoading = false 
+}: { 
+  isVisible: boolean; 
+  variant: 'desktop' | 'mobile';
+  isMapInteractionLoading?: boolean;
+  isDataLoading?: boolean;
+}) => {
+  // Debug logging
+  React.useEffect(() => {
+    console.log('MapLoadingIndicator - isVisible:', isVisible, 'variant:', variant, 'mapInteraction:', isMapInteractionLoading, 'dataLoading:', isDataLoading);
+  }, [isVisible, variant, isMapInteractionLoading, isDataLoading]);
+
+  if (!isVisible) return null;
+  
+  // Determine what's loading and show appropriate message
+  let loadingMessage = 'Loading weather data';
+  if (isMapInteractionLoading && isDataLoading) {
+    loadingMessage = 'Updating location & weather';
+  } else if (isMapInteractionLoading) {
+    loadingMessage = 'Finding location name';
+  } else if (isDataLoading) {
+    loadingMessage = 'Loading weather data';
+  }
+  
+  return (
+    <div 
+      className={`absolute top-20 left-6 z-[1010] transition-all duration-300 ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+      }`}
+      style={{
+        pointerEvents: 'none', // Don't interfere with map interactions
+      }}
+    >
+      <div 
+        className="flex items-center gap-3 px-4 py-3 rounded-xl backdrop-blur-md border shadow-lg"
+        style={{
+          background: 'rgba(0, 0, 0, 0.85)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+        }}
+      >
+        {/* Animated loading spinner */}
+        <div className="relative">
+          <div 
+            className="w-4 h-4 rounded-full border-2 animate-spin"
+            style={{
+              borderColor: 'rgba(59, 130, 246, 0.3)',
+              borderTopColor: '#3b82f6',
+              animationDuration: '1s',
+            }}
+          />
+          <div 
+            className="absolute inset-0 w-4 h-4 rounded-full border-2 animate-pulse"
+            style={{
+              borderColor: 'transparent',
+              borderTopColor: 'rgba(139, 92, 246, 0.4)',
+              animationDelay: '0.5s',
+            }}
+          />
+        </div>
+        
+        {/* Loading text with subtle animation */}
+        <div className="flex items-center gap-1">
+          <span className="text-white text-sm font-medium">{loadingMessage}</span>
+          <div className="flex gap-0.5">
+            <div 
+              className="w-1 h-1 bg-white/60 rounded-full animate-bounce"
+              style={{ animationDelay: '0s', animationDuration: '1.4s' }}
+            />
+            <div 
+              className="w-1 h-1 bg-white/60 rounded-full animate-bounce"
+              style={{ animationDelay: '0.2s', animationDuration: '1.4s' }}
+            />
+            <div 
+              className="w-1 h-1 bg-white/60 rounded-full animate-bounce"
+              style={{ animationDelay: '0.4s', animationDuration: '1.4s' }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function MapPanel({
   isOpen,
   weatherData,
@@ -478,8 +590,15 @@ export default function MapPanel({
   onLocationSelect,
   variant = 'desktop',
   nearbyLocations = [],
+  isLoadingData = false,
+  onWeatherDataRefresh
 }: MapPanelProps) {
   
+  // Debug logging for loading states
+  React.useEffect(() => {
+    console.log('MapPanel - isLoadingData:', isLoadingData, 'variant:', variant, 'isOpen:', isOpen);
+  }, [isLoadingData, variant, isOpen]);
+
   const safeCoordinates = useSafeCoordinates(location);
   const mapState = useMapState();
   const { createCustomIcon } = useCustomIcon(mapState.leaflet, weatherData, variant === 'mobile');
@@ -487,6 +606,15 @@ export default function MapPanel({
   const [mapContainerId] = useState(() => `${variant}-map-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const previousCoordinatesRef = React.useRef<{ latitude: number; longitude: number } | null>(null);
   const [isFlying, setIsFlying] = React.useState(false);
+  const [isMapInteractionLoading, setIsMapInteractionLoading] = React.useState(false);
+
+  // Debug logging for search loading
+  React.useEffect(() => {
+    console.log('MapPanel - search.isSearching:', search.isSearching);
+  }, [search.isSearching]);
+
+  // Calculate final loading state
+  const isLoading = isLoadingData || search.isSearching || isMapInteractionLoading;
 
   // Create validated center coordinates
   const validatedCenter: [number, number] = React.useMemo(() => {
@@ -512,6 +640,20 @@ export default function MapPanel({
     return [-6.2088, 106.8456];
   }, [safeCoordinates]);
 
+  // State to track the current center marker location (for real-time updates)
+  const [centerMarkerLocation, setCenterMarkerLocation] = React.useState({
+    city: location.city,
+    country: location.country
+  });
+
+  // Update center marker location when the main location prop changes
+  React.useEffect(() => {
+    setCenterMarkerLocation({
+      city: location.city,
+      country: location.country
+    });
+  }, [location.city, location.country]);
+
   // Map invalidation for responsive behavior
   useMapInvalidation({
     mapInstance: mapState.mapInstance,
@@ -522,23 +664,86 @@ export default function MapPanel({
 
   // Handle map location updates when user interacts with map
   const handleLocationUpdate = React.useCallback(async (lat: number, lng: number) => {
+    // Prevent multiple simultaneous geocoding requests
+    if (isMapInteractionLoading) {
+      console.log('MapPanel: Geocoding already in progress, skipping...');
+      return;
+    }
+
+    console.log('MapPanel: Starting location update for:', { lat, lng });
+    
     try {
-      // Call the location select handler with updated coordinates
+      // Immediately update center marker with coordinates as temporary name
+      const tempLocationName = `${lat.toFixed(3)}°, ${lng.toFixed(3)}°`;
+      setCenterMarkerLocation({
+        city: tempLocationName,
+        country: 'Coordinates'
+      });
+
+      // Update the main location via callback
       onLocationSelect({
         latitude: lat,
         longitude: lng,
-        city: location.city, // Keep existing city info temporarily
-        country: location.country, // Keep existing country info temporarily
+        city: tempLocationName,
+        country: 'Coordinates',
       });
+
+      // Trigger weather data refresh if callback is provided
+      if (onWeatherDataRefresh) {
+        onWeatherDataRefresh();
+      }
+
+      // Perform reverse geocoding to get the actual location name (in background)
+      try {
+        console.log('MapPanel: Starting reverse geocoding...');
+        const { reverseGeocode } = await import('@/services/geolocationService');
+        const geocodeResult = await reverseGeocode({ latitude: lat, longitude: lng });
+        
+        console.log('MapPanel: Geocoding result:', geocodeResult);
+        
+        if (geocodeResult.success && geocodeResult.data) {
+          // Update both center marker and main location with proper names
+          console.log('MapPanel: Updating with geocoded location:', geocodeResult.data);
+          setCenterMarkerLocation({
+            city: geocodeResult.data.city,
+            country: geocodeResult.data.country
+          });
+          onLocationSelect({
+            latitude: lat,
+            longitude: lng,
+            city: geocodeResult.data.city,
+            country: geocodeResult.data.country,
+          });
+        } else {
+          console.log('MapPanel: Geocoding failed, keeping coordinate fallback');
+          // Keep the coordinate-based naming if geocoding fails
+        }
+      } catch (geocodeError) {
+        console.warn('Reverse geocoding failed during map interaction:', geocodeError);
+        // Keep the coordinate-based naming if geocoding fails
+      }
     } catch (error) {
       console.error('Error updating location from map interaction:', error);
+      // Final fallback
+      const fallbackName = `${lat.toFixed(3)}°, ${lng.toFixed(3)}°`;
+      setCenterMarkerLocation({
+        city: fallbackName,
+        country: 'Unknown Region'
+      });
+      onLocationSelect({
+        latitude: lat,
+        longitude: lng,
+        city: fallbackName,
+        country: 'Unknown Region',
+      });
     }
-  }, [location, onLocationSelect]);
+  }, [onLocationSelect, onWeatherDataRefresh, isMapInteractionLoading]);
 
   // Set up map location update hook
   const { updateLastLocation } = useMapLocationUpdate({
     map: mapState.mapInstance,
     onLocationChange: handleLocationUpdate,
+    onLoadingStateChange: setIsMapInteractionLoading,
     debounceMs: 800, // Wait 800ms after user stops moving the map
     minDistanceKm: 3, // Only update if moved more than 3km
     enabled: isOpen // Only enabled when map panel is open
@@ -692,7 +897,7 @@ export default function MapPanel({
       position: validatedCenter,
       icon: createCustomIcon(),
       weatherData,
-      location: { city: location.city, country: location.country },
+      location: { city: centerMarkerLocation.city, country: centerMarkerLocation.country },
       onClick: () => console.log('Current location marker clicked'),
     };
 
@@ -713,7 +918,7 @@ export default function MapPanel({
       }));
 
     return [mainMarker, ...nearbyMarkers];
-  }, [validatedCenter, createCustomIcon, weatherData, location, nearbyLocations]);
+  }, [validatedCenter, createCustomIcon, weatherData, centerMarkerLocation, nearbyLocations]);
 
   if (!isOpen) {
     return null;
@@ -747,7 +952,7 @@ export default function MapPanel({
             isSearching={search.isSearching}
             onSearchQueryChange={search.setSearchQuery}
             onClose={onClose}
-            location={location}
+            location={centerMarkerLocation}
           />
 
           {/* Mobile Search Results for desktop */}
@@ -760,6 +965,45 @@ export default function MapPanel({
 
           {/* Mobile Weather Legend for desktop */}
           <MobileWeatherLegend />
+
+          {/* Enhanced Loading Indicator */}
+          <MapLoadingIndicator 
+            isVisible={isLoading} 
+            variant={variant} 
+            isMapInteractionLoading={isMapInteractionLoading}
+            isDataLoading={isLoadingData}
+          />
+
+          {/* Mobile Bottom Actions for desktop */}
+          <MobileBottomActions 
+            variant={variant}
+            onLocationSelect={onLocationSelect} 
+            onLoadingStateChange={setIsMapInteractionLoading}
+            onUseLocation={async () => {
+              if (mapState.mapInstance?.getCenter) {
+                const center = mapState.mapInstance.getCenter();
+                try {
+                  const { getLocationWithFallback } = await import('@/utils/mapLocationUtils');
+                  const result = await getLocationWithFallback(center.lat, center.lng);
+                  onLocationSelect({
+                    latitude: center.lat,
+                    longitude: center.lng,
+                    city: result.city,
+                    country: result.country
+                  });
+                } catch (error) {
+                  console.error('Error reverse geocoding center location:', error);
+                  // Fallback to coordinates as strings
+                  onLocationSelect({
+                    latitude: center.lat,
+                    longitude: center.lng,
+                    city: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`,
+                    country: ''
+                  });
+                }
+              }
+            }}
+          />
 
           {/* Map Container */}
           <div className="absolute inset-0">
@@ -814,7 +1058,7 @@ export default function MapPanel({
             isSearching={search.isSearching}
             onSearchQueryChange={search.setSearchQuery}
             onClose={onClose}
-            location={location}
+            location={centerMarkerLocation}
           />
 
           {/* Search Results (positioned separately) */}
@@ -825,36 +1069,33 @@ export default function MapPanel({
             onSearchResultSelect={search.handleSearchResultSelect}
           />
 
+          {/* Enhanced Loading Indicator */}
+          <MapLoadingIndicator 
+            isVisible={isLoading} 
+            variant={variant} 
+            isMapInteractionLoading={isMapInteractionLoading}
+            isDataLoading={isLoadingData}
+          />
+
           {/* Compact Bottom Actions */}
           <MobileBottomActions 
+            variant={variant}
             onLocationSelect={onLocationSelect} 
+            onLoadingStateChange={setIsMapInteractionLoading}
             onUseLocation={async () => {
               if (mapState.mapInstance?.getCenter) {
                 const center = mapState.mapInstance.getCenter();
                 try {
-                  const { reverseGeocode } = await import('@/services/geolocationService');
-                  const locationResponse = await reverseGeocode({ 
-                    latitude: center.lat, 
-                    longitude: center.lng 
+                  const { getLocationWithFallback } = await import('@/utils/mapLocationUtils');
+                  const result = await getLocationWithFallback(center.lat, center.lng);
+                  onLocationSelect({
+                    latitude: center.lat,
+                    longitude: center.lng,
+                    city: result.city,
+                    country: result.country
                   });
-                  if (locationResponse.success && locationResponse.data) {
-                    onLocationSelect({
-                      latitude: center.lat,
-                      longitude: center.lng,
-                      city: locationResponse.data.city,
-                      country: locationResponse.data.country
-                    });
-                  } else {
-                    // Fallback to coordinates as strings
-                    onLocationSelect({
-                      latitude: center.lat,
-                      longitude: center.lng,
-                      city: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`,
-                      country: ''
-                    });
-                  }
                 } catch (error) {
-                  console.error('Error reverse geocoding selected location:', error);
+                  console.error('Error reverse geocoding center location:', error);
                   // Fallback to coordinates as strings
                   onLocationSelect({
                     latitude: center.lat,
@@ -863,7 +1104,6 @@ export default function MapPanel({
                     country: ''
                   });
                 }
-                onClose();
               }
             }}
           />
