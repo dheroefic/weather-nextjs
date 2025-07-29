@@ -1,5 +1,7 @@
 # Weather App
 
+**Copyright © 2025 dheroefic**
+
 A modern, enterprise-grade weather application built with Next.js 15 that provides comprehensive weather information through an intuitive, glass-morphism interface. The app combines real-time weather data, interactive maps, and advanced backend infrastructure for a complete weather platform experience.
 
 ## ✨ Features
@@ -525,29 +527,6 @@ POST /api/webhooks
 - **Prepared statements** to prevent SQL injection
 - **Connection pooling** with secure credentials
 
-## 🎯 Performance Optimizations
-
-### Frontend Optimizations
-- **React.memo** for component optimization
-- **Lazy loading** for heavy components
-- **Service Worker** for offline capability
-- **Request deduplication** to prevent redundant calls
-- **Dynamic imports** for code splitting
-
-### Backend Optimizations  
-- **Multi-layer caching** (memory + localStorage)
-- **Database connection pooling**
-- **Optimized SQL queries** with indexes
-- **Response compression** with gzip
-- **CDN integration** for static assets
-
-### Map Performance
-- **Marker clustering** for nearby locations
-- **Tile caching** for offline maps
-- **Zoom-based data loading**
-- **Smooth animations** with CSS transforms
-- **Memory cleanup** on component unmount
-
 ## 🚀 Deployment
 
 ### Prerequisites
@@ -614,14 +593,6 @@ We welcome contributions! Please follow these steps:
 5. **Push to your fork**: `git push origin feature/amazing-feature`
 6. **Open a Pull Request** with detailed description
 
-### Areas for Contribution
-- **New weather data sources** integration
-- **Additional map providers** support
-- **Mobile app** development (React Native)
-- **Weather alert system** implementation
-- **Advanced analytics** and reporting
-- **Internationalization** (i18n) support
-
 ## 📚 Additional Documentation
 
 For detailed documentation on specific features:
@@ -662,25 +633,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - ⚠️ **License and copyright notice** must be included
 - ❌ **No warranty or liability** provided
 
-## 🔮 Roadmap
-
-### Upcoming Features
-- [ ] **Weather Alerts** - Severe weather notifications
-- [ ] **Historical Data** - Past weather analysis
-- [ ] **Weather Widgets** - Embeddable components
-- [ ] **Mobile App** - React Native implementation
-- [ ] **Advanced Maps** - Satellite and radar overlays
-- [ ] **Multi-language** - Internationalization support
-- [ ] **Weather Sharing** - Social media integration
-- [ ] **API Marketplace** - Third-party integrations
-
-### Performance Improvements
-- [ ] **GraphQL API** - More efficient data fetching
-- [ ] **Redis Caching** - Server-side caching layer
-- [ ] **CDN Integration** - Global content delivery
-- [ ] **Progressive Web App** - Enhanced mobile experience
-- [ ] **Background Sync** - Offline data synchronization
-
 ## 📞 Support & Community
 
 ### Getting Help
@@ -692,8 +644,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ### Connect
 - **GitHub**: [@dheroefic](https://github.com/dheroefic)
 - **Project**: [weather-nextjs](https://github.com/dheroefic/weather-nextjs)
-
----
 
 <div align="center">
 
