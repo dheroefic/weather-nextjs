@@ -58,7 +58,7 @@ const MobileWeatherLegend = ({
   isMinimized?: boolean;
   onToggleMinimized?: () => void;
 }) => {
-  const [localMinimized, setLocalMinimized] = useState(true); // Start minimized
+  const [localMinimized, setLocalMinimized] = useState(false); // Start expanded to show all conditions
 
   const toggleMinimized = () => {
     const newState = !localMinimized;
@@ -72,8 +72,8 @@ const MobileWeatherLegend = ({
       style={{
         bottom: '100px',
         right: '16px',
-        maxWidth: '180px',
-        maxHeight: localMinimized ? '36px' : '200px',
+        maxWidth: '200px',
+        maxHeight: localMinimized ? '36px' : '400px',
         background: 'rgba(0, 0, 0, 0.9)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
         backdropFilter: 'blur(15px)',
@@ -84,7 +84,7 @@ const MobileWeatherLegend = ({
         className="flex items-center justify-between p-3 cursor-pointer"
         onClick={toggleMinimized}
       >
-        <span className="text-white font-medium text-xs">Conditions</span>
+        <span className="text-white font-medium text-xs">Weather Conditions</span>
         <svg
           className={`w-3 h-3 transition-transform duration-200 text-white/60 ${localMinimized ? 'rotate-180' : ''}`}
           fill="none"
@@ -95,21 +95,21 @@ const MobileWeatherLegend = ({
         </svg>
       </div>
 
-      {/* Compact Content */}
+      {/* Expanded Content - Show all conditions */}
       {!localMinimized && (
-        <div className="overflow-y-auto max-h-[200px]">
-          <div className="grid grid-cols-2 gap-2 p-3 pt-0">
-            {Object.entries(WMO_CODES).slice(0, 8).map(([code, { condition, icon }]) => (
-              <div key={code} className="flex items-center space-x-1">
+        <div className="overflow-y-auto max-h-[350px]">
+          <div className="grid grid-cols-1 gap-1 p-3 pt-0">
+            {Object.entries(WMO_CODES).map(([code, { condition, icon }]) => (
+              <div key={code} className="flex items-center space-x-2 py-1">
                 <Image 
                   src={icon} 
                   alt={condition} 
-                  width={14} 
-                  height={14} 
+                  width={16} 
+                  height={16} 
                   className="flex-shrink-0" 
                 />
                 <span className="text-white/80 text-xs leading-tight">
-                  {condition.split(' ')[0]}
+                  {condition}
                 </span>
               </div>
             ))}
@@ -728,222 +728,38 @@ export default function MapPanel({
   const mapContent = (
     <div className={containerClasses}>
       {desktopLayout ? (
-        // Clean, minimal desktop layout
-        <div className="h-full w-full relative">
-          {/* Simple top bar with close and search */}
-          <div className="absolute top-4 left-4 right-4 z-[1020] flex items-center justify-between gap-4">
-            {/* Close button */}
-            <button
-              onClick={onClose}
-              className="w-10 h-10 rounded-lg transition-all duration-200 backdrop-blur-md text-white border hover:bg-white/10 flex-shrink-0"
-              style={{
-                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)'
-              }}
-              title="Close map"
-            >
-              <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+        // Desktop layout using mobile design components for consistency
+        <div 
+          className="w-full h-full relative"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh'
+          }}
+        >
+          {/* Use Mobile Header for desktop as well */}
+          <MobileHeader
+            searchQuery={search.searchQuery}
+            isSearching={search.isSearching}
+            onSearchQueryChange={search.setSearchQuery}
+            onClose={onClose}
+            location={location}
+          />
 
-            {/* Search input - simplified */}
-            <div className="flex-1 max-w-md relative">
-              <input
-                type="text"
-                placeholder="Search location..."
-                value={search.searchQuery}
-                onChange={(e) => search.setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg text-white placeholder-white/60 focus:outline-none text-sm transition-all duration-200"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
-                  backdropFilter: 'blur(24px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)'
-                }}
-              />
-              {search.isSearching && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                </div>
-              )}
-              
-              {/* Search results dropdown */}
-              {search.searchQuery && (
-                <div 
-                  className="absolute top-full left-0 right-0 mt-2 rounded-lg shadow-xl max-h-60 overflow-y-auto z-[1030]"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.8) 100%)',
-                    backdropFilter: 'blur(24px)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.4)'
-                  }}
-                >
-                  {search.isSearching ? (
-                    <div className="px-4 py-3 text-center text-white/70 text-sm">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                        Searching...
-                      </div>
-                    </div>
-                  ) : search.searchResults.length === 0 ? (
-                    <div className="px-4 py-3 text-center text-white/70 text-sm">
-                      No results found
-                    </div>
-                  ) : (
-                    search.searchResults.map((result, index) => (
-                      <button
-                        key={index}
-                        onClick={() => search.handleSearchResultSelect(result)}
-                        className="w-full px-4 py-2.5 text-left hover:bg-white/10 transition-all duration-200 border-b border-white/5 last:border-b-0 group"
-                      >
-                        <div className="text-white/90 font-medium group-hover:text-white text-sm">{result.name}</div>
-                        <div className="text-white/60 text-xs group-hover:text-white/80">{result.country}</div>
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+          {/* Mobile Search Results for desktop */}
+          <MobileSearchResults
+            searchQuery={search.searchQuery}
+            searchResults={search.searchResults}
+            isSearching={search.isSearching}
+            onSearchResultSelect={search.handleSearchResultSelect}
+          />
 
-            {/* Location display - minimal */}
-            <div className="flex-shrink-0">
-              {location && (
-                <div 
-                  className="px-4 py-2.5 rounded-lg backdrop-blur-md text-white text-sm font-medium"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)'
-                  }}
-                >
-                  {location.city}, {location.country}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Simple bottom actions */}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-[1020]">
-            <div 
-              className="flex items-center gap-2 px-3 py-2.5 rounded-lg backdrop-blur-md"
-              style={{
-                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.75) 100%)',
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)',
-                border: '1px solid rgba(255, 255, 255, 0.2)'
-              }}
-            >
-              <button
-                onClick={async () => {
-                  if (navigator.geolocation && onLocationSelect) {
-                    navigator.geolocation.getCurrentPosition(
-                      async (position) => {
-                        const { latitude, longitude } = position.coords;
-                        try {
-                          const { reverseGeocode } = await import('@/services/geolocationService');
-                          const locationResponse = await reverseGeocode({ latitude, longitude });
-                          if (locationResponse.success && locationResponse.data) {
-                            onLocationSelect({
-                              latitude,
-                              longitude,
-                              city: locationResponse.data.city,
-                              country: locationResponse.data.country
-                            });
-                          } else {
-                            // Fallback to coordinates as strings
-                            onLocationSelect({
-                              latitude,
-                              longitude,
-                              city: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-                              country: ''
-                            });
-                          }
-                        } catch (error) {
-                          console.error('Error reverse geocoding location:', error);
-                          // Fallback to coordinates as strings
-                          onLocationSelect({
-                            latitude,
-                            longitude,
-                            city: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-                            country: ''
-                          });
-                        }
-                      },
-                      (error) => {
-                        console.error('Error getting current location:', error);
-                      }
-                    );
-                  }
-                }}
-                className="px-3 py-2 rounded-md transition-all duration-200 text-white border text-sm flex items-center gap-2 hover:bg-white/10"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  borderColor: 'rgba(255, 255, 255, 0.2)'
-                }}
-                title="Use your current location"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                My Location
-              </button>
-              
-              <button
-                onClick={async () => {
-                  if (mapState.mapInstance?.getCenter) {
-                    const center = mapState.mapInstance.getCenter();
-                    try {
-                      const { reverseGeocode } = await import('@/services/geolocationService');
-                      const locationResponse = await reverseGeocode({ 
-                        latitude: center.lat, 
-                        longitude: center.lng 
-                      });
-                      if (locationResponse.success && locationResponse.data) {
-                        onLocationSelect({
-                          latitude: center.lat,
-                          longitude: center.lng,
-                          city: locationResponse.data.city,
-                          country: locationResponse.data.country
-                        });
-                      } else {
-                        // Fallback to coordinates as strings
-                        onLocationSelect({
-                          latitude: center.lat,
-                          longitude: center.lng,
-                          city: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`,
-                          country: ''
-                        });
-                      }
-                    } catch (error) {
-                      console.error('Error reverse geocoding selected location:', error);
-                      // Fallback to coordinates as strings
-                      onLocationSelect({
-                        latitude: center.lat,
-                        longitude: center.lng,
-                        city: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`,
-                        country: ''
-                      });
-                    }
-                    onClose();
-                  }
-                }}
-                className="px-3 py-2 rounded-md transition-all duration-200 text-white border text-sm flex items-center gap-2 hover:bg-blue-600/20 bg-blue-600/10"
-                style={{
-                  borderColor: 'rgba(59, 130, 246, 0.5)'
-                }}
-                title="Use this location"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
-                </svg>
-                Use This Location
-              </button>
-            </div>
-          </div>
+          {/* Mobile Weather Legend for desktop */}
+          <MobileWeatherLegend />
 
           {/* Map Container */}
           <div className="absolute inset-0">
@@ -968,8 +784,6 @@ export default function MapPanel({
                     ))}
                   </MapCore>
                 </Suspense>
-
-                <DesktopWeatherLegend />
 
                 {!mapState.isMapReady && (
                   <LoadingFallback variant={variant} />
