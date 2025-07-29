@@ -1,6 +1,7 @@
 import { NearbyLocation } from '@/types/nearbyWeather';
 import { WMO_CODES, getUVCategory, getWindDirection, fetchWeatherForeacastMultipleLocationApi } from './weatherService';
 import { getOpenMeteoConfig } from '@/utils/openmeteoConfig';
+import { reverseGeocode } from './geolocationService';
 
 // Get OpenMeteo configuration
 const openMeteoConfig = getOpenMeteoConfig();
@@ -134,45 +135,65 @@ export async function fetchNearbyWeatherData(
     // This helps prevent too many icons in one area
     const displayProbability = 0.8; // 80% chance of displaying each point
 
-    responses.forEach((response, i) => {
+    // Process responses with reverse geocoding for actual place names
+    const locationPromises = responses.map(async (response, i) => {
       // Skip some points randomly to reduce density in areas with many weather icons
       // but ensure we always have at least 4 points
       if (nearbyLocations.length < 4 || Math.random() < displayProbability) {
         const weatherCode = response.hourly.weathercode[currentIndex];
         const weatherInfo = WMO_CODES[weatherCode] || WMO_CODES[0];
 
-        // Generate a more descriptive name based on cardinal direction from center
         const lat = points[i].latitude;
         const lng = points[i].longitude;
-        const latDiff = lat - centerLat;
-        const lngDiff = lng - centerLng;
         
-        // Determine cardinal direction (N, NE, E, SE, S, SW, W, NW)
-        const angle = Math.atan2(latDiff, lngDiff) * (180 / Math.PI);
-        let direction = '';
+        // Try to get actual location name using reverse geocoding
+        let cityName = '';
+        let countryName = '';
         
-        if (angle >= -22.5 && angle < 22.5) direction = 'East';
-        else if (angle >= 22.5 && angle < 67.5) direction = 'Northeast';
-        else if (angle >= 67.5 && angle < 112.5) direction = 'North';
-        else if (angle >= 112.5 && angle < 157.5) direction = 'Northwest';
-        else if (angle >= 157.5 || angle < -157.5) direction = 'West';
-        else if (angle >= -157.5 && angle < -112.5) direction = 'Southwest';
-        else if (angle >= -112.5 && angle < -67.5) direction = 'South';
-        else if (angle >= -67.5 && angle < -22.5) direction = 'Southeast';
+        try {
+          const locationResponse = await reverseGeocode({ latitude: lat, longitude: lng });
+          if (locationResponse.success && locationResponse.data) {
+            cityName = locationResponse.data.city;
+            countryName = locationResponse.data.country;
+          }
+        } catch (error) {
+          console.warn('Reverse geocoding failed for nearby location:', error);
+        }
         
-        // Calculate approximate distance in km
-        const distanceKm = Math.round(
-          Math.sqrt(
-            Math.pow(111 * latDiff, 2) + 
-            Math.pow(111 * Math.cos(centerLat * Math.PI / 180) * lngDiff, 2)
-          )
-        );
+        // If reverse geocoding failed, fall back to directional naming
+        if (!cityName) {
+          const latDiff = lat - centerLat;
+          const lngDiff = lng - centerLng;
+          
+          // Determine cardinal direction (N, NE, E, SE, S, SW, W, NW)
+          const angle = Math.atan2(latDiff, lngDiff) * (180 / Math.PI);
+          let direction = '';
+          
+          if (angle >= -22.5 && angle < 22.5) direction = 'East';
+          else if (angle >= 22.5 && angle < 67.5) direction = 'Northeast';
+          else if (angle >= 67.5 && angle < 112.5) direction = 'North';
+          else if (angle >= 112.5 && angle < 157.5) direction = 'Northwest';
+          else if (angle >= 157.5 || angle < -157.5) direction = 'West';
+          else if (angle >= -157.5 && angle < -112.5) direction = 'Southwest';
+          else if (angle >= -112.5 && angle < -67.5) direction = 'South';
+          else if (angle >= -67.5 && angle < -22.5) direction = 'Southeast';
+          
+          // Calculate approximate distance in km
+          const distanceKm = Math.round(
+            Math.sqrt(
+              Math.pow(111 * latDiff, 2) + 
+              Math.pow(111 * Math.cos(centerLat * Math.PI / 180) * lngDiff, 2)
+            )
+          );
+          
+          cityName = `${direction} (${distanceKm}km)`;
+        }
         
         const nearbyLocation: NearbyLocation = {
           latitude: points[i].latitude,
           longitude: points[i].longitude,
-          city: `${direction} (${distanceKm}km)`,
-          country: '',
+          city: cityName,
+          country: countryName,
           weatherData: {
             currentWeather: {
               temperature: response.hourly.temperature_2m[currentIndex],
@@ -192,7 +213,18 @@ export async function fetchNearbyWeatherData(
             },
           },
         };
-        nearbyLocations.push(nearbyLocation);
+        return nearbyLocation;
+      }
+      return null;
+    });
+
+    // Wait for all reverse geocoding requests to complete
+    const resolvedLocations = await Promise.all(locationPromises);
+    
+    // Filter out null values and add to nearby locations
+    resolvedLocations.forEach(location => {
+      if (location) {
+        nearbyLocations.push(location);
       }
     });
 

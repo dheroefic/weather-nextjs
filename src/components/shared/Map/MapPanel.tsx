@@ -318,17 +318,40 @@ const MobileBottomActions = ({
       >
         <div className="flex space-x-3">
           <button
-            onClick={() => {
+            onClick={async () => {
               if (navigator.geolocation && onLocationSelect) {
                 navigator.geolocation.getCurrentPosition(
-                  (position) => {
+                  async (position) => {
                     const { latitude, longitude } = position.coords;
-                    onLocationSelect({
-                      latitude,
-                      longitude,
-                      city: 'Current Location',
-                      country: ''
-                    });
+                    try {
+                      const { reverseGeocode } = await import('@/services/geolocationService');
+                      const locationResponse = await reverseGeocode({ latitude, longitude });
+                      if (locationResponse.success && locationResponse.data) {
+                        onLocationSelect({
+                          latitude,
+                          longitude,
+                          city: locationResponse.data.city,
+                          country: locationResponse.data.country
+                        });
+                      } else {
+                        // Fallback to coordinates as strings
+                        onLocationSelect({
+                          latitude,
+                          longitude,
+                          city: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+                          country: ''
+                        });
+                      }
+                    } catch (error) {
+                      console.error('Error reverse geocoding location:', error);
+                      // Fallback to coordinates as strings
+                      onLocationSelect({
+                        latitude,
+                        longitude,
+                        city: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+                        country: ''
+                      });
+                    }
                   },
                   (error) => {
                     console.error('Error getting current location:', error);
@@ -814,17 +837,40 @@ export default function MapPanel({
               }}
             >
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (navigator.geolocation && onLocationSelect) {
                     navigator.geolocation.getCurrentPosition(
-                      (position) => {
+                      async (position) => {
                         const { latitude, longitude } = position.coords;
-                        onLocationSelect({
-                          latitude,
-                          longitude,
-                          city: 'Current Location',
-                          country: ''
-                        });
+                        try {
+                          const { reverseGeocode } = await import('@/services/geolocationService');
+                          const locationResponse = await reverseGeocode({ latitude, longitude });
+                          if (locationResponse.success && locationResponse.data) {
+                            onLocationSelect({
+                              latitude,
+                              longitude,
+                              city: locationResponse.data.city,
+                              country: locationResponse.data.country
+                            });
+                          } else {
+                            // Fallback to coordinates as strings
+                            onLocationSelect({
+                              latitude,
+                              longitude,
+                              city: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+                              country: ''
+                            });
+                          }
+                        } catch (error) {
+                          console.error('Error reverse geocoding location:', error);
+                          // Fallback to coordinates as strings
+                          onLocationSelect({
+                            latitude,
+                            longitude,
+                            city: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+                            country: ''
+                          });
+                        }
                       },
                       (error) => {
                         console.error('Error getting current location:', error);
@@ -847,15 +893,41 @@ export default function MapPanel({
               </button>
               
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (mapState.mapInstance?.getCenter) {
                     const center = mapState.mapInstance.getCenter();
-                    onLocationSelect({
-                      latitude: center.lat,
-                      longitude: center.lng,
-                      city: 'Selected Location',
-                      country: ''
-                    });
+                    try {
+                      const { reverseGeocode } = await import('@/services/geolocationService');
+                      const locationResponse = await reverseGeocode({ 
+                        latitude: center.lat, 
+                        longitude: center.lng 
+                      });
+                      if (locationResponse.success && locationResponse.data) {
+                        onLocationSelect({
+                          latitude: center.lat,
+                          longitude: center.lng,
+                          city: locationResponse.data.city,
+                          country: locationResponse.data.country
+                        });
+                      } else {
+                        // Fallback to coordinates as strings
+                        onLocationSelect({
+                          latitude: center.lat,
+                          longitude: center.lng,
+                          city: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`,
+                          country: ''
+                        });
+                      }
+                    } catch (error) {
+                      console.error('Error reverse geocoding selected location:', error);
+                      // Fallback to coordinates as strings
+                      onLocationSelect({
+                        latitude: center.lat,
+                        longitude: center.lng,
+                        city: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`,
+                        country: ''
+                      });
+                    }
                     onClose();
                   }
                 }}
@@ -942,15 +1014,41 @@ export default function MapPanel({
           {/* Compact Bottom Actions */}
           <MobileBottomActions 
             onLocationSelect={onLocationSelect} 
-            onUseLocation={() => {
+            onUseLocation={async () => {
               if (mapState.mapInstance?.getCenter) {
                 const center = mapState.mapInstance.getCenter();
-                onLocationSelect({
-                  latitude: center.lat,
-                  longitude: center.lng,
-                  city: 'Selected Location',
-                  country: ''
-                });
+                try {
+                  const { reverseGeocode } = await import('@/services/geolocationService');
+                  const locationResponse = await reverseGeocode({ 
+                    latitude: center.lat, 
+                    longitude: center.lng 
+                  });
+                  if (locationResponse.success && locationResponse.data) {
+                    onLocationSelect({
+                      latitude: center.lat,
+                      longitude: center.lng,
+                      city: locationResponse.data.city,
+                      country: locationResponse.data.country
+                    });
+                  } else {
+                    // Fallback to coordinates as strings
+                    onLocationSelect({
+                      latitude: center.lat,
+                      longitude: center.lng,
+                      city: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`,
+                      country: ''
+                    });
+                  }
+                } catch (error) {
+                  console.error('Error reverse geocoding selected location:', error);
+                  // Fallback to coordinates as strings
+                  onLocationSelect({
+                    latitude: center.lat,
+                    longitude: center.lng,
+                    city: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`,
+                    country: ''
+                  });
+                }
                 onClose();
               }
             }}

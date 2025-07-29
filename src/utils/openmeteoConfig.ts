@@ -12,6 +12,7 @@ export interface OpenMeteoConfig {
   geocodingUrl: string;
   apiKey?: string;
   hasApiKey: boolean;
+  proxy?: string;
 }
 
 /**
@@ -21,12 +22,14 @@ export function getOpenMeteoConfig(): OpenMeteoConfig {
   const baseUrl = process.env.NEXT_PUBLIC_OPENMETEO_API_URL || 'https://api.open-meteo.com/v1';
   const geocodingUrl = process.env.NEXT_PUBLIC_OPENMETEO_GEOCODING_URL || 'https://geocoding-api.open-meteo.com/v1';
   const apiKey = process.env.NEXT_PUBLIC_OPENMETEO_API_KEY;
+  const proxy = process.env.NEXT_PUBLIC_PROXY_URL;
 
   return {
     baseUrl,
     geocodingUrl,
     apiKey,
     hasApiKey: Boolean(apiKey),
+    proxy,
   };
 }
 
@@ -40,7 +43,8 @@ export function debugOpenMeteoConfig(): void {
     baseUrl: config.baseUrl,
     geocodingUrl: config.geocodingUrl,
     hasApiKey: config.hasApiKey,
-    apiKey: config.hasApiKey ? `${config.apiKey?.substring(0, 8)}...` : 'Using free OpenMeteo API (no API key required)'
+    apiKey: config.hasApiKey ? `${config.apiKey?.substring(0, 8)}...` : 'Using free OpenMeteo API (no API key required)',
+    proxy: config.proxy ? 'Configured' : 'Not configured'
   });
 }
 
@@ -63,6 +67,15 @@ export function validateOpenMeteoConfig(): { isValid: boolean; errors: string[] 
     new URL(config.geocodingUrl);
   } catch {
     errors.push(`Invalid geocoding URL: ${config.geocodingUrl}`);
+  }
+
+  // Validate proxy URL if provided
+  if (config.proxy) {
+    try {
+      new URL(config.proxy);
+    } catch {
+      errors.push(`Invalid proxy URL: ${config.proxy}`);
+    }
   }
 
   return {

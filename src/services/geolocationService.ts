@@ -95,18 +95,23 @@ export async function searchLocations(query: string): Promise<GeolocationRespons
   }
 
   try {
-    const searchUrl = new URL(`${openMeteoConfig.geocodingUrl}/search`);
-    searchUrl.searchParams.append('name', query);
-    searchUrl.searchParams.append('count', '5');
-    searchUrl.searchParams.append('language', 'en');
-    searchUrl.searchParams.append('format', 'json');
-    
-    // Add API key if provided
-    if (openMeteoConfig.apiKey) {
-      searchUrl.searchParams.append('apikey', openMeteoConfig.apiKey);
+    // Use the Next.js API route for country search
+    const apiUrl = new URL('/api/geocoding', window.location.origin);
+    apiUrl.searchParams.append('search', query);
+    apiUrl.searchParams.append('language', 'en');
+
+    // Get API key from environment variable
+    const apiKey = process.env.NEXT_PUBLIC_GEOCODING_API_KEY;
+    if (!apiKey) {
+      throw new Error('Geocoding API key not configured');
     }
-    
-    const response = await fetch(searchUrl.toString());
+
+    const response = await fetch(apiUrl.toString(), {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
     if (!response.ok) {
       throw new Error('Failed to fetch location data');
@@ -117,11 +122,12 @@ export async function searchLocations(query: string): Promise<GeolocationRespons
       throw new Error('Invalid response format');
     }
 
-    const results = data.results.map((item: { name: string; country: string; latitude: number; longitude: number; }) => ({
-      name: item.name || 'Unknown City',
-      country: item.country || 'Unknown Country',
-      latitude: item.latitude,
-      longitude: item.longitude
+    // Transform the results to match SearchResult interface
+    const results = data.results.map((item: any) => ({
+      name: item.country_name || 'Unknown Country',
+      country: item.country_name || 'Unknown Country',
+      latitude: item.coordinates?.latitude || 0,
+      longitude: item.coordinates?.longitude || 0
     }));
 
     const result = {
@@ -154,19 +160,37 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
       apiUrl.searchParams.append('latitude', coordinates.latitude.toString());
       apiUrl.searchParams.append('longitude', coordinates.longitude.toString());
       apiUrl.searchParams.append('language', 'en');
-      
-      const response = await fetch(apiUrl.toString());
+
+      // Get API key from environment variable
+      const apiKey = process.env.NEXT_PUBLIC_GEOCODING_API_KEY;
+      if (!apiKey) {
+        throw new Error('Geocoding API key not configured');
+      }
+
+      const response = await fetch(apiUrl.toString(), {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
         throw new Error('Failed to fetch location data');
       }
 
       const data = await response.json();
+      
+      // Handle the response format from our Supabase-based geocoding API
+      const firstResult = data.results?.[0];
+      if (!firstResult) {
+        throw new Error('No geocoding results found');
+      }
+
       const result = {
         success: true,
         data: {
-          city: data.name || 'Unknown City',
-          country: data.country || 'Unknown Country',
+          city: firstResult.sub_region_name || firstResult.name || 'Unknown City',
+          country: firstResult.country_name || 'Unknown Country',
           coordinates: {
             latitude: coordinates.latitude,
             longitude: coordinates.longitude

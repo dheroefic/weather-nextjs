@@ -178,3 +178,113 @@ BEGIN
     WHERE last_seen < NOW() - INTERVAL '90 days';
 END;
 $$ LANGUAGE plpgsql;
+
+-- Country Name table (based on ISO 3166-1 data)
+CREATE TABLE IF NOT EXISTS country_name (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    country_code VARCHAR(2) NOT NULL UNIQUE, -- ISO 3166-1 alpha-2 code
+    name VARCHAR(255) NOT NULL,
+    default_language_code VARCHAR(10),
+    latitude DECIMAL(10,8), -- Country center coordinates
+    longitude DECIMAL(11,8),
+    partition INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Country Sub-Region Name Table (based on ISO 3166-2 data)
+CREATE TABLE IF NOT EXISTS country_sub_region_name (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    sub_region_code VARCHAR(10) NOT NULL UNIQUE, -- ISO 3166-2 code (e.g., 'US-CA', 'AD-07')
+    name VARCHAR(255) NOT NULL,
+    division_type VARCHAR(50) NOT NULL, -- 'province', 'state', 'region', 'parish', 'emirate', etc.
+    country_code VARCHAR(2) NOT NULL, -- ISO 3166-1 country code
+    latitude DECIMAL(10,8), -- Geographic coordinates if available
+    longitude DECIMAL(11,8),
+    partition INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Country OSM Grid table for geocoding (based on Nominatim/OpenStreetMap data)
+CREATE TABLE IF NOT EXISTS public.country_osm_grid (
+    country_code character varying(2),
+    area double precision,
+    geometry public.geometry
+);
+
+-- Indexes for country tables
+CREATE INDEX IF NOT EXISTS idx_country_name_country_code ON country_name(country_code);
+CREATE INDEX IF NOT EXISTS idx_country_name_name ON country_name(name);
+CREATE INDEX IF NOT EXISTS idx_country_name_language ON country_name(default_language_code);
+CREATE INDEX IF NOT EXISTS idx_country_name_coordinates ON country_name(latitude, longitude);
+
+-- Text search index for country names
+CREATE INDEX IF NOT EXISTS idx_country_name_text ON country_name USING gin(to_tsvector('english', name));
+
+-- Indexes for sub-regions
+CREATE INDEX IF NOT EXISTS idx_country_sub_region_code ON country_sub_region_name(sub_region_code);
+CREATE INDEX IF NOT EXISTS idx_country_sub_region_name ON country_sub_region_name(name);
+CREATE INDEX IF NOT EXISTS idx_country_sub_region_country_code ON country_sub_region_name(country_code);
+CREATE INDEX IF NOT EXISTS idx_country_sub_region_division_type ON country_sub_region_name(division_type);
+CREATE INDEX IF NOT EXISTS idx_country_sub_region_coordinates ON country_sub_region_name(latitude, longitude);
+
+-- Text search index for sub-region names
+CREATE INDEX IF NOT EXISTS idx_country_sub_region_name_text ON country_sub_region_name USING gin(to_tsvector('english', name));
+
+-- Enhanced indexes for the grid tables
+CREATE INDEX IF NOT EXISTS idx_country_osm_grid_country_code ON country_osm_grid(country_code);
+CREATE INDEX IF NOT EXISTS idx_country_osm_grid_area ON country_osm_grid(area);
+-- Spatial index for geometry (requires PostGIS extension)
+CREATE INDEX IF NOT EXISTS idx_country_osm_grid_geom ON country_osm_grid USING GIST (geometry);
+
+-- Indexes for sub-region grid
+CREATE INDEX IF NOT EXISTS idx_sub_region_osm_grid_code ON sub_region_osm_grid(sub_region_code);
+CREATE INDEX IF NOT EXISTS idx_sub_region_osm_grid_country ON sub_region_osm_grid(country_code);
+CREATE INDEX IF NOT EXISTS idx_sub_region_osm_grid_area ON sub_region_osm_grid(area);
+CREATE INDEX IF NOT EXISTS idx_sub_region_osm_grid_level ON sub_region_osm_grid(grid_level);
+-- CREATE INDEX IF NOT EXISTS idx_sub_region_osm_grid_geom ON sub_region_osm_grid USING GIST (geometry::geometry);
+
+-- Foreign key constraints
+ALTER TABLE country_sub_region_name 
+ADD CONSTRAINT fk_sub_region_country 
+FOREIGN KEY (country_code) REFERENCES country_name(country_code) ON DELETE CASCADE;
+
+-- Note: No foreign key for country_osm_grid as OSM data may have different country codes than ISO standard
+
+ALTER TABLE sub_region_osm_grid 
+ADD CONSTRAINT fk_sub_grid_country 
+FOREIGN KEY (country_code) REFERENCES country_name(country_code) ON DELETE CASCADE;
+
+ALTER TABLE sub_region_osm_grid 
+ADD CONSTRAINT fk_sub_grid_region 
+FOREIGN KEY (sub_region_code) REFERENCES country_sub_region_name(sub_region_code) ON DELETE CASCADE;
+
+-- RLS policies for geocoding tables
+ALTER TABLE country_name ENABLE ROW LEVEL SECURITY;
+ALTER TABLE country_sub_region_name ENABLE ROW LEVEL SECURITY;
+ALTER TABLE country_osm_grid ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sub_region_osm_grid ENABLE ROW LEVEL SECURITY;
+
+-- Allow read access to geocoding data for all users (public geographic data)
+CREATE POLICY "Allow read access to country names" ON country_name
+    FOR SELECT USING (true);
+
+CREATE POLICY "Allow read access to sub-regions" ON country_sub_region_name
+    FOR SELECT USING (true);
+
+CREATE POLICY "Allow read access to country OSM grid" ON country_osm_grid
+    FOR SELECT USING (true);
+
+CREATE POLICY "Allow read access to sub-region OSM grid" ON sub_region_osm_grid
+    FOR SELECT USING (true);
+
+-- Triggers for updated_at on geocoding tables
+CREATE TRIGGER update_country_name_updated_at BEFORE UPDATE ON country_name
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_country_sub_region_name_updated_at BEFORE UPDATE ON country_sub_region_name
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_sub_region_osm_grid_updated_at BEFORE UPDATE ON sub_region_osm_grid
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
