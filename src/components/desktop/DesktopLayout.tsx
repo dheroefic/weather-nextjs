@@ -8,6 +8,7 @@ import WeatherMetrics from '../shared/WeatherMetrics';
 import Footer from '../shared/Footer';
 import EmbeddedMap from './EmbeddedMap';
 import LocationSelector from '../shared/LocationSelector';
+import DetailPanel from '../shared/DetailPanel';
 import dynamic from 'next/dynamic';
 import MapPanelComponent from '../shared/Map/MapPanel';
 import type { WeatherData, Location, TemperatureUnit, ForecastDay } from '@/types/weather';
@@ -58,6 +59,7 @@ export default function DesktopLayout({
   formatTime,
   handleRefresh,
   onLocationSelect,
+  selectedDay,
   onDaySelect,
   showSettings,
   setShowSettings,
@@ -404,6 +406,16 @@ export default function DesktopLayout({
           />
         );
       })()}
+
+      {/* Desktop Daily Weather Detail Panel */}
+      <DetailPanel
+        selectedDay={selectedDay}
+        weatherData={weatherData}
+        tempUnit={tempUnit}
+        convertTemp={convertTemp}
+        onClose={() => onDaySelect(null)}
+        onDaySelect={onDaySelect}
+      />
     </>
   );
 }
