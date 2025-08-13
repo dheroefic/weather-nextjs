@@ -75,12 +75,13 @@ export default function DesktopLayout({
   const currentWeather = weatherData?.currentWeather;
   const dailyForecast = weatherData?.dailyForecast || [];
 
-  // Use nearby weather hook for fullscreen map
+  // Use nearby weather hook for fullscreen map only - embedded map will get data passed down
+  // Only fetch when map functionality is likely to be used
   const { nearbyWeatherData } = useNearbyWeather({
     location,
     weatherData,
     zoomLevel: 13,
-    enabled: true
+    enabled: true // Keep enabled for desktop since embedded map is always visible
   });
 
   // Handle panel toggles - only allow one panel open at a time
@@ -314,6 +315,7 @@ export default function DesktopLayout({
                     onExpandToFullscreen={handleExpandToFullscreen}
                     currentWeather={currentWeather}
                     className="h-full"
+                    nearbyWeatherData={nearbyWeatherData}
                   />
                 )}
                 {(showFullscreenMap || isTransitioning || embeddedMapDestroyed) && (

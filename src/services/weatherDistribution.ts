@@ -1,5 +1,6 @@
 import { NearbyLocation } from '@/types/nearbyWeather';
 import { WMO_CODES, getUVCategory, getWindDirection, fetchWeatherForeacastMultipleLocationApi, type OpenMeteoResponse } from './weatherService';
+import { getFromCache, setInCache } from './cacheService';
 import { getOpenMeteoConfig } from '@/utils/openmeteoConfig';
 import { reverseGeocode, GeolocationResponse } from './geolocationService';
 import { Location } from '@/types/weather';
@@ -26,6 +27,16 @@ export async function fetchNearbyWeatherData(
   // Use zoom level to dynamically adjust the distribution radius
   // Default zoom level is 13 (from MapPanel's defaultMapConfig)
   const effectiveZoomLevel = zoomLevel || 13;
+  
+  // Create cache key based on center coordinates and zoom level (rounded to reduce cache misses)
+  const cacheKey = `nearby_weather_${Math.round(centerLat * 100) / 100}_${Math.round(centerLng * 100) / 100}_${effectiveZoomLevel}`;
+  
+  // Try to get from cache first (10 minute cache for nearby weather data)
+  const cachedData = getFromCache<NearbyLocation[]>(cacheKey, true);
+  if (cachedData) {
+    console.log('Using cached nearby weather data');
+    return cachedData;
+  }
   
   // Dynamically adjust radius based on zoom level
   // At higher zoom levels (zoomed in), use smaller radius
@@ -263,6 +274,9 @@ export async function fetchNearbyWeatherData(
       }
     });
 
+    // Cache the result for 10 minutes
+    setInCache(cacheKey, nearbyLocations);
+    
     return nearbyLocations;
   } catch (error) {
     console.error('Error fetching nearby weather data:', error);

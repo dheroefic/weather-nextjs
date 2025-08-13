@@ -79,6 +79,7 @@ interface EmbeddedMapProps {
   onLocationSelect: (location: Location) => void;
   currentWeather?: WeatherData['currentWeather'];
   className?: string;
+  nearbyWeatherData?: NearbyLocation[]; // Add optional nearby weather data prop
 }
 
 export default function EmbeddedMap({
@@ -87,7 +88,8 @@ export default function EmbeddedMap({
   onExpandToFullscreen,
   onLocationSelect,
   currentWeather,
-  className = ''
+  className = '',
+  nearbyWeatherData: propNearbyWeatherData // Add prop for nearby weather data
 }: EmbeddedMapProps) {
   // Use our new map utility hooks
   const safeCoordinates = useSafeCoordinates(location);
@@ -117,13 +119,16 @@ export default function EmbeddedMap({
   const { selectLocationFromCoordinates } = useLocationSelection();
   const mapManager = useMapManager(DEFAULT_EMBEDDED_MAP_CONFIG);
   
-  // Use nearby weather hook
-  const { nearbyWeatherData, isLoading: nearbyLoading } = useNearbyWeather({
+  // Use nearby weather hook only if no data provided via props
+  const { nearbyWeatherData: fetchedNearbyWeatherData, isLoading: nearbyLoading } = useNearbyWeather({
     location,
     weatherData: weatherData ?? undefined,
     zoomLevel: 13, // Default zoom for embedded map
-    enabled: true
+    enabled: !propNearbyWeatherData // Only fetch if no data provided via props
   });
+
+  // Use provided data or fetched data
+  const nearbyWeatherData = propNearbyWeatherData || fetchedNearbyWeatherData;
 
   // Handle map location updates when user interacts with map
   const handleLocationUpdate = useCallback(async (lat: number, lng: number) => {
