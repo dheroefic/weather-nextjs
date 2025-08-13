@@ -119,6 +119,25 @@ export default function EmbeddedMap({
   const { selectLocationFromCoordinates } = useLocationSelection();
   const mapManager = useMapManager(DEFAULT_EMBEDDED_MAP_CONFIG);
   
+  // Local state - moved before callbacks to avoid declaration order issues
+  const [leaflet, setLeaflet] = useState<typeof import('leaflet') | null>(null);
+  const [isLocalMapReady, setIsLocalMapReady] = useState(false);
+  const [mapContainerId] = useState(() => `embedded-map-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
+  const previousCoordinatesRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  const [isFlying, setIsFlying] = useState(false);
+  
+  // State to track if map center has changed (to show "Use This Location" button)
+  const [hasMapCenterChanged, setHasMapCenterChanged] = useState(false);
+  const [currentMapCenter, setCurrentMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+
+  // State to track the current center marker location (for real-time updates)
+  const [centerMarkerLocation, setCenterMarkerLocation] = useState({
+    city: location.city,
+    country: location.country
+  });
+  
   // Use nearby weather hook only if no data provided via props
   const { nearbyWeatherData: fetchedNearbyWeatherData, isLoading: nearbyLoading } = useNearbyWeather({
     location,
@@ -178,28 +197,27 @@ export default function EmbeddedMap({
     }
   }, [onLocationSelect]);
 
-  // Set up map location update hook
+  // Handle "Use This Location" button click
+  const handleUseThisLocation = useCallback(async () => {
+    if (!currentMapCenter) return;
+    
+    console.log('EmbeddedMap: User clicked "Use This Location" for:', currentMapCenter);
+    
+    // Hide the button immediately
+    setHasMapCenterChanged(false);
+    
+    // Update the location using the current map center
+    await handleLocationUpdate(currentMapCenter.lat, currentMapCenter.lng);
+  }, [currentMapCenter, handleLocationUpdate]);
+
+  // Set up map location update hook - DISABLED to prevent aggressive location updates
+  // Location will only be updated when user clicks "Use This Location" button
   const { updateLastLocation } = useMapLocationUpdate({
     map: mapManager.mapInstance,
     onLocationChange: handleLocationUpdate,
     debounceMs: 800, // Wait 800ms after user stops moving the map
     minDistanceKm: 3, // Only update if moved more than 3km
-    enabled: true // Always enabled for embedded map
-  });
-  
-  // Local state
-  const [leaflet, setLeaflet] = useState<typeof import('leaflet') | null>(null);
-  const [isLocalMapReady, setIsLocalMapReady] = useState(false);
-  const [mapContainerId] = useState(() => `embedded-map-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mountedRef = useRef(true);
-  const previousCoordinatesRef = useRef<{ latitude: number; longitude: number } | null>(null);
-  const [isFlying, setIsFlying] = useState(false);
-
-  // State to track the current center marker location (for real-time updates)
-  const [centerMarkerLocation, setCenterMarkerLocation] = useState({
-    city: location.city,
-    country: location.country
+    enabled: false // DISABLED - only update on explicit user action
   });
 
   // Update center marker location when the main location prop changes
@@ -334,12 +352,46 @@ export default function EmbeddedMap({
       }
     };
 
+    // Track map movement to show "Use This Location" button
+    const handleMapMove = () => {
+      if (!mapManager.mapInstance) return;
+      
+      const center = mapManager.mapInstance.getCenter();
+      const newCenter = { lat: center.lat, lng: center.lng };
+      
+      // Check if the center has significantly changed from the current location
+      if (location?.coordinates) {
+        const currentLat = location.coordinates.latitude;
+        const currentLng = location.coordinates.longitude;
+        
+        // Calculate distance (simple euclidean distance check)
+        const distance = Math.sqrt(
+          Math.pow(newCenter.lat - currentLat, 2) + 
+          Math.pow(newCenter.lng - currentLng, 2)
+        );
+        
+        // If moved more than ~0.01 degrees (roughly 1km), show the button
+        if (distance > 0.01) {
+          setHasMapCenterChanged(true);
+          setCurrentMapCenter(newCenter);
+        }
+      } else {
+        // If no current location, any movement shows the button
+        setHasMapCenterChanged(true);
+        setCurrentMapCenter(newCenter);
+      }
+    };
+
     map.on('click', handleMapClick);
+    map.on('moveend', handleMapMove);
+    map.on('zoomend', handleMapMove);
 
     return () => {
       map.off('click', handleMapClick);
+      map.off('moveend', handleMapMove);
+      map.off('zoomend', handleMapMove);
     };
-  }, [mapManager.mapInstance, isLocalMapReady, leaflet]); // Use local ready state
+  }, [mapManager.mapInstance, isLocalMapReady, leaflet, location?.coordinates]); // Use local ready state
 
   // Update map center when location changes with smooth animation
   useEffect(() => {
@@ -468,6 +520,11 @@ export default function EmbeddedMap({
       updateLastLocation(currentCoords.latitude, currentCoords.longitude);
     }
   }, [mapManager.mapInstance, isLocalMapReady, mapManager.isMapReady, safeCoordinates, updateLastLocation]);
+
+  // Reset "Use This Location" button when location changes programmatically
+  useEffect(() => {
+    setHasMapCenterChanged(false);
+  }, [location?.coordinates?.latitude, location?.coordinates?.longitude]);
 
   const LoadingFallback = () => (
     <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-lg z-[500]">
@@ -711,6 +768,24 @@ export default function EmbeddedMap({
           </svg>
         </button>
       </div>
+
+      {/* Use This Location button - shown when map center has changed */}
+      {hasMapCenterChanged && (
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-[1000]">
+          <button
+            onClick={handleUseThisLocation}
+            className="px-3 py-2 rounded-lg bg-black/40 hover:bg-black/60 transition-all duration-200 backdrop-blur-md text-white border border-white/10 hover:border-white/20 text-sm font-medium"
+            title="Set this location as your current location"
+          >
+            <div className="flex items-center space-x-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Use This Location</span>
+            </div>
+          </button>
+        </div>
+      )}
 
       {/* Expand to fullscreen button */}
       <div className="absolute top-2 right-2 z-[1000]">

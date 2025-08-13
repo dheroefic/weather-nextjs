@@ -398,27 +398,24 @@ const MobileBottomActions = ({
             </div>
           </button>
           
-          <button
-            onClick={onUseLocation}
-            className="flex-1 py-3 px-4 rounded-xl transition-all duration-200"
-            style={{
-              background: 'rgba(59, 130, 246, 0.2)',
-              border: '1px solid rgba(59, 130, 246, 0.4)',
-              backdropFilter: 'blur(10px)',
-            }}
-          >
-            <div className="flex items-center justify-center space-x-2">
-              <svg 
-                className="w-4 h-4 text-white" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="text-white text-sm font-medium">Use This Location</span>
-            </div>
-          </button>
+          {onUseLocation && (
+            <button
+              onClick={onUseLocation}
+              className="flex-1 py-3 px-4 rounded-xl transition-all duration-200 bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/10 hover:border-white/20"
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <svg 
+                  className="w-4 h-4 text-white" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-white text-sm font-medium">Use This Location</span>
+              </div>
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -581,6 +578,10 @@ export default function MapPanel({
     country: location.country
   });
 
+  // State to track if map center has changed (to show "Use This Location" button)
+  const [hasMapCenterChanged, setHasMapCenterChanged] = React.useState(false);
+  const [currentMapCenter, setCurrentMapCenter] = React.useState<{ lat: number; lng: number } | null>(null);
+
   // Update center marker location when the main location prop changes
   React.useEffect(() => {
     setCenterMarkerLocation({
@@ -588,6 +589,11 @@ export default function MapPanel({
       country: location.country
     });
   }, [location.city, location.country]);
+
+  // Reset "Use This Location" button when location changes programmatically
+  React.useEffect(() => {
+    setHasMapCenterChanged(false);
+  }, [location?.coordinates?.latitude, location?.coordinates?.longitude]);
 
   // Map invalidation for responsive behavior
   useMapInvalidation({
@@ -674,15 +680,73 @@ export default function MapPanel({
     }
   }, [onLocationSelect, onWeatherDataRefresh, isMapInteractionLoading]);
 
-  // Set up map location update hook
+  // Handle "Use This Location" button click
+  const handleUseThisLocation = React.useCallback(async () => {
+    if (!currentMapCenter) return;
+    
+    console.log('MapPanel: User clicked "Use This Location" for:', currentMapCenter);
+    
+    // Hide the button immediately
+    setHasMapCenterChanged(false);
+    
+    // Update the location using the current map center
+    await handleLocationUpdate(currentMapCenter.lat, currentMapCenter.lng);
+  }, [currentMapCenter, handleLocationUpdate]);
+
+  // Set up map location update hook - DISABLED to prevent aggressive location updates
+  // Location will only be updated when user clicks "Use This Location" button
   const { updateLastLocation } = useMapLocationUpdate({
     map: mapState.mapInstance,
     onLocationChange: handleLocationUpdate,
     onLoadingStateChange: setIsMapInteractionLoading,
     debounceMs: 800, // Wait 800ms after user stops moving the map
     minDistanceKm: 3, // Only update if moved more than 3km
-    enabled: isOpen // Only enabled when map panel is open
+    enabled: false // DISABLED - only update on explicit user action
   });
+
+  // Track map movement to show "Use This Location" button
+  React.useEffect(() => {
+    if (!mapState.mapInstance || !mapState.isMapReady || !isOpen) return;
+
+    const map = mapState.mapInstance;
+
+    const handleMapMove = () => {
+      if (!mapState.mapInstance) return;
+      
+      const center = mapState.mapInstance.getCenter();
+      const newCenter = { lat: center.lat, lng: center.lng };
+      
+      // Check if the center has significantly changed from the current location
+      if (location?.coordinates) {
+        const currentLat = location.coordinates.latitude;
+        const currentLng = location.coordinates.longitude;
+        
+        // Calculate distance (simple euclidean distance check)
+        const distance = Math.sqrt(
+          Math.pow(newCenter.lat - currentLat, 2) + 
+          Math.pow(newCenter.lng - currentLng, 2)
+        );
+        
+        // If moved more than ~0.01 degrees (roughly 1km), show the button
+        if (distance > 0.01) {
+          setHasMapCenterChanged(true);
+          setCurrentMapCenter(newCenter);
+        }
+      } else {
+        // If no current location, any movement shows the button
+        setHasMapCenterChanged(true);
+        setCurrentMapCenter(newCenter);
+      }
+    };
+
+    map.on('moveend', handleMapMove);
+    map.on('zoomend', handleMapMove);
+
+    return () => {
+      map.off('moveend', handleMapMove);
+      map.off('zoomend', handleMapMove);
+    };
+  }, [mapState.mapInstance, mapState.isMapReady, isOpen, location?.coordinates]);
 
   // Handle location changes with smooth animation
   React.useEffect(() => {
@@ -909,30 +973,7 @@ export default function MapPanel({
             variant={variant}
             onLocationSelect={onLocationSelect} 
             onLoadingStateChange={setIsMapInteractionLoading}
-            onUseLocation={async () => {
-              if (mapState.mapInstance?.getCenter) {
-                const center = mapState.mapInstance.getCenter();
-                try {
-                  const { getLocationWithFallback } = await import('@/utils/mapLocationUtils');
-                  const result = await getLocationWithFallback(center.lat, center.lng);
-                  onLocationSelect({
-                    latitude: center.lat,
-                    longitude: center.lng,
-                    city: result.city,
-                    country: result.country
-                  });
-                } catch (error) {
-                  console.error('Error reverse geocoding center location:', error);
-                  // Fallback to coordinates as strings
-                  onLocationSelect({
-                    latitude: center.lat,
-                    longitude: center.lng,
-                    city: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`,
-                    country: ''
-                  });
-                }
-              }
-            }}
+            onUseLocation={hasMapCenterChanged ? handleUseThisLocation : undefined} // Only show when map has moved
           />
 
           {/* Map Container */}
@@ -1012,30 +1053,7 @@ export default function MapPanel({
             variant={variant}
             onLocationSelect={onLocationSelect} 
             onLoadingStateChange={setIsMapInteractionLoading}
-            onUseLocation={async () => {
-              if (mapState.mapInstance?.getCenter) {
-                const center = mapState.mapInstance.getCenter();
-                try {
-                  const { getLocationWithFallback } = await import('@/utils/mapLocationUtils');
-                  const result = await getLocationWithFallback(center.lat, center.lng);
-                  onLocationSelect({
-                    latitude: center.lat,
-                    longitude: center.lng,
-                    city: result.city,
-                    country: result.country
-                  });
-                } catch (error) {
-                  console.error('Error reverse geocoding center location:', error);
-                  // Fallback to coordinates as strings
-                  onLocationSelect({
-                    latitude: center.lat,
-                    longitude: center.lng,
-                    city: `${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}`,
-                    country: ''
-                  });
-                }
-              }
-            }}
+            onUseLocation={hasMapCenterChanged ? handleUseThisLocation : undefined} // Only show when map has moved
           />
 
           {/* Map Container - Full Screen */}
