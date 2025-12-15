@@ -13,6 +13,7 @@ import {
   useSafeCoordinates,
   DEFAULT_EMBEDDED_MAP_CONFIG
 } from '@/utils/mapUtility';
+import { isClient } from '@/utils/environment';
 import 'leaflet/dist/leaflet.css';
 import type { Map } from 'leaflet';
 
@@ -240,7 +241,7 @@ export default function EmbeddedMap({
 
   // Dynamically import Leaflet on the client
   useEffect(() => {
-    if (typeof window !== 'undefined' && mountedRef.current) {
+    if (isClient() && mountedRef.current) {
       setIsLocalMapReady(false); // Reset ready state when starting to load
       import('leaflet').then((L) => {
         if (mountedRef.current) {

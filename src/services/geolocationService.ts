@@ -5,6 +5,8 @@ import {
   cacheGeocodingResult, 
   cleanupGeocodingCache 
 } from '@/utils/geocodingCache';
+import { isGeolocationAvailable, isClient } from '@/utils/environment';
+import { GEOLOCATION_OPTIONS } from '@/utils/geolocationConstants';
 
 export interface GeolocationResponse<T> {
   success: boolean;
@@ -38,21 +40,10 @@ export interface SearchResult {
   longitude: number;
 }
 
-export interface GeolocationResponse<T> {
-  success: boolean;
-  data: T | null;
-  error?: string;
-}
-
-export interface Coordinates {
-  latitude: number;
-  longitude: number;
-}
-
 export const getUserGeolocation = async (): Promise<GeolocationResponse<Coordinates>> => {
   return new Promise((resolve) => {
     // Ensure we are running in a browser environment.
-    if (typeof window === 'undefined' || typeof navigator === 'undefined' || !navigator.geolocation) {
+    if (!isGeolocationAvailable()) {
       resolve({
         success: false,
         data: null,
@@ -87,11 +78,7 @@ export const getUserGeolocation = async (): Promise<GeolocationResponse<Coordina
           error: error.message
         });
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
-      }
+      GEOLOCATION_OPTIONS
     );
   });
 };
@@ -121,6 +108,10 @@ export async function searchLocations(query: string): Promise<GeolocationRespons
   }
 
   try {
+    if (!isClient()) {
+      throw new Error('Search can only be performed in browser environment');
+    }
+
     // Use the Next.js API route for country search
     const apiUrl = new URL('/api/geocoding', window.location.origin);
     apiUrl.searchParams.append('search', query);
@@ -213,6 +204,11 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
     }, 5000); // 5 second timeout
 
     try {
+      if (!isClient()) {
+        clearTimeout(timeoutId);
+        throw new Error('Reverse geocoding can only be performed in browser environment');
+      }
+
       // Use the Next.js API route instead of direct external API call to avoid CORS
       const apiUrl = new URL('/api/geocoding', window.location.origin);
       apiUrl.searchParams.append('latitude', coordinates.latitude.toString());

@@ -1,4 +1,5 @@
 import type { Location, TemperatureUnit } from '@/types/weather';
+import { isClient } from '@/utils/environment';
 
 interface UserPreferences {
   tempUnit: TemperatureUnit;
@@ -14,7 +15,7 @@ const defaultPreferences: UserPreferences = {
 
 export const loadPreferences = (): UserPreferences => {
   // Ensure this code runs only in the browser
-  if (typeof window === 'undefined') return defaultPreferences;
+  if (!isClient()) return defaultPreferences;
   
   const stored = localStorage.getItem(STORAGE_KEY);
   if (!stored) return defaultPreferences;
@@ -29,7 +30,7 @@ export const loadPreferences = (): UserPreferences => {
 
 export const savePreferences = (preferences: Partial<UserPreferences>): void => {
   // Ensure this code runs only in the browser
-  if (typeof window === 'undefined') return;
+  if (!isClient()) return;
 
   const current = loadPreferences();
   const updated = { ...current, ...preferences };
@@ -38,7 +39,7 @@ export const savePreferences = (preferences: Partial<UserPreferences>): void => 
 
 export const clearPreferences = (): void => {
   // Ensure this code runs only in the browser
-  if (typeof window === 'undefined') return;
+  if (!isClient()) return;
 
   localStorage.removeItem(STORAGE_KEY);
 };

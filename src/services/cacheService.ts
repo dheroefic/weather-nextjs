@@ -1,3 +1,5 @@
+import { isClient } from '@/utils/environment';
+
 // Weather data cache expires in 10 minutes, location cache in 24 hours
 const WEATHER_CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutes
 const LOCATION_CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
@@ -20,7 +22,7 @@ export function getFromCache<T>(key: string, isWeatherData = false): T | null {
   }
 
   // Check if running in the browser
-  if (typeof window === 'undefined') return null;
+  if (!isClient()) return null;
 
   const item = localStorage.getItem(key);
   if (!item) return null;
@@ -46,7 +48,7 @@ export function getFromCache<T>(key: string, isWeatherData = false): T | null {
 
 export function setInCache<T>(key: string, data: T): void {
   // Check if running in the browser
-  if (typeof window === 'undefined') return;
+  if (!isClient()) return;
 
   const item: CacheItem<T> = {
     data,
@@ -82,7 +84,7 @@ export function setInCache<T>(key: string, data: T): void {
 
 export function clearCache(): void {
   memoryCache.clear();
-  if (typeof window !== 'undefined') {
+  if (isClient()) {
     localStorage.clear();
   }
 }
@@ -98,14 +100,14 @@ export function clearWeatherCache(): void {
   
   keysToDelete.forEach(key => {
     memoryCache.delete(key);
-    if (typeof window !== 'undefined') {
+    if (isClient()) {
       localStorage.removeItem(key);
     }
   });
 }
 
 function clearOldCacheEntries(): void {
-  if (typeof window === 'undefined') return;
+  if (!isClient()) return;
   
   const now = Date.now();
   const keysToDelete: string[] = [];
@@ -146,7 +148,7 @@ function clearOldCacheEntries(): void {
 }
 
 function shouldClearCache(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (!isClient()) return false;
   
   try {
     // Try to estimate localStorage usage
