@@ -34,19 +34,10 @@ interface OpenMeteoResponse {
   };
 }
 
+export type { OpenMeteoResponse };
+
 // Request deduplication
 const pendingRequests = new Map<string, Promise<OpenMeteoResponse>>();
-
-interface GeolocationResponse {
-  success: boolean;
-  data?: {
-    latitude: number;
-    longitude: number;
-    city?: string;
-    country?: string;
-  };
-  error?: string;
-}
 
 export function getWindDirection(degrees: number): string {
   const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
@@ -62,83 +53,7 @@ export const getUVCategory = (uvIndex: number): string => {
   return 'Extreme';
 };
 
-export async function getUserGeolocation(): Promise<GeolocationResponse> {
-  return new Promise((resolve) => {
-    // Guard against non-browser environments.
-    if (typeof window === 'undefined' || typeof navigator === 'undefined' || !navigator.geolocation) {
-      resolve({
-        success: false,
-        error: 'Geolocation is not supported in this environment'
-      });
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const geocodingUrl = `${openMeteoConfig.geocodingUrl}/reverse?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&language=en`;
-          const response = await fetch(geocodingUrl);
-          const data = await response.json();
-          
-          resolve({
-            success: true,
-            data: {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              city: data.features?.[0]?.name || 'Unknown City',
-              country: data.features?.[0]?.country || 'Unknown Country'
-            }
-          });
-        } catch (error) {
-          console.error(error);
-          resolve({
-            success: false,
-            error: 'Error fetching location details'
-          });
-        }
-      },
-      (error) => {
-        resolve({
-          success: false,
-          error: `Geolocation error: ${error.message}`
-        });
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
-      }
-    );
-  });
-}
-
 type WeatherIconPath = string;
-
-interface OpenMeteoResponse {
-  latitude: number;
-  longitude: number;
-  hourly: {
-    time: string[];
-    temperature_2m: number[];
-    weathercode: number[];
-    windspeed_10m: number[];
-    winddirection_10m: number[];
-    precipitation_probability: number[];
-    uv_index: number[];
-    relative_humidity_2m: number[];
-    surface_pressure: number[];
-  };
-  daily: {
-    time: string[];
-    temperature_2m_max: number[];
-    temperature_2m_min: number[];
-    weathercode: number[];
-    precipitation_probability_max: number[];
-    uv_index_max: number[];
-  };
-}
-
-export type { OpenMeteoResponse };
 
 export function getUVIndexIcon(uvIndex: number): WeatherIconPath {
   if (uvIndex <= 0) return '/icons/weathers/uv-index-1.svg';

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Map } from 'leaflet';
 import type { WeatherData } from '@/types/weather';
+import { isClient } from '@/utils/environment';
 
 export interface UseMapStateResult {
   mapInstance: Map | null;
@@ -39,7 +40,7 @@ export const useMapState = (): UseMapStateResult => {
       }
     };
     
-    if (typeof window !== 'undefined' && !leaflet) {
+    if (isClient() && !leaflet) {
       loadLeaflet();
     }
   }, [leaflet]);

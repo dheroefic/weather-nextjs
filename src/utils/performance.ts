@@ -1,4 +1,5 @@
 import React from 'react';
+import { isClient } from '@/utils/environment';
 
 // Performance monitoring utility
 class PerformanceMonitor {
@@ -13,7 +14,7 @@ class PerformanceMonitor {
   }
 
   startMeasure(name: string): void {
-    if (typeof window !== 'undefined' && 'performance' in window) {
+    if (isClient() && 'performance' in window) {
       const timestamp = performance.now();
       this.marks.set(name, timestamp);
       performance.mark(`${name}-start`);
@@ -21,7 +22,7 @@ class PerformanceMonitor {
   }
 
   endMeasure(name: string): number | null {
-    if (typeof window !== 'undefined' && 'performance' in window) {
+    if (isClient() && 'performance' in window) {
       const startTime = this.marks.get(name);
       if (startTime) {
         const endTime = performance.now();
@@ -49,14 +50,14 @@ class PerformanceMonitor {
   }
 
   getPerformanceMetrics(): PerformanceEntryList {
-    if (typeof window !== 'undefined' && 'performance' in window) {
+    if (isClient() && 'performance' in window) {
       return performance.getEntriesByType('measure');
     }
     return [];
   }
 
   clearMetrics(): void {
-    if (typeof window !== 'undefined' && 'performance' in window) {
+    if (isClient() && 'performance' in window) {
       performance.clearMarks();
       performance.clearMeasures();
     }

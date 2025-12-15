@@ -8,6 +8,7 @@ import { fetchNearbyWeatherData } from '@/services/weatherDistribution';
 import { getUserGeolocation } from '@/services/geolocationService';
 import type { SearchResult } from '@/services/geolocationService';
 import { debug } from '@/utils/debug';
+import { isClient } from '@/utils/environment';
 
 // Types for the map utility
 export interface MapConfig {
@@ -263,7 +264,7 @@ export class UserLocationManager {
   }
 
   private loadFromStorage(): { latitude: number; longitude: number } | null {
-    if (typeof window === 'undefined') return null;
+    if (!isClient()) return null;
 
     try {
       const stored = localStorage.getItem(USER_LOCATION_STORAGE_KEY);
@@ -286,7 +287,7 @@ export class UserLocationManager {
   }
 
   private saveToStorage(coordinates: { latitude: number; longitude: number }): void {
-    if (typeof window === 'undefined') return;
+    if (!isClient()) return;
 
     try {
       const data = {
@@ -300,7 +301,7 @@ export class UserLocationManager {
   }
 
   private clearStorage(): void {
-    if (typeof window === 'undefined') return;
+    if (!isClient()) return;
     
     try {
       localStorage.removeItem(USER_LOCATION_STORAGE_KEY);
