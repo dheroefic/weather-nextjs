@@ -69,14 +69,24 @@ export const performanceMonitor = PerformanceMonitor.getInstance();
 
 // React hook for performance monitoring
 export function usePerformanceMonitor(componentName: string) {
-  const startTime = performance.now();
+  const startTimeRef = React.useRef<number | null>(null);
   
-  React.useEffect(() => {
-    const endTime = performance.now();
-    const renderTime = endTime - startTime;
-    
-    if (renderTime > 16) { // Longer than 1 frame at 60fps
-      console.warn(`Component ${componentName} render took ${renderTime.toFixed(2)}ms`);
+  // Use useLayoutEffect to measure render time more accurately
+  // This runs synchronously after render but before paint
+  React.useLayoutEffect(() => {
+    if (startTimeRef.current === null) {
+      // First render - just record the time
+      startTimeRef.current = performance.now();
+    } else {
+      // Subsequent renders - measure the time since last render
+      const endTime = performance.now();
+      const renderTime = endTime - startTimeRef.current;
+      
+      if (renderTime > 16) { // Longer than 1 frame at 60fps
+        console.warn(`Component ${componentName} render took ${renderTime.toFixed(2)}ms`);
+      }
+      
+      startTimeRef.current = performance.now();
     }
   });
 }

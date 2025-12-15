@@ -21,14 +21,9 @@ const getBeaufortScale = (windSpeed: number) => {
   return { scale: 12, description: 'Hurricane' };
 };
 
-
-interface WeatherMetricsProps {
-  weatherData: WeatherData | null;
-  loading: boolean;
-}
-
-const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: WeatherMetricsProps) {
-  const LoadingMetric = memo(({ title, width }: { title: string, width: string }) => (
+// Loading component moved outside to avoid creating during render
+const LoadingMetric = memo(function LoadingMetric({ title, width }: { title: string, width: string }) {
+  return (
     <div className="p-3 md:p-4 bg-black/10 rounded-lg md:rounded-xl">
       <div className="flex items-center justify-between gap-2 md:gap-3">
         <div>
@@ -37,24 +32,36 @@ const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: We
         </div>
       </div>
     </div>
-  ));
-  LoadingMetric.displayName = 'LoadingMetric';
+  );
+});
+LoadingMetric.displayName = 'LoadingMetric';
+
+interface WeatherMetricsProps {
+  weatherData: WeatherData | null;
+  loading: boolean;
+}
+
+const WeatherMetrics = memo(function WeatherMetrics({ weatherData, loading }: WeatherMetricsProps) {
+
+  // Extract values for dependency arrays to match what's actually accessed
+  const windSpeed = weatherData?.currentWeather?.wind?.speed;
+  const uvIndexValue = weatherData?.currentWeather?.uvIndex?.value;
 
   // Memoize computed values
   const beaufortData = useMemo(() => {
-    if (!weatherData?.currentWeather?.wind?.speed) return null;
-    return getBeaufortScale(weatherData.currentWeather.wind.speed);
-  }, [weatherData?.currentWeather?.wind?.speed]);
+    if (!windSpeed) return null;
+    return getBeaufortScale(windSpeed);
+  }, [windSpeed]);
 
   const windIcon = useMemo(() => {
-    if (!weatherData?.currentWeather?.wind?.speed) return '';
-    return getWindBeaufortIcon(weatherData.currentWeather.wind.speed);
-  }, [weatherData?.currentWeather?.wind?.speed]);
+    if (!windSpeed) return '';
+    return getWindBeaufortIcon(windSpeed);
+  }, [windSpeed]);
 
   const uvIcon = useMemo(() => {
-    if (!weatherData?.currentWeather?.uvIndex?.value) return '';
-    return getUVIndexIcon(weatherData.currentWeather.uvIndex.value);
-  }, [weatherData?.currentWeather?.uvIndex?.value]);
+    if (!uvIndexValue) return '';
+    return getUVIndexIcon(uvIndexValue);
+  }, [uvIndexValue]);
 
   if (loading) {
     return (

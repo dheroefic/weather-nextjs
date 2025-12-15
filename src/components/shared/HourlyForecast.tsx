@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, memo } from 'react';
+import { useState, useEffect, useRef, useMemo, memo, startTransition } from 'react';
 import Image from 'next/image';
 import { WeatherData, TemperatureUnit } from '@/types/weather';
 import { getUVIndexIcon } from '@/services/weatherService';
@@ -12,18 +12,9 @@ interface HourlyForecastProps {
   convertTemp: (temp: number, unit: TemperatureUnit) => number;
 }
 
-const HourlyForecast = memo(function HourlyForecast({
-  weatherData,
-  loading,
-  tempUnit,
-  convertTemp
-}: HourlyForecastProps) {
-  const [selectedHour, setSelectedHour] = useState<number | null>(null);
-  const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const hourElementsRef = useRef<(HTMLDivElement | null)[]>([]);
-  
-  const LoadingHourlyForecast = memo(() => (
+// Loading component moved outside to avoid creating during render
+const LoadingHourlyForecast = memo(function LoadingHourlyForecast() {
+  return (
     <div className="overflow-x-auto pb-4">
       <div className="inline-flex gap-4 md:gap-5">
         {Array.from({ length: 24 }).map((_, index) => (
@@ -38,21 +29,36 @@ const HourlyForecast = memo(function HourlyForecast({
         ))}
       </div>
     </div>
-  ));
-  LoadingHourlyForecast.displayName = 'LoadingHourlyForecast';
+  );
+});
+LoadingHourlyForecast.displayName = 'LoadingHourlyForecast';
+
+const HourlyForecast = memo(function HourlyForecast({
+  weatherData,
+  loading,
+  tempUnit,
+  convertTemp
+}: HourlyForecastProps) {
+  const [selectedHour, setSelectedHour] = useState<number | null>(null);
+  const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const hourElementsRef = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Extract hourlyForecast for dependency array to avoid null access
+  const hourlyForecast = weatherData?.hourlyForecast;
 
   // Memoize filtered hourly forecast data for better performance
   const currentDayHourlyForecast = useMemo(() => {
-    if (!weatherData?.hourlyForecast) return [];
+    if (!hourlyForecast) return [];
     
-    return weatherData.hourlyForecast.filter(hour => {
+    return hourlyForecast.filter(hour => {
       const hourDate = new Date(hour.time);
       const today = new Date();
       return hourDate.getDate() === today.getDate() &&
              hourDate.getMonth() === today.getMonth() &&
              hourDate.getFullYear() === today.getFullYear();
     });
-  }, [weatherData?.hourlyForecast]);
+  }, [hourlyForecast]);
 
   // Auto-expand the next hour when component first loads
   useEffect(() => {
@@ -67,15 +73,17 @@ const HourlyForecast = memo(function HourlyForecast({
         return hourTime.getHours() === nextHour.getHours();
       });
       
-      // If we found the next hour, auto-select it
-      if (nextHourIndex !== -1) {
-        setSelectedHour(nextHourIndex);
-      } else if (currentDayHourlyForecast.length > 0) {
-        // Fallback: select the first available hour if next hour not found
-        setSelectedHour(0);
-      }
-      
-      setHasAutoExpanded(true);
+      // Use startTransition to avoid calling setState synchronously in effect
+      startTransition(() => {
+        // If we found the next hour, auto-select it
+        if (nextHourIndex !== -1) {
+          setSelectedHour(nextHourIndex);
+        } else if (currentDayHourlyForecast.length > 0) {
+          // Fallback: select the first available hour if next hour not found
+          setSelectedHour(0);
+        }
+        setHasAutoExpanded(true);
+      });
     }
   }, [loading, hasAutoExpanded, currentDayHourlyForecast]);
 

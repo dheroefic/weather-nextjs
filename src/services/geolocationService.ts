@@ -193,7 +193,7 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
     return Promise.resolve(cached);
   }
 
-  return new Promise(async (resolve) => {
+  return new Promise((resolve) => {
     // Add a timeout to prevent hanging
     const timeoutId = setTimeout(() => {
       resolve({
@@ -203,14 +203,15 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
       });
     }, 5000); // 5 second timeout
 
-    try {
-      if (!isClient()) {
-        clearTimeout(timeoutId);
-        throw new Error('Reverse geocoding can only be performed in browser environment');
-      }
+    (async () => {
+      try {
+        if (!isClient()) {
+          clearTimeout(timeoutId);
+          throw new Error('Reverse geocoding can only be performed in browser environment');
+        }
 
-      // Use the Next.js API route instead of direct external API call to avoid CORS
-      const apiUrl = new URL('/api/geocoding', window.location.origin);
+        // Use the Next.js API route instead of direct external API call to avoid CORS
+        const apiUrl = new URL('/api/geocoding', window.location.origin);
       apiUrl.searchParams.append('latitude', coordinates.latitude.toString());
       apiUrl.searchParams.append('longitude', coordinates.longitude.toString());
       apiUrl.searchParams.append('language', 'en');
@@ -222,56 +223,57 @@ export function reverseGeocode(coordinates: Coordinates): Promise<GeolocationRes
         throw new Error('Geocoding API key not configured');
       }
 
-      const response = await fetch(apiUrl.toString(), {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        signal: AbortSignal.timeout(4000) // 4 second fetch timeout
-      });
+        const response = await fetch(apiUrl.toString(), {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(4000) // 4 second fetch timeout
+        });
 
-      if (!response.ok) {
-        clearTimeout(timeoutId);
-        throw new Error('Failed to fetch location data');
-      }
-
-      const data = await response.json();
-      
-      // Handle the response format from our Supabase-based geocoding API
-      const firstResult = data.results?.[0];
-      if (!firstResult) {
-        clearTimeout(timeoutId);
-        throw new Error('No geocoding results found');
-      }
-
-      const city = firstResult.sub_region_name || firstResult.name || 'Unknown City';
-      const country = firstResult.country_name || 'Unknown Country';
-
-      const result = {
-        success: true,
-        data: {
-          city,
-          country,
-          coordinates: {
-            latitude: coordinates.latitude,
-            longitude: coordinates.longitude
-          }
+          if (!response.ok) {
+          clearTimeout(timeoutId);
+          throw new Error('Failed to fetch location data');
         }
-      };
-      
-      // Cache in both the old cache and new boundary-based cache
-      setInCache(cacheKey, result);
-      cacheGeocodingResult(coordinates.latitude, coordinates.longitude, city, country);
-      
-      clearTimeout(timeoutId);
-      resolve(result);
-    } catch (error) {
-      clearTimeout(timeoutId);
-      resolve({
-        success: false,
-        data: null,
-        error: error instanceof Error ? error.message : 'Failed to reverse geocode coordinates'
-      });
-    }
+
+        const data = await response.json();
+        
+        // Handle the response format from our Supabase-based geocoding API
+        const firstResult = data.results?.[0];
+        if (!firstResult) {
+          clearTimeout(timeoutId);
+          throw new Error('No geocoding results found');
+        }
+
+        const city = firstResult.sub_region_name || firstResult.name || 'Unknown City';
+        const country = firstResult.country_name || 'Unknown Country';
+
+        const result = {
+          success: true,
+          data: {
+            city,
+            country,
+            coordinates: {
+              latitude: coordinates.latitude,
+              longitude: coordinates.longitude
+            }
+          }
+        };
+        
+        // Cache in both the old cache and new boundary-based cache
+        setInCache(cacheKey, result);
+        cacheGeocodingResult(coordinates.latitude, coordinates.longitude, city, country);
+        
+        clearTimeout(timeoutId);
+        resolve(result);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        resolve({
+          success: false,
+          data: null,
+          error: error instanceof Error ? error.message : 'Failed to reverse geocode coordinates'
+        });
+      }
+    })();
   });
 }

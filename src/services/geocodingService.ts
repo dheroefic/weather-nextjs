@@ -72,7 +72,7 @@ export class GeocodingService {
           coordinates: unknown
         };
         switch (geo.type) {
-          case 'Point':
+          case 'Point': {
             const pointCoords = geo.coordinates as number[];
             if (Array.isArray(pointCoords) && pointCoords.length >= 2) {
               return {
@@ -81,7 +81,8 @@ export class GeocodingService {
               };
             }
             break;
-          case 'Polygon':
+          }
+          case 'Polygon': {
             const polygonCoords = geo.coordinates as number[][][];
             if (
               Array.isArray(polygonCoords) &&
@@ -94,7 +95,8 @@ export class GeocodingService {
               };
             }
             break;
-          case 'MultiPolygon':
+          }
+          case 'MultiPolygon': {
             const multiPolygonCoords = geo.coordinates as number[][][][];
             if (
               Array.isArray(multiPolygonCoords) &&
@@ -108,6 +110,7 @@ export class GeocodingService {
               };
             }
             break;
+          }
         }
       }
 

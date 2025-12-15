@@ -10,7 +10,7 @@ async function createRootApiKey() {
   // Load environment variables from .env.local if available
   try {
     require('dotenv').config({ path: '.env.local' });
-  } catch (e) {
+  } catch {
     // dotenv not available, continue
   }
 

@@ -5,7 +5,8 @@ import React, {
   useEffect,
   useRef,
   memo,
-  useCallback
+  useCallback,
+  startTransition
 } from 'react';
 import Image from 'next/image';
 import type { ForecastDay, TemperatureUnit, WeatherData } from '@/types/weather';
@@ -35,11 +36,17 @@ const DetailPanel = memo(function DetailPanel({
   useEffect(() => {
     if (selectedDay) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      setIsVisible(true);
       panelRef.current?.scrollTo({ top: 0 });
-      setSelectedHour(null);
+      // Use startTransition to avoid calling setState synchronously in effect
+      startTransition(() => {
+        setSelectedHour(null);
+        setIsVisible(true);
+      });
     } else {
-      setIsVisible(false);
+      // Use startTransition for the else case as well
+      startTransition(() => {
+        setIsVisible(false);
+      });
     }
   }, [selectedDay]);
 

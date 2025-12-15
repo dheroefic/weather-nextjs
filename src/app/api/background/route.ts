@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
       }
     },
     {
-      allowPublic: true,
+      requireAuth: true, // Require API key authentication
       rateLimitConfig: 'background',
     }
   );
